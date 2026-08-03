@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "588168780582",
+    "project_id": "matrimony-app-f8226",
+    "storage_bucket": "matrimony-app-f8226.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588168780582:android:9547738b978ba8cb37bfe7",
+        "android_client_info": {
+          "package_name": "com.example.matrimony_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYKcgNdF7yA2ou-e8IuBPo-gTDMkxIfXs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
