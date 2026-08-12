@@ -1,0 +1,98 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'user.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
+  id: json['_id'] as String,
+  email: json['email'] as String?,
+  phone: json['phone'] as String?,
+  accountType: json['accountType'] as String?,
+  fullName: json['fullName'] as String?,
+  gender: json['gender'] as String?,
+  age: (json['age'] as num?)?.toInt(),
+  dob: json['dob'] == null ? null : DateTime.parse(json['dob'] as String),
+  religion: json['religion'] as String?,
+  caste: json['caste'] as String?,
+  maritalStatus: json['maritalStatus'] as String?,
+  bloodGroup: json['bloodGroup'] as String?,
+  address: json['address'] as String?,
+  hobbies: (json['hobbies'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  rashi: json['rashi'] as String?,
+  nakshatra: json['nakshatra'] as String?,
+  manglik: json['manglik'] as bool?,
+  qualification: json['qualification'] as String?,
+  occupation: json['occupation'] as String?,
+  annualIncome: json['annualIncome'] as String?,
+  country: json['country'] as String?,
+  state: json['state'] as String?,
+  city: json['city'] as String?,
+  languages: (json['languages'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  fatherName: json['fatherName'] as String?,
+  motherName: json['motherName'] as String?,
+  siblings: (json['siblings'] as num?)?.toInt(),
+  familyType: json['familyType'] as String?,
+  familyStatus: json['familyStatus'] as String?,
+  nativePlace: json['nativePlace'] as String?,
+  aboutFamily: json['aboutFamily'] as String?,
+  aadharNumber: json['aadharNumber'] as String?,
+  aadharCardUrl: json['aadharCardUrl'] as String?,
+  casteCertificateUrl: json['casteCertificateUrl'] as String?,
+  casteCertificateName: json['casteCertificateName'] as String?,
+  photos: (json['photos'] as List<dynamic>?)?.map((e) => e as String).toList(),
+  profileCompleted: json['profileCompleted'] as bool,
+  isVerified: json['isVerified'] as bool,
+  isPremium: json['isPremium'] as bool,
+  role: json['role'] as String,
+);
+
+Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
+    <String, dynamic>{
+      '_id': instance.id,
+      'email': instance.email,
+      'phone': instance.phone,
+      'accountType': instance.accountType,
+      'fullName': instance.fullName,
+      'gender': instance.gender,
+      'age': instance.age,
+      'dob': instance.dob?.toIso8601String(),
+      'religion': instance.religion,
+      'caste': instance.caste,
+      'maritalStatus': instance.maritalStatus,
+      'bloodGroup': instance.bloodGroup,
+      'address': instance.address,
+      'hobbies': instance.hobbies,
+      'rashi': instance.rashi,
+      'nakshatra': instance.nakshatra,
+      'manglik': instance.manglik,
+      'qualification': instance.qualification,
+      'occupation': instance.occupation,
+      'annualIncome': instance.annualIncome,
+      'country': instance.country,
+      'state': instance.state,
+      'city': instance.city,
+      'languages': instance.languages,
+      'fatherName': instance.fatherName,
+      'motherName': instance.motherName,
+      'siblings': instance.siblings,
+      'familyType': instance.familyType,
+      'familyStatus': instance.familyStatus,
+      'nativePlace': instance.nativePlace,
+      'aboutFamily': instance.aboutFamily,
+      'aadharNumber': instance.aadharNumber,
+      'aadharCardUrl': instance.aadharCardUrl,
+      'casteCertificateUrl': instance.casteCertificateUrl,
+      'casteCertificateName': instance.casteCertificateName,
+      'photos': instance.photos,
+      'profileCompleted': instance.profileCompleted,
+      'isVerified': instance.isVerified,
+      'isPremium': instance.isPremium,
+      'role': instance.role,
+    };

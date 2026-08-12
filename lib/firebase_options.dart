@@ -57,7 +57,6 @@ class DefaultFirebaseOptions {
     projectId: 'matrimony-app-f8226',
     storageBucket: 'matrimony-app-f8226.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyB0jMiaOsGP2gkOxuxMKHcwLzeMtoXIwdY',
     appId: '1:588168780582:ios:02afc0eb26748fc237bfe7',
@@ -66,7 +65,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'matrimony-app-f8226.firebasestorage.app',
     iosBundleId: 'com.example.matrimonyApp',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyB0jMiaOsGP2gkOxuxMKHcwLzeMtoXIwdY',
     appId: '1:588168780582:ios:02afc0eb26748fc237bfe7',
