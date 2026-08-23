@@ -879,8 +879,9 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             decoration: const InputDecoration(hintText: 'Enter email id'),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Email is required';
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val.trim())) {
-                return 'Please enter a valid email address';
+              if (!val.contains('@')) return 'Email must contain @';
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+com$', caseSensitive: false).hasMatch(val.trim())) {
+                return 'Please enter a valid email ending with .com';
               }
               return null;
             },
@@ -895,6 +896,8 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             validator: (val) {
               if (val == null || val.isEmpty) return 'Password is required';
               if (val.length < 8) return 'Password must be at least 8 characters';
+              if (!RegExp(r'[A-Z]').hasMatch(val)) return 'Password must contain at least 1 uppercase letter';
+              if (!RegExp(r'[a-z]').hasMatch(val)) return 'Password must contain at least 1 lowercase letter';
               return null;
             },
           ),
@@ -2363,27 +2366,16 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           onPressed: !_isConfirmEnabled(regState)
               ? null
               : () async {
-                  final isAuthenticated = ref.read(authControllerProvider).isAuthenticated;
                   final success = await ref.read(registrationControllerProvider.notifier).submit();
                   if (success && mounted) {
-                    if (isAuthenticated) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profile Updated Successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                      ref.read(homeControllerProvider.notifier).setBottomTab(3);
-                      context.go('/home');
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profile Created Successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                      context.go('/login');
-                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Profile Created Successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    ref.read(homeControllerProvider.notifier).setBottomTab(0);
+                    context.go('/home');
                   }
                 },
           style: ElevatedButton.styleFrom(

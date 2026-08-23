@@ -1,5 +1,33 @@
 import 'document_model.dart';
 
+String _asStr(dynamic val, [String fallback = '']) {
+  if (val == null) return fallback;
+  if (val is bool) return val ? 'Yes' : 'No';
+  return val.toString();
+}
+
+int _asInt(dynamic val, [int fallback = 0]) {
+  if (val == null) return fallback;
+  if (val is int) return val;
+  if (val is double) return val.toInt();
+  if (val is String) return int.tryParse(val) ?? fallback;
+  return fallback;
+}
+
+String _parseDob(dynamic dobVal, dynamic birthDateVal) {
+  if (dobVal != null) {
+    final str = dobVal.toString();
+    if (str.contains('T')) {
+      final dt = DateTime.tryParse(str);
+      if (dt != null) {
+        return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+      }
+    }
+    if (str.isNotEmpty) return str;
+  }
+  return _asStr(birthDateVal);
+}
+
 class ProfileModel {
   // Profile ID & Summary
   final String profileId;
@@ -136,95 +164,8 @@ class ProfileModel {
     required this.documents,
   });
 
-  /// Reference initial data matching the exact user seed specs
   factory ProfileModel.referenceInitial() {
-    return const ProfileModel(
-      profileId: 'HK65425',
-      fullName: 'Hritik Kulkarni',
-      age: 27,
-      aboutMe:
-          'Born into a close-knit joint family from Jaipur, I value our Marwari traditions and seek a partner who respects cultural roots. As a Chartered Accountant by profession, I balance work with temple visits and family time. An adventurous soul who’s as...',
-      tag: 'MODIFYING',
-      photos: [
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500',
-        'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
-      ],
-      birthDate: '13/02/1998',
-      workPlace: 'Chennai, Tamil Nadu',
-      homePlace: 'Kochi, Kerala',
-      maritalStatus: 'Divorced',
-      income: '₹7,20,000 LPA',
-      village: 'Manchar',
-      state: 'Kerala',
-      pincode: '23456',
-      occupation: 'Software Engineer',
-      children: 0,
-      complexion: 'Fair',
-      bodyType: 'Slim',
-      diet: 'Vegan',
-      specialCase: 'No',
-      drinkingSmoking: 'No',
-      motherTongue: 'Marathi',
-      phone: '1234567890',
-      altPhone: '0987654321',
-      email: 'Kavya123@gmail.com',
-      hobbies: ['Painting', 'cooking', 'dancing'],
-      religion: 'Kunbi, Maratha',
-      agriLand: '5 Acres',
-      weight: '60 kg',
-      height: '5.11 ft',
-      caste: 'Hindu',
-      highestEdu: 'MBA',
-      profession: 'Software Engineer',
-      university: 'SBVB Institute Research',
-      organization: 'Smart Matrix Pvt Ltd',
-      companyAddress: 'No',
-      eduField: 'IT',
-      designation: 'Senior Software Eng',
-      birthTime: '4:30 pm',
-      rashi: 'Swati Nair',
-      charan: '2',
-      nakshatra: 'Megha',
-      placeOfBirth: 'Manchar',
-      gotra: 'Bhardwaj',
-      manglik: 'No',
-      gan: 'Rakshasa',
-      partnerPriority: 'High',
-      fatherName: 'Vishwanath Nair',
-      motherName: 'Swati Nair',
-      brothers: 'No',
-      maternalUncle: 'Anil Kesur',
-      unclePhone: '1234567890',
-      fatherEdu: 'IT',
-      motherOcc: 'Housewife',
-      sisters: '2',
-      familyType: 'Nuclear',
-      familyValues: 'Moderate',
-      marriedSister: '1',
-      uncleName: 'Rupesh Nair',
-      documents: [
-        DocumentModel(
-          id: 'doc_aadhaar',
-          title: 'Aadhaar Card',
-          type: 'aadhaar',
-          status: 'verified',
-        ),
-        DocumentModel(
-          id: 'doc_pan',
-          title: 'Pan Card',
-          type: 'pan',
-          status: 'verified',
-        ),
-        DocumentModel(
-          id: 'doc_photos',
-          title: 'Profile Photos',
-          type: 'photos',
-          status: 'verified',
-        ),
-      ],
-    );
+    return ProfileModel.empty();
   }
 
   ProfileModel copyWith({
@@ -354,26 +295,112 @@ class ProfileModel {
   }
 
   double calculateCompletionPercentage() {
-    return 55.0; // Standard score matching reference design
+    int total = 10;
+    int filled = 0;
+    if (fullName.trim().isNotEmpty) filled++;
+    if (age > 0) filled++;
+    if (photos.isNotEmpty) filled++;
+    if (maritalStatus.trim().isNotEmpty) filled++;
+    if (occupation.trim().isNotEmpty || profession.trim().isNotEmpty) filled++;
+    if (religion.trim().isNotEmpty) filled++;
+    if (caste.trim().isNotEmpty) filled++;
+    if (workPlace.trim().isNotEmpty || homePlace.trim().isNotEmpty || state.trim().isNotEmpty) filled++;
+    if (highestEdu.trim().isNotEmpty) filled++;
+    if (aboutMe.trim().isNotEmpty) filled++;
+
+    final pct = (filled / total) * 100;
+    return pct < 10.0 && fullName.isNotEmpty ? 40.0 : (pct == 0 ? 0.0 : pct);
+  }
+
+  factory ProfileModel.empty() {
+    return const ProfileModel(
+      profileId: '',
+      fullName: '',
+      age: 0,
+      aboutMe: '',
+      tag: '',
+      photos: [],
+      birthDate: '',
+      workPlace: '',
+      homePlace: '',
+      maritalStatus: '',
+      income: '',
+      village: '',
+      state: '',
+      pincode: '',
+      occupation: '',
+      children: 0,
+      complexion: '',
+      bodyType: '',
+      diet: '',
+      specialCase: '',
+      drinkingSmoking: '',
+      motherTongue: '',
+      phone: '',
+      altPhone: '',
+      email: '',
+      hobbies: [],
+      religion: '',
+      agriLand: '',
+      weight: '',
+      height: '',
+      caste: '',
+      highestEdu: '',
+      profession: '',
+      university: '',
+      organization: '',
+      companyAddress: '',
+      eduField: '',
+      designation: '',
+      birthTime: '',
+      rashi: '',
+      charan: '',
+      nakshatra: '',
+      placeOfBirth: '',
+      gotra: '',
+      manglik: '',
+      gan: '',
+      partnerPriority: '',
+      fatherName: '',
+      motherName: '',
+      brothers: '',
+      maternalUncle: '',
+      unclePhone: '',
+      fatherEdu: '',
+      motherOcc: '',
+      sisters: '',
+      familyType: '',
+      familyValues: '',
+      marriedSister: '',
+      uncleName: '',
+      documents: [],
+    );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'profileId': profileId,
       'fullName': fullName,
+      'name': fullName,
       'age': age,
       'aboutMe': aboutMe,
+      'about': aboutMe,
       'tag': tag,
       'photos': photos,
       'birthDate': birthDate,
+      'dob': birthDate,
       'workPlace': workPlace,
+      'workLocation': workPlace,
       'homePlace': homePlace,
+      'nativePlace': homePlace,
       'maritalStatus': maritalStatus,
       'income': income,
+      'annualIncome': income,
       'village': village,
       'state': state,
       'pincode': pincode,
       'occupation': occupation,
+      'profession': profession.isNotEmpty ? profession : occupation,
       'children': children,
       'complexion': complexion,
       'bodyType': bodyType,
@@ -391,7 +418,7 @@ class ProfileModel {
       'height': height,
       'caste': caste,
       'highestEdu': highestEdu,
-      'profession': profession,
+      'qualification': highestEdu,
       'university': university,
       'organization': organization,
       'companyAddress': companyAddress,
@@ -403,7 +430,7 @@ class ProfileModel {
       'nakshatra': nakshatra,
       'placeOfBirth': placeOfBirth,
       'gotra': gotra,
-      'manglik': manglik,
+      'manglik': manglik.toLowerCase() == 'yes' || manglik.toLowerCase() == 'true',
       'gan': gan,
       'partnerPriority': partnerPriority,
       'fatherName': fatherName,
@@ -424,65 +451,65 @@ class ProfileModel {
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
     return ProfileModel(
-      profileId: json['profileId'] as String? ?? 'HK65425',
-      fullName: json['fullName'] as String? ?? 'Hritik Kulkarni',
-      age: json['age'] as int? ?? 27,
-      aboutMe: json['aboutMe'] as String? ?? '',
-      tag: json['tag'] as String? ?? 'MODIFYING',
+      profileId: _asStr(json['profileId'] ?? json['id'] ?? json['_id']),
+      fullName: _asStr(json['fullName'] ?? json['name']),
+      age: _asInt(json['age']),
+      aboutMe: _asStr(json['aboutMe'] ?? json['about']),
+      tag: _asStr(json['tag'], 'MODIFYING'),
       photos: (json['photos'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      birthDate: json['birthDate'] as String? ?? '',
-      workPlace: json['workPlace'] as String? ?? '',
-      homePlace: json['homePlace'] as String? ?? '',
-      maritalStatus: json['maritalStatus'] as String? ?? '',
-      income: json['income'] as String? ?? '',
-      village: json['village'] as String? ?? '',
-      state: json['state'] as String? ?? '',
-      pincode: json['pincode'] as String? ?? '',
-      occupation: json['occupation'] as String? ?? '',
-      children: json['children'] as int? ?? 0,
-      complexion: json['complexion'] as String? ?? '',
-      bodyType: json['bodyType'] as String? ?? '',
-      diet: json['diet'] as String? ?? '',
-      specialCase: json['specialCase'] as String? ?? '',
-      drinkingSmoking: json['drinkingSmoking'] as String? ?? '',
-      motherTongue: json['motherTongue'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
-      altPhone: json['altPhone'] as String? ?? '',
-      email: json['email'] as String? ?? '',
+      birthDate: _parseDob(json['dob'], json['birthDate']),
+      workPlace: _asStr(json['workPlace'] ?? json['workLocation'] ?? json['city']),
+      homePlace: _asStr(json['homePlace'] ?? json['nativePlace'] ?? json['address']),
+      maritalStatus: _asStr(json['maritalStatus']),
+      income: _asStr(json['income'] ?? json['annualIncome']),
+      village: _asStr(json['village']),
+      state: _asStr(json['state']),
+      pincode: _asStr(json['pincode']),
+      occupation: _asStr(json['occupation'] ?? json['profession']),
+      children: _asInt(json['children']),
+      complexion: _asStr(json['complexion']),
+      bodyType: _asStr(json['bodyType']),
+      diet: _asStr(json['diet']),
+      specialCase: _asStr(json['specialCase']),
+      drinkingSmoking: _asStr(json['drinkingSmoking']),
+      motherTongue: _asStr(json['motherTongue']),
+      phone: _asStr(json['phone']),
+      altPhone: _asStr(json['altPhone']),
+      email: _asStr(json['email']),
       hobbies: (json['hobbies'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      religion: json['religion'] as String? ?? '',
-      agriLand: json['agriLand'] as String? ?? '',
-      weight: json['weight'] as String? ?? '',
-      height: json['height'] as String? ?? '',
-      caste: json['caste'] as String? ?? '',
-      highestEdu: json['highestEdu'] as String? ?? '',
-      profession: json['profession'] as String? ?? '',
-      university: json['university'] as String? ?? '',
-      organization: json['organization'] as String? ?? '',
-      companyAddress: json['companyAddress'] as String? ?? '',
-      eduField: json['eduField'] as String? ?? '',
-      designation: json['designation'] as String? ?? '',
-      birthTime: json['birthTime'] as String? ?? '',
-      rashi: json['rashi'] as String? ?? '',
-      charan: json['charan'] as String? ?? '',
-      nakshatra: json['nakshatra'] as String? ?? '',
-      placeOfBirth: json['placeOfBirth'] as String? ?? '',
-      gotra: json['gotra'] as String? ?? '',
-      manglik: json['manglik'] as String? ?? '',
-      gan: json['gan'] as String? ?? '',
-      partnerPriority: json['partnerPriority'] as String? ?? 'High',
-      fatherName: json['fatherName'] as String? ?? '',
-      motherName: json['motherName'] as String? ?? '',
-      brothers: json['brothers'] as String? ?? '',
-      maternalUncle: json['maternalUncle'] as String? ?? '',
-      unclePhone: json['unclePhone'] as String? ?? '',
-      fatherEdu: json['fatherEdu'] as String? ?? '',
-      motherOcc: json['motherOcc'] as String? ?? '',
-      sisters: json['sisters'] as String? ?? '',
-      familyType: json['familyType'] as String? ?? '',
-      familyValues: json['familyValues'] as String? ?? '',
-      marriedSister: json['marriedSister'] as String? ?? '',
-      uncleName: json['uncleName'] as String? ?? '',
+      religion: _asStr(json['religion']),
+      agriLand: _asStr(json['agriLand']),
+      weight: _asStr(json['weight']),
+      height: _asStr(json['height']),
+      caste: _asStr(json['caste']),
+      highestEdu: _asStr(json['highestEdu'] ?? json['qualification']),
+      profession: _asStr(json['profession'] ?? json['occupation']),
+      university: _asStr(json['university']),
+      organization: _asStr(json['organization']),
+      companyAddress: _asStr(json['companyAddress']),
+      eduField: _asStr(json['eduField']),
+      designation: _asStr(json['designation']),
+      birthTime: _asStr(json['birthTime']),
+      rashi: _asStr(json['rashi']),
+      charan: _asStr(json['charan']),
+      nakshatra: _asStr(json['nakshatra']),
+      placeOfBirth: _asStr(json['placeOfBirth']),
+      gotra: _asStr(json['gotra']),
+      manglik: _asStr(json['manglik']),
+      gan: _asStr(json['gan']),
+      partnerPriority: _asStr(json['partnerPriority'], 'High'),
+      fatherName: _asStr(json['fatherName']),
+      motherName: _asStr(json['motherName']),
+      brothers: _asStr(json['brothers']),
+      maternalUncle: _asStr(json['maternalUncle']),
+      unclePhone: _asStr(json['unclePhone']),
+      fatherEdu: _asStr(json['fatherEdu']),
+      motherOcc: _asStr(json['motherOcc']),
+      sisters: _asStr(json['sisters']),
+      familyType: _asStr(json['familyType']),
+      familyValues: _asStr(json['familyValues']),
+      marriedSister: _asStr(json['marriedSister']),
+      uncleName: _asStr(json['uncleName']),
       documents: (json['documents'] as List<dynamic>?)
               ?.map((d) => DocumentModel.fromJson(d as Map<String, dynamic>))
               .toList() ??

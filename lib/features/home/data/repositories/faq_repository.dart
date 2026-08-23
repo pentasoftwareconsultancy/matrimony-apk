@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/models/faq_model.dart';
 import '../services/faq_service.dart';
 
@@ -62,9 +63,10 @@ class FAQRepositoryImpl implements FAQRepository {
     }).toList();
   }
 }
-
+ 
 final faqServiceProvider = Provider<FAQService>((ref) {
-  return FAQService();
+  final apiClient = ref.watch(apiClientProvider);
+  return FAQService(apiClient);
 });
 
 final faqRepositoryProvider = Provider<FAQRepository>((ref) {

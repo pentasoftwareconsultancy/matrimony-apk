@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/secure_storage_service.dart';
 import '../../domain/models/user.dart';
 
 abstract class AuthRepository {
-  Future<void> login({String? email, String? phoneNumber});
+  Future<Map<String, dynamic>> login({required String email, required String password});
   Future<bool> checkUser(String identifier);
   Future<void> sendOTP({String? email, String? phoneNumber});
   Future<Map<String, dynamic>> verifyOTP({String? email, String? phoneNumber, required String code});
@@ -20,34 +20,53 @@ abstract class AuthRepository {
 }
 
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl();
+  final ApiClient _apiClient;
+  final SecureStorageService _secureStorage;
+
+  AuthRepositoryImpl(this._apiClient, this._secureStorage);
 
   @override
-  Future<void> login({String? email, String? phoneNumber}) async {
-    return;
+  Future<Map<String, dynamic>> login({required String email, required String password}) async {
+    final response = await _apiClient.post('/auth/login', data: {
+      'email': email,
+      'password': password,
+    });
+    final resData = response.data['data'] as Map<String, dynamic>;
+    final token = resData['token'] as String;
+    final userMap = resData['user'] as Map<String, dynamic>;
+
+    await _secureStorage.saveToken(token);
+    final user = User.fromJson(userMap);
+
+    return {
+      'user': user,
+      'token': token,
+    };
   }
 
   @override
   Future<bool> checkUser(String identifier) async {
-    final prefs = await SharedPreferences.getInstance();
-    final registeredPhone = prefs.getString('registeredPhone') ?? '';
-    final registeredEmail = prefs.getString('registeredEmail') ?? '';
-    
-    final normalized = identifier.trim().toLowerCase();
-    final is10Digits = RegExp(r'^\d{10}$').hasMatch(normalized);
-    final isValidEmail = RegExp(r'^[\w-\.]+@([\w-]+\.)+com$').hasMatch(normalized);
-
-    if (is10Digits || isValidEmail || normalized == '9876543210' || normalized == 'demo@soyarik.com') {
-      return true;
+    try {
+      final response = await _apiClient.post('/auth/check-user', data: {
+        'identifier': identifier,
+      });
+      final data = response.data['data'] as Map<String, dynamic>?;
+      return data?['exists'] ?? false;
+    } catch (_) {
+      // Fallback validation check
+      final normalized = identifier.trim().toLowerCase();
+      final is10Digits = RegExp(r'^\d{10}$').hasMatch(normalized);
+      final isValidEmail = RegExp(r'^[\w-\.]+@([\w-]+\.)+com$').hasMatch(normalized);
+      return is10Digits || isValidEmail;
     }
-    
-    return normalized == registeredPhone.trim().toLowerCase() ||
-           normalized == registeredEmail.trim().toLowerCase();
   }
 
   @override
   Future<void> sendOTP({String? email, String? phoneNumber}) async {
-    return;
+    await _apiClient.post('/auth/send-otp', data: {
+      if (email != null && email.isNotEmpty) 'email': email,
+      if (phoneNumber != null && phoneNumber.isNotEmpty) 'phone': phoneNumber,
+    });
   }
 
   @override
@@ -56,127 +75,39 @@ class AuthRepositoryImpl implements AuthRepository {
     String? phoneNumber,
     required String code,
   }) async {
-    if (code != '123456') {
-      throw Exception('Invalid OTP');
-    }
+    final response = await _apiClient.post('/auth/verify-otp', data: {
+      if (email != null && email.isNotEmpty) 'email': email,
+      if (phoneNumber != null && phoneNumber.isNotEmpty) 'phoneNumber': phoneNumber,
+      'code': code,
+    });
 
-    final prefs = await SharedPreferences.getInstance();
-    final input = (email ?? phoneNumber ?? '').trim().toLowerCase();
-    final isDemo = input == '9876543210' || input == 'demo@soyarik.com';
+    final resData = response.data['data'] as Map<String, dynamic>;
+    final token = resData['token'] as String;
+    final userMap = resData['user'] as Map<String, dynamic>;
 
-    String? profileJsonStr = prefs.getString('profile');
-    
-    if (profileJsonStr == null && isDemo) {
-      // Initialize default demo profile
-      final Map<String, dynamic> demoMap = {
-        '_id': 'dummy_demo_id',
-        'email': 'demo@soyarik.com',
-        'phone': '9876543210',
-        'fullName': 'Aaradhya Sharma',
-        'accountType': 'Self',
-        'gender': 'Female',
-        'dob': DateTime(1997, 3, 14).toIso8601String(),
-        'age': 27,
-        'religion': 'Hindu',
-        'caste': 'Brahmin',
-        'maritalStatus': 'Single',
-        'bloodGroup': 'B+',
-        'address': 'Pune, Maharashtra, India',
-        'hobbies': ['Coding', 'Trekking', 'Classical Music'],
-        'rashi': 'Mesh',
-        'nakshatra': 'Ashwini',
-        'manglik': false,
-        'qualification': 'B.Tech (Computer Science)',
-        'occupation': 'Software Engineer',
-        'annualIncome': '₹9,00,000 LPA',
-        'country': 'India',
-        'state': 'Maharashtra',
-        'city': 'Pune',
-        'languages': ['English', 'Hindi', 'Marathi'],
-        'fatherName': 'Ramesh Sharma',
-        'motherName': 'Sunita Sharma',
-        'siblings': 1,
-        'familyType': 'Nuclear',
-        'familyStatus': 'Upper Middle Class',
-        'nativePlace': 'Pune',
-        'aboutFamily': 'Simple nuclear family',
-        'aadharNumber': '123456789012',
-        'aadharCardUrl': 'demo_aadhar.pdf',
-        'casteCertificateUrl': 'demo_caste.pdf',
-        'casteCertificateName': 'demo_caste.pdf',
-        'photos': ['https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500'],
-        'profileCompleted': true,
-        'isVerified': true,
-        'isPremium': true,
-        'role': 'user',
-      };
-      await prefs.setString('profile', jsonEncode(demoMap));
-      await prefs.setBool('isRegistered', true);
-      await prefs.setString('registeredPhone', '9876543210');
-      await prefs.setString('registeredEmail', 'demo@soyarik.com');
-      profileJsonStr = jsonEncode(demoMap);
-    }
-
-    if (profileJsonStr == null) {
-      throw Exception('User not registered. Please register first.');
-    }
-
-    final Map<String, dynamic> userMap = jsonDecode(profileJsonStr);
-    final registeredPhone = userMap['phone'] ?? '';
-    final registeredEmail = userMap['email'] ?? '';
-    
-    // Check match
-    if (!isDemo &&
-        input != registeredPhone.trim().toLowerCase() &&
-        input != registeredEmail.trim().toLowerCase()) {
-      throw Exception('User not registered. Please register first.');
-    }
-
+    await _secureStorage.saveToken(token);
     final user = User.fromJson(userMap);
 
     return {
       'user': user,
-      'token': 'mock_token_jwt_123456',
+      'token': token,
     };
   }
 
   @override
   Future<Map<String, dynamic>> registerProfile(Map<String, dynamic> registrationData) async {
-    final prefs = await SharedPreferences.getInstance();
+    final response = await _apiClient.post('/auth/register', data: registrationData);
 
-    await prefs.setBool('isRegistered', true);
-    await prefs.setString('registeredPhone', registrationData['phone'] ?? '');
-    await prefs.setString('registeredEmail', registrationData['email'] ?? '');
-    await prefs.setString('registeredPassword', registrationData['password'] ?? '');
+    final resData = response.data['data'] as Map<String, dynamic>;
+    final token = resData['token'] as String;
+    final userMap = resData['user'] as Map<String, dynamic>;
 
-    final Map<String, dynamic> userMap = {
-      '_id': 'dummy_user_id',
-      ...registrationData,
-      'profileCompleted': true,
-      'isVerified': true,
-      'isPremium': true,
-      'role': 'user',
-    };
-
-    userMap.remove('aadharBytes');
-    userMap.remove('pickedPhotosData');
-    userMap.remove('password');
-    userMap.remove('confirmPassword');
-
-    await prefs.setString('profile', jsonEncode(userMap));
-
-    final List<dynamic> photos = registrationData['photos'] ?? [];
-    await prefs.setStringList('photos', photos.map((p) => p.toString()).toList());
-    await prefs.setString('aadhaar', registrationData['aadharNumber'] ?? '');
-    await prefs.setString('aadharCardName', registrationData['aadharCardName'] ?? '');
-    await prefs.setString('casteCertificateUrl', registrationData['casteCertificateUrl'] ?? '');
-    await prefs.setString('casteCertificateName', registrationData['casteCertificateName'] ?? '');
-
+    await _secureStorage.saveToken(token);
     final user = User.fromJson(userMap);
 
     return {
       'user': user,
-      'token': 'mock_token_jwt_123456',
+      'token': token,
     };
   }
 
@@ -195,23 +126,23 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     }
     return {
-      'aadharUrl': aadharFileName ?? 'mock_aadhar_url_path.pdf',
-      'casteCertificateUrl': casteFileName ?? 'mock_caste_url_path.pdf',
+      'aadharUrl': aadharFileName ?? 'aadhar_doc.pdf',
+      'casteCertificateUrl': casteFileName ?? 'caste_doc.pdf',
       'photoUrls': photoUrls,
     };
   }
 
   @override
   Future<User> getMe() async {
-    final prefs = await SharedPreferences.getInstance();
-    final profileJsonStr = prefs.getString('profile');
-    if (profileJsonStr == null) {
-      throw Exception('Not authenticated');
-    }
-    return User.fromJson(jsonDecode(profileJsonStr));
+    final response = await _apiClient.get('/auth/me');
+    final resData = response.data['data'] as Map<String, dynamic>;
+    final userMap = resData['user'] as Map<String, dynamic>;
+    return User.fromJson(userMap);
   }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepositoryImpl();
+  final apiClient = ref.watch(apiClientProvider);
+  final secureStorage = ref.watch(secureStorageProvider);
+  return AuthRepositoryImpl(apiClient, secureStorage);
 });

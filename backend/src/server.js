@@ -1,15 +1,17 @@
 import app from './app.js';
 import connectDB from './config/db.js';
+import { seedDatabase } from './seed.js';
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
-// Connect to MongoDB Database
-connectDB().then(() => {
-  // Start server after successful DB connection
-  app.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+// Start server immediately on specified port (0.0.0.0)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT} (http://0.0.0.0:${PORT})`);
+
+  // Connect to database asynchronously
+  connectDB().then(async () => {
+    await seedDatabase();
+  }).catch((err) => {
+    console.error('Asynchronous DB connection warning:', err.message);
   });
-}).catch((err) => {
-  console.error('Failed to start server due to database connection error:', err);
-  process.exit(1);
 });

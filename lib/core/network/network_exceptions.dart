@@ -10,38 +10,78 @@ class NetworkException implements Exception {
   String toString() => message;
 
   factory NetworkException.fromDioException(DioException dioException) {
-    String message = 'Unexpected error occurred';
+    String message = 'Something went wrong. Please try again.';
     int? statusCode = dioException.response?.statusCode;
 
     switch (dioException.type) {
-      case DioExceptionType.cancel:
-        message = 'Request to API server was cancelled';
-        break;
       case DioExceptionType.connectionTimeout:
-        message = 'Connection timeout with API server';
-        break;
-      case DioExceptionType.connectionError:
-        message = 'No internet connection';
-        break;
-      case DioExceptionType.receiveTimeout:
-        message = 'Receive timeout in connection with API server';
-        break;
       case DioExceptionType.sendTimeout:
-        message = 'Send timeout in connection with API server';
+      case DioExceptionType.receiveTimeout:
+        message = 'Request timed out. Please try again.';
         break;
+
       case DioExceptionType.badResponse:
         final data = dioException.response?.data;
-        if (data is Map && data.containsKey('message')) {
-          message = data['message'];
+        if (data is Map) {
+          if (data['message'] != null && data['message'].toString().trim().isNotEmpty) {
+            message = data['message'].toString();
+          } else if (data['error'] != null && data['error'].toString().trim().isNotEmpty) {
+            message = data['error'].toString();
+          } else if (data['errors'] is Map) {
+            final errMap = data['errors'] as Map;
+            message = errMap.values.join(', ');
+          } else {
+            message = _getDefaultMessageForStatus(statusCode);
+          }
+        } else if (data is String && data.trim().isNotEmpty) {
+          message = data;
         } else {
-          message = 'Server error ($statusCode)';
+          message = _getDefaultMessageForStatus(statusCode);
         }
         break;
+
+      case DioExceptionType.connectionError:
+        // Genuine socket/network connection failure
+        message = 'Unable to connect to backend server. Please verify the backend server is running.';
+        break;
+
+      case DioExceptionType.cancel:
+        message = 'Request was cancelled';
+        break;
+
       default:
-        message = 'Something went wrong';
+        final data = dioException.response?.data;
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        } else if (statusCode != null) {
+          message = _getDefaultMessageForStatus(statusCode);
+        } else {
+          message = 'Unable to connect to backend server. Please verify the backend server is running.';
+        }
         break;
     }
 
     return NetworkException(message, statusCode: statusCode);
+  }
+
+  static String _getDefaultMessageForStatus(int? statusCode) {
+    switch (statusCode) {
+      case 400:
+        return 'Invalid request parameters';
+      case 401:
+        return 'Invalid mobile/email or password';
+      case 403:
+        return 'Access forbidden';
+      case 404:
+        return 'User not registered. Please register first.';
+      case 409:
+        return 'Mobile number or email already registered';
+      case 422:
+        return 'Validation error';
+      case 500:
+        return 'Something went wrong. Please try again.';
+      default:
+        return 'Something went wrong. Please try again.';
+    }
   }
 }

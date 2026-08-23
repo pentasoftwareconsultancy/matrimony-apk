@@ -18,8 +18,19 @@ export const errorHandler = (err, req, res, next) => {
 
   // Handle Mongoose Duplicate Key Error
   if (err.code === 11000) {
-    message = 'Duplicate field value entered';
-    statusCode = 400;
+    statusCode = 409;
+    const keyPattern = err.keyPattern ? Object.keys(err.keyPattern) : [];
+    const keyString = (keyPattern.join(' ') + ' ' + (err.errmsg || err.message || '')).toLowerCase();
+    
+    if (keyString.includes('phone') || keyString.includes('mobile')) {
+      message = 'Mobile number already registered';
+    } else if (keyString.includes('email')) {
+      message = 'Email already registered';
+    } else if (keyString.includes('aadhar')) {
+      message = 'Aadhaar number already registered';
+    } else {
+      message = 'Duplicate field value entered';
+    }
   }
 
   // Handle Mongoose Validation Error

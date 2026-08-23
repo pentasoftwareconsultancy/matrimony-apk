@@ -71,6 +71,22 @@ class AuthController extends StateNotifier<AuthState> {
     state = AuthState(user: user, isAuthenticated: true);
   }
 
+  Future<bool> login({required String email, required String password}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final result = await _authRepository.login(email: email, password: password);
+      final user = result['user'] as User;
+      final token = result['token'] as String;
+
+      await _secureStorage.saveToken(token);
+      state = AuthState(user: user, isAuthenticated: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString().replaceAll('Exception: ', ''));
+      return false;
+    }
+  }
+
   Future<bool> getOTP({String? email, String? phoneNumber}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import '../controllers/home_controller.dart';
+import '../controllers/app_providers.dart';
 import 'chat_screen.dart'; // We will create ChatDetailScreen here or import it
 
 class ProfileDetailsScreen extends ConsumerStatefulWidget {
@@ -24,7 +25,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        // Register view locally
+        ref.read(profileViewProvider.notifier).recordView(widget.profile.id);
         ref.read(homeControllerProvider.notifier).addProfileView(widget.profile.id);
       }
     });

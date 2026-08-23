@@ -1,25 +1,26 @@
-import Profile from '../models/Profile.js';
+import Matrimony from '../models/Matrimony.js';
 
 class ProfileRepository {
   async findByUserId(userId) {
-    return await Profile.findOne({ userId });
+    if (!userId) return null;
+    return await Matrimony.findById(userId);
   }
 
   async create(profileData) {
-    const profile = new Profile(profileData);
-    return await profile.save();
+    const matrimony = new Matrimony(profileData);
+    return await matrimony.save();
   }
 
   async updateByUserId(userId, updateData) {
-    return await Profile.findOneAndUpdate({ userId }, updateData, {
+    return await Matrimony.findByIdAndUpdate(userId, { $set: updateData }, {
       new: true,
-      upsert: true,
-      runValidators: true,
+      upsert: false,
+      runValidators: false,
     });
   }
 
   async deleteByUserId(userId) {
-    return await Profile.findOneAndDelete({ userId });
+    return await Matrimony.findByIdAndDelete(userId);
   }
 }
 

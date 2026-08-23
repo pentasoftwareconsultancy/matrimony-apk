@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../features/auth/domain/models/user.dart';
 import '../../../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../../../core/data/dummy_profiles.dart';
+import '../../../../core/network/api_client.dart';
 import 'app_providers.dart';
 
 class ProfileFilters {
@@ -32,7 +33,7 @@ class ProfileFilters {
     this.state,
     this.country,
     this.profession,
-    this.expectedIncomeLPA = 9,
+    this.expectedIncomeLPA = 1,
     this.education,
     this.manglik = 'Any',
     this.familyType,
@@ -148,7 +149,7 @@ class HomeControllerNotifier extends StateNotifier<HomeState> {
           state: map['state'],
           country: map['country'],
           profession: map['profession'],
-          expectedIncomeLPA: map['expectedIncomeLPA'] ?? 9,
+          expectedIncomeLPA: map['expectedIncomeLPA'] ?? 0,
           education: map['education'],
           manglik: map['manglik'] ?? 'Any',
           familyType: map['familyType'],
@@ -174,7 +175,7 @@ class HomeControllerNotifier extends StateNotifier<HomeState> {
   }
 
   Future<void> addProfileView(String id) async {
-    await _ref.read(profileViewProvider.notifier).addView(id);
+    await _ref.read(profileViewProvider.notifier).recordView(id);
   }
 
   void setBottomTab(int index) {
@@ -247,20 +248,53 @@ final homeControllerProvider = StateNotifierProvider<HomeControllerNotifier, Hom
   return HomeControllerNotifier(ref);
 });
 
+final backendMatchesProvider = FutureProvider<List<MatrimonialProfile>>((ref) async {
+  final homeState = ref.watch(homeControllerProvider);
+  final apiClient = ref.read(apiClientProvider);
+
+  try {
+    final Map<String, dynamic> queryParams = {
+      'categoryTab': homeState.categoryTab,
+      if (homeState.searchQuery.isNotEmpty) 'search': homeState.searchQuery,
+      'ageMin': homeState.filters.ageMin,
+      'ageMax': homeState.filters.ageMax,
+      if (homeState.filters.maritalStatus != null) 'maritalStatus': homeState.filters.maritalStatus,
+      if (homeState.filters.city != null) 'city': homeState.filters.city,
+      if (homeState.filters.state != null) 'state': homeState.filters.state,
+      if (homeState.filters.profession != null) 'profession': homeState.filters.profession,
+      if (homeState.filters.education != null) 'education': homeState.filters.education,
+      if (homeState.filters.religion != null) 'religion': homeState.filters.religion,
+      if (homeState.filters.caste != null) 'caste': homeState.filters.caste,
+      if (homeState.filters.diet != null) 'diet': homeState.filters.diet,
+    };
+
+    final response = await apiClient.get('/profile/matches', queryParameters: queryParams);
+    final dataList = response.data['data'] as List<dynamic>? ?? [];
+
+    if (dataList.isNotEmpty) {
+      return dataList
+          .map((item) => MatrimonialProfile.fromJson(Map<String, dynamic>.from(item as Map)))
+          .toList();
+    }
+  } catch (_) {}
+
+  return [];
+});
+
 // A provider that computes the list of filtered profiles based on current state and search query
 final filteredProfilesProvider = Provider<List<MatrimonialProfile>>((ref) {
+  final backendAsync = ref.watch(backendMatchesProvider);
   final homeState = ref.watch(homeControllerProvider);
   final authState = ref.watch(authControllerProvider);
-  
-  // Exclude current registered user if their gender is opposite or we just filter by gender
+
   final loggedInUser = authState.user;
   final oppositeGender = loggedInUser?.gender == 'Male' ? 'Female' : (loggedInUser?.gender == 'Female' ? 'Male' : null);
 
-  List<MatrimonialProfile> list = dummyProfiles;
+  final backendProfiles = backendAsync.asData?.value ?? [];
+  List<MatrimonialProfile> list = List<MatrimonialProfile>.from(backendProfiles);
 
-  // Filter 1: Basic gender preference (usually matrimonial lists show opposite gender matches)
-  if (oppositeGender != null) {
-    list = list.where((p) => p.gender == oppositeGender).toList();
+  if (oppositeGender != null && list.isNotEmpty) {
+    list = list.where((p) => p.gender.toLowerCase() == oppositeGender.toLowerCase()).toList();
   }
 
   // Filter 2: Search Query (Name, City, Profession, Religion)
@@ -277,7 +311,9 @@ final filteredProfilesProvider = Provider<List<MatrimonialProfile>>((ref) {
   // Filter 3: Apply Filters from sheet
   final f = homeState.filters;
   list = list.where((p) {
-    if (p.age < f.ageMin || p.age > f.ageMax) return false;
+    if (f.ageMin != 22 || f.ageMax != 35) {
+      if (p.age < f.ageMin || p.age > f.ageMax) return false;
+    }
     
     if (f.maritalStatus != null && p.maritalStatus.toLowerCase() != f.maritalStatus!.toLowerCase()) return false;
     
@@ -291,8 +327,7 @@ final filteredProfilesProvider = Provider<List<MatrimonialProfile>>((ref) {
     
     if (f.profession != null && p.occupation.toLowerCase() != f.profession!.toLowerCase()) return false;
     
-    // LPA income filter: list matches if profile income is greater than or equal to chosen LPA
-    if (p.incomeValue < f.expectedIncomeLPA) return false;
+    if (f.expectedIncomeLPA > 0 && p.incomeValue < f.expectedIncomeLPA) return false;
     
     if (f.education != null && p.education.toLowerCase() != f.education!.toLowerCase()) return false;
     
@@ -311,9 +346,7 @@ final filteredProfilesProvider = Provider<List<MatrimonialProfile>>((ref) {
   }).toList();
 
   // Filter 4: Category Tabs
-  // "Near me", "New matches", "Recommendation", "Premium"
   if (homeState.categoryTab == 'Near me') {
-    // Sorted by same city as logged-in user first, then others
     final myCity = loggedInUser?.city ?? '';
     if (myCity.isNotEmpty) {
       final matchesMyCity = list.where((p) => p.city.toLowerCase() == myCity.toLowerCase()).toList();
@@ -321,14 +354,14 @@ final filteredProfilesProvider = Provider<List<MatrimonialProfile>>((ref) {
       list = [...matchesMyCity, ...otherCities];
     }
   } else if (homeState.categoryTab == 'New matches') {
-    // Simple mock: reverse profiles list (or sort youngest first for 'newest')
     list = List.from(list)..sort((a, b) => b.id.compareTo(a.id));
   } else if (homeState.categoryTab == 'Recommendation') {
-    // Sorted by compatibility score descending
     list = List.from(list)..sort((a, b) => b.compatibilityScore.compareTo(a.compatibilityScore));
   } else if (homeState.categoryTab == 'Premium') {
-    // Show only Premium profiles
-    list = list.where((p) => p.isPremium).toList();
+    final premiumMatches = list.where((p) => p.isPremium).toList();
+    if (premiumMatches.isNotEmpty) {
+      list = premiumMatches;
+    }
   }
 
   return list;

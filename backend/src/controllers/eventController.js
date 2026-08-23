@@ -1,14 +1,9 @@
 import Event from '../models/Event.js';
 
-// GET all events
+// GET all events from shared database
 export const getEvents = async (req, res, next) => {
   try {
-    const { status } = req.query;
-    const filter = { isActive: true };
-    if (status) {
-      filter.status = status;
-    }
-    const events = await Event.find(filter).sort({ createdAt: -1 });
+    const events = await Event.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: events.length, data: events });
   } catch (error) {
     next(error);
@@ -28,7 +23,7 @@ export const getEventById = async (req, res, next) => {
   }
 };
 
-// ADMIN: Create event
+// ADMIN / System methods
 export const createEvent = async (req, res, next) => {
   try {
     const event = await Event.create(req.body);
@@ -38,7 +33,6 @@ export const createEvent = async (req, res, next) => {
   }
 };
 
-// ADMIN: Update event
 export const updateEvent = async (req, res, next) => {
   try {
     const event = await Event.findByIdAndUpdate(req.params.id, req.body, {
@@ -54,7 +48,6 @@ export const updateEvent = async (req, res, next) => {
   }
 };
 
-// ADMIN: Delete event
 export const deleteEvent = async (req, res, next) => {
   try {
     const event = await Event.findByIdAndDelete(req.params.id);

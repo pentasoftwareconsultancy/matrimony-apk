@@ -1,32 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../features/auth/presentation/controllers/auth_controller.dart';
-import '../../../../features/auth/presentation/controllers/registration_controller.dart';
 import '../controllers/home_controller.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import 'profile_details_screen.dart';
 import 'profile_views_screen.dart';
 import 'chat_screen.dart';
-import 'terms_screen.dart';
-import 'privacy_screen.dart';
 import 'notifications_screen.dart';
 import '../controllers/app_providers.dart';
-import 'premium_plans_screen.dart';
-import 'notification_preferences_screen.dart';
-import 'language_screen.dart';
-import 'change_password_screen.dart';
-import 'partner_preference_screen.dart';
-import 'events_screen.dart';
-import 'services_screen.dart';
-import 'testimonials_screen.dart';
-import 'blocked_profiles_screen.dart';
-import 'privacy_settings_screen.dart';
-import 'help_support_screen.dart';
-import '../../../profile/presentation/screens/edit_profile_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../events/presentation/screens/events_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -69,47 +54,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   MatrimonialProfile _getOwnProfile(dynamic user) {
+    List<String> photosList = [];
+    if (user.photos != null && (user.photos as List).isNotEmpty) {
+      photosList = (user.photos as List).map((p) => p.toString()).toList();
+    }
+    List<String> hobbiesList = [];
+    if (user.hobbies != null && (user.hobbies as List).isNotEmpty) {
+      hobbiesList = (user.hobbies as List).map((h) => h.toString()).toList();
+    }
+
     return MatrimonialProfile(
-      id: user.id ?? 'dummy_demo_id',
-      fullName: user.fullName ?? 'Aaradhya Sharma',
-      age: user.age ?? 27,
-      gender: user.gender ?? 'Female',
-      religion: user.religion ?? 'Hindu',
-      caste: user.caste ?? 'Brahmin',
-      maritalStatus: user.maritalStatus ?? 'Single',
-      bloodGroup: user.bloodGroup ?? 'B+',
-      height: user.height ?? "5'4\"",
-      qualification: user.qualification ?? 'B.Tech (Computer Science)',
-      occupation: user.occupation ?? 'Software Engineer',
-      annualIncome: user.annualIncome ?? '₹9,00,000 LPA',
-      incomeValue: 9.0,
-      city: user.city ?? 'Pune',
-      state: user.state ?? 'Maharashtra',
-      country: user.country ?? 'India',
-      about: user.about ?? 'I am a cheerful and family-oriented person who loves coding, trekking, and classical music.',
-      photos: user.photos != null && (user.photos as List).isNotEmpty
-          ? (user.photos as List).map((p) => p.toString()).toList()
-          : const ['https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500'],
-      isPremium: user.isPremium ?? true,
-      premiumTier: 'Platinum',
+      id: (user.id ?? user.sId ?? '').toString(),
+      fullName: (user.fullName ?? user.name ?? 'User').toString(),
+      age: user.age is int ? user.age : (int.tryParse(user.age?.toString() ?? '') ?? 25),
+      gender: (user.gender ?? 'Female').toString(),
+      religion: (user.religion ?? '').toString(),
+      caste: (user.caste ?? '').toString(),
+      maritalStatus: (user.maritalStatus ?? '').toString(),
+      bloodGroup: (user.bloodGroup ?? '').toString(),
+      height: (user.height ?? '').toString(),
+      qualification: (user.qualification ?? '').toString(),
+      occupation: (user.occupation ?? '').toString(),
+      annualIncome: (user.annualIncome ?? '').toString(),
+      incomeValue: (user.incomeValue is num) ? (user.incomeValue as num).toDouble() : 0.0,
+      city: (user.city ?? '').toString(),
+      state: (user.state ?? '').toString(),
+      country: (user.country ?? 'India').toString(),
+      about: (user.about ?? '').toString(),
+      photos: photosList,
+      isPremium: user.isPremium == true,
+      premiumTier: (user.premiumTier ?? 'Free').toString(),
       compatibilityScore: 100,
       compatibilityTags: const ['Self'],
-      rashi: user.rashi ?? 'Mesh',
-      nakshatra: user.nakshatra ?? 'Ashwini',
-      manglik: user.manglik ?? false,
-      familyType: user.familyType ?? 'Nuclear',
-      education: user.qualification ?? 'B.Tech',
-      diet: user.diet ?? 'Vegetarian',
-      smoking: user.smoking ?? 'No',
-      drinking: user.drinking ?? 'No',
-      fatherName: user.fatherName ?? 'Ramesh Sharma',
-      motherName: user.motherName ?? 'Sunita Sharma',
-      siblings: '1 Brother',
-      hobbies: const ['Coding', 'Trekking', 'Classical Music'],
-      isVerified: user.isVerified ?? true,
-      workLocation: 'Infosys, Bengaluru',
-      nativePlace: 'Pune',
-      familyStatus: 'Upper Middle Class',
+      rashi: (user.rashi ?? '').toString(),
+      nakshatra: (user.nakshatra ?? '').toString(),
+      manglik: user.manglik == true,
+      familyType: (user.familyType ?? '').toString(),
+      education: (user.education ?? user.qualification ?? '').toString(),
+      diet: (user.diet ?? '').toString(),
+      smoking: (user.smoking ?? 'No').toString(),
+      drinking: (user.drinking ?? 'No').toString(),
+      fatherName: (user.fatherName ?? '').toString(),
+      motherName: (user.motherName ?? '').toString(),
+      siblings: (user.siblings ?? '').toString(),
+      hobbies: hobbiesList,
+      isVerified: user.isVerified == true,
+      workLocation: (user.workLocation ?? (user.city != null ? "${user.city}, India" : '')).toString(),
+      nativePlace: (user.nativePlace ?? (user.city ?? '')).toString(),
+      familyStatus: (user.familyStatus ?? '').toString(),
     );
   }
 
@@ -179,6 +171,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildTopSection(dynamic user) {
     final unreadCount = ref.watch(notificationProvider).where((n) => !n.isRead).length;
 
+    final userPhoto = (user?.photos != null && (user.photos as List).isNotEmpty)
+        ? user.photos.first.toString()
+        : null;
+
+    final userName = (user?.fullName != null && user.fullName.toString().isNotEmpty)
+        ? user.fullName.toString()
+        : (user?.name != null && user.name.toString().isNotEmpty ? user.name.toString() : 'User');
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
       child: Row(
@@ -189,8 +189,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               CircleAvatar(
                 radius: 22,
                 backgroundColor: AppColors.primary.withOpacity(0.1),
-                backgroundImage: user?.photos != null && (user.photos as List).isNotEmpty
-                    ? NetworkImage(user.photos.first)
+                backgroundImage: userPhoto != null
+                    ? NetworkImage(userPhoto)
                     : const NetworkImage('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'),
               ),
               const SizedBox(width: 12),
@@ -205,7 +205,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   Text(
-                    user?.fullName ?? 'Aaradhya',
+                    userName,
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
@@ -341,57 +341,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildMatchmakingEventsBanner() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-      child: Container(
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4A0010), Color(0xFF800A23)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'EXCLUSIVE',
-                  style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Matchmaking Events',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Upcoming & past events near you →',
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
-                ),
-              ],
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const EventsScreen()),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF4A0010), Color(0xFF800A23)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'EXCLUSIVE',
+                    style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Matchmaking Events',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Upcoming & past events near you →',
+                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
+                  ),
+                ],
               ),
-              child: const Text(
-                '4+\nUpcoming',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            )
-          ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '4+\nUpcoming',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildProfileViewsSection(BuildContext context) {
+    final viewState = ref.watch(profileViewProvider);
+    final count = viewState.count;
+    final viewerProfiles = viewState.viewerProfiles;
+
+    String subtitle;
+    if (viewerProfiles.isEmpty) {
+      subtitle = 'Check who viewed your profile';
+    } else if (viewerProfiles.length == 1) {
+      subtitle = '${viewerProfiles.first.fullName.split(' ').first} checked your profile';
+    } else if (viewerProfiles.length == 2) {
+      subtitle = '${viewerProfiles[0].fullName.split(' ').first} & ${viewerProfiles[1].fullName.split(' ').first} checked your profile';
+    } else {
+      final name1 = viewerProfiles[0].fullName.split(' ').first;
+      final name2 = viewerProfiles[1].fullName.split(' ').first;
+      final remaining = count > 2 ? count - 2 : viewerProfiles.length - 2;
+      subtitle = '$name1, $name2 & $remaining others checked your profile';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -405,8 +431,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
               ),
               Text(
-                '12 this week',
-                style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                '$count this week',
+                style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -432,54 +458,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      SizedBox(
-                        width: 90,
-                        height: 32,
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              left: 0,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundImage: const NetworkImage('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'),
-                              ),
-                            ),
-                            Positioned(
-                              left: 18,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundImage: const NetworkImage('https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100'),
-                              ),
-                            ),
-                            Positioned(
-                              left: 36,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundImage: const NetworkImage('https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100'),
-                              ),
-                            ),
-                            Positioned(
-                              left: 54,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: AppColors.primary,
-                                child: const Text('+8', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ],
+                      if (viewerProfiles.isNotEmpty)
+                        SizedBox(
+                          width: 90,
+                          height: 32,
+                          child: Stack(
+                            children: [
+                              for (int i = 0; i < viewerProfiles.take(3).length; i++)
+                                Positioned(
+                                  left: i * 18.0,
+                                  child: CircleAvatar(
+                                    radius: 16,
+                                    backgroundImage: NetworkImage(viewerProfiles[i].photos.first),
+                                  ),
+                                ),
+                              if (count > 3)
+                                Positioned(
+                                  left: 54,
+                                  child: CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: AppColors.primary,
+                                    child: Text('+${count - 3}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        )
+                      else
+                        const CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Color(0xFFFFECEF),
+                          child: Icon(Icons.remove_red_eye_outlined, size: 16, color: AppColors.primary),
                         ),
-                      ),
                       const SizedBox(width: 8),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            '12 people viewed you',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black),
+                            '$count people viewed you',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black),
                           ),
                           Text(
-                            'Kavya, Sneha & 10 others checked your profile',
-                            style: TextStyle(fontSize: 10, color: Colors.grey),
+                            subtitle,
+                            style: const TextStyle(fontSize: 10, color: Colors.grey),
                           )
                         ],
                       )
@@ -561,8 +582,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // Favourites Screen Tab
   Widget _buildFavouritesTab(BuildContext context, HomeState homeState) {
-    final favIds = ref.watch(favouriteProvider);
-    var favProfiles = dummyProfiles.where((p) => favIds.contains(p.id)).toList();
+    final favAsync = ref.watch(favoriteProfilesProvider);
+    var favProfiles = favAsync.asData?.value ?? [];
     if (_favSearchQuery.isNotEmpty) {
       final q = _favSearchQuery.toLowerCase();
       favProfiles = favProfiles.where((p) =>
@@ -843,6 +864,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return GestureDetector(
       onTap: () {
+        ref.read(profileViewProvider.notifier).recordView(profile.id);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -1309,7 +1331,7 @@ class _FilterBottomSheetWidgetState extends ConsumerState<FilterBottomSheetWidge
     _state = f.state;
     _country = f.country;
     _profession = f.profession;
-    _incomeLPA = f.expectedIncomeLPA.toDouble();
+    _incomeLPA = f.expectedIncomeLPA < 1 ? 1.0 : (f.expectedIncomeLPA > 50 ? 50.0 : f.expectedIncomeLPA.toDouble());
     _education = f.education;
     _manglik = f.manglik;
     _familyType = f.familyType;
@@ -1355,7 +1377,7 @@ class _FilterBottomSheetWidgetState extends ConsumerState<FilterBottomSheetWidge
                       _state = null;
                       _country = null;
                       _profession = null;
-                      _incomeLPA = 9.0;
+                      _incomeLPA = 1.0;
                       _education = null;
                       _manglik = 'Any';
                       _familyType = null;
@@ -1523,7 +1545,7 @@ class _FilterBottomSheetWidgetState extends ConsumerState<FilterBottomSheetWidge
                       ],
                     ),
                     Slider(
-                      value: _incomeLPA,
+                      value: _incomeLPA.clamp(1.0, 50.0),
                       min: 1,
                       max: 50,
                       activeColor: AppColors.primary,

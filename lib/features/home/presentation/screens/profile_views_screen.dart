@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/dummy_profiles.dart';
+import '../controllers/app_providers.dart';
 import '../controllers/home_controller.dart';
 import 'profile_details_screen.dart';
 import 'chat_screen.dart';
@@ -12,16 +13,12 @@ class ProfileViewsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeState = ref.watch(homeControllerProvider);
-    final viewedIds = homeState.viewedProfileIds;
-    
-    // Resolve profile details from IDs
-    final viewedProfiles = viewedIds
-        .map((id) => dummyProfiles.firstWhere((p) => p.id == id, orElse: () => dummyProfiles.first))
-        .toList();
+    final viewState = ref.watch(profileViewProvider);
+    final viewedProfiles = viewState.viewerProfiles;
 
-    // Grouping: first 3 are "Today", rest are "Yesterday"
+    // Grouping: first 3 are "Today", rest are "Earlier"
     final todayProfiles = viewedProfiles.take(3).toList();
-    final yesterdayProfiles = viewedProfiles.skip(3).toList();
+    final earlierProfiles = viewedProfiles.skip(3).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFDF9),
@@ -119,11 +116,11 @@ class ProfileViewsScreen extends ConsumerWidget {
                           ...todayProfiles.map((p) => _buildViewCard(context, ref, p, homeState)),
                           const SizedBox(height: 16),
                         ],
-                        if (yesterdayProfiles.isNotEmpty) ...[
+                        if (earlierProfiles.isNotEmpty) ...[
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 8.0),
                             child: Text(
-                              'Yesterday',
+                              'Earlier',
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontWeight: FontWeight.bold,
@@ -131,7 +128,7 @@ class ProfileViewsScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          ...yesterdayProfiles.map((p) => _buildViewCard(context, ref, p, homeState)),
+                          ...earlierProfiles.map((p) => _buildViewCard(context, ref, p, homeState)),
                         ]
                       ],
                     ),

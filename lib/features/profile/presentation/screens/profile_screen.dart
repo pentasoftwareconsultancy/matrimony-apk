@@ -139,11 +139,31 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.user;
     final profile = profileState.profile;
 
-    final primaryPhoto = profile.photos.isNotEmpty
-        ? profile.photos.first
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500';
+    final displayName = (user?.fullName != null && user!.fullName!.trim().isNotEmpty)
+        ? user.fullName!
+        : (profile.fullName.trim().isNotEmpty ? profile.fullName : 'User Name');
+
+    final displayProfileId = profile.profileId.isNotEmpty
+        ? profile.profileId
+        : (user != null && user.id.isNotEmpty
+            ? 'MEM${user.id.substring(0, user.id.length > 6 ? 6 : user.id.length).toUpperCase()}'
+            : 'MEM001');
+
+    final displayMembership = user?.isPremium == true ? 'Premium' : 'free';
+
+    final userPhotos = user?.photos;
+    final primaryPhoto = (userPhotos != null && userPhotos.isNotEmpty)
+        ? userPhotos.first
+        : (profile.photos.isNotEmpty
+            ? profile.photos.first
+            : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500');
+
+    final scoreFraction = (profileState.completionPercentage / 100.0).clamp(0.0, 1.0);
+    final scorePercentageText = 'Your profile score is ${profileState.completionPercentage.toInt()}%';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFDF9), // Warm off-white background matching reference
@@ -272,7 +292,7 @@ class ProfileScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${profile.fullName} | ${profile.profileId}',
+                            '$displayName | $displayProfileId',
                             style: const TextStyle(
                               color: Colors.black87,
                               fontSize: 14.5,
@@ -286,9 +306,9 @@ class ProfileScreen extends ConsumerWidget {
                                 'Membership– ',
                                 style: TextStyle(fontSize: 11, color: Colors.grey),
                               ),
-                              const Text(
-                                'free',
-                                style: TextStyle(
+                              Text(
+                                displayMembership,
+                                style: const TextStyle(
                                   fontSize: 11,
                                   color: Color(0xFFC9003F),
                                   fontWeight: FontWeight.bold,
@@ -321,20 +341,20 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
 
-                          // Progress Bar (55%) matching reference
+                          // Progress Bar matching reference
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
-                            child: const LinearProgressIndicator(
-                              value: 0.55,
-                              backgroundColor: Color(0xFFF0F0F0),
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC9003F)),
+                            child: LinearProgressIndicator(
+                              value: scoreFraction,
+                              backgroundColor: const Color(0xFFF0F0F0),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC9003F)),
                               minHeight: 4,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Your profile score is 55%',
-                            style: TextStyle(fontSize: 10, color: Colors.grey),
+                          Text(
+                            scorePercentageText,
+                            style: const TextStyle(fontSize: 10, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -350,11 +370,12 @@ class ProfileScreen extends ConsumerWidget {
                 _buildMenuItem(
                   icon: Icons.edit_outlined,
                   title: 'Edit Profile',
-                  onTap: () {
-                    Navigator.push(
+                  onTap: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const EditProfileScreen()),
                     );
+                    ref.read(profileControllerProvider.notifier).loadProfile();
                   },
                 ),
                 _buildMenuItem(

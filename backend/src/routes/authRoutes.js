@@ -10,6 +10,9 @@ import {
   registerSchema,
   checkUserSchema,
   sendOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
 } from '../middlewares/validationMiddleware.js';
 
 const router = express.Router();
@@ -23,6 +26,10 @@ router.post('/check-user', validate(checkUserSchema), AuthController.checkUser);
 router.post('/send-otp', validate(sendOtpSchema), AuthController.sendOTP);
 router.post('/verify-otp', validate(verifyOtpSchema), AuthController.verifyOTP);
 router.post('/register', optionalProtect, validate(registerSchema), AuthController.register);
+router.post('/forgot-password', validate(forgotPasswordSchema), AuthController.forgotPassword);
+router.post('/verify-forgot-otp', AuthController.verifyForgotOtp);
+router.post('/reset-password', validate(resetPasswordSchema), AuthController.resetPassword);
+router.post('/change-password', protect, validate(changePasswordSchema), AuthController.changePassword);
 router.post('/upload', upload, UploadController.uploadFiles);
 router.get('/me', protect, AuthController.getCurrentUser);
 

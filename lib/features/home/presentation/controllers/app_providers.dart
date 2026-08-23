@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import 'home_controller.dart';
-import '../../../auth/presentation/controllers/auth_controller.dart';
 
 // ==========================================
 // MODELS
@@ -16,7 +15,7 @@ class NotificationItem {
   final String title;
   final String subtitle;
   final String time;
-  final String type; // 'match', 'interest', 'activity'
+  final String type; // 'match', 'interest', 'views', 'admin', 'verification'
   final bool isRead;
 
   NotificationItem({
@@ -58,13 +57,13 @@ class NotificationItem {
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     return NotificationItem(
-      id: json['id'],
-      profileId: json['profileId'],
-      profileImage: json['profileImage'],
-      title: json['title'],
-      subtitle: json['subtitle'],
-      time: json['time'],
-      type: json['type'],
+      id: json['id'] ?? json['_id'] ?? 'n_${DateTime.now().millisecondsSinceEpoch}',
+      profileId: json['profileId'] ?? '',
+      profileImage: json['profileImage'] ?? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      title: json['title'] ?? '',
+      subtitle: json['subtitle'] ?? '',
+      time: json['time'] ?? 'Just now',
+      type: json['type'] ?? 'interest',
       isRead: json['isRead'] ?? false,
     );
   }
@@ -94,10 +93,12 @@ class MessageItem {
 
   factory MessageItem.fromJson(Map<String, dynamic> json) {
     return MessageItem(
-      id: json['id'],
-      senderId: json['senderId'],
-      text: json['text'],
-      timestamp: DateTime.parse(json['timestamp']),
+      id: json['id'] ?? json['_id'] ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: json['senderId'] ?? 'me',
+      text: json['text'] ?? '',
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
+          : DateTime.now(),
     );
   }
 }
@@ -136,168 +137,16 @@ class ConversationItem {
   factory ConversationItem.fromJson(Map<String, dynamic> json) {
     final List<dynamic> msgsJson = json['messages'] ?? [];
     return ConversationItem(
-      partnerId: json['partnerId'],
-      partnerName: json['partnerName'],
-      partnerAvatar: json['partnerAvatar'],
-      messages: msgsJson.map((m) => MessageItem.fromJson(m)).toList(),
+      partnerId: json['partnerId'] ?? '',
+      partnerName: json['partnerName'] ?? 'Member',
+      partnerAvatar: json['partnerAvatar'] ?? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      messages: msgsJson.map((m) => MessageItem.fromJson(m as Map<String, dynamic>)).toList(),
     );
   }
 }
 
 // ==========================================
-// DUMMY GENERATORS
-// ==========================================
-
-List<NotificationItem> _generateDummyNotifications() {
-  final list = <NotificationItem>[];
-
-  // Interest updates
-  list.add(NotificationItem(
-    id: 'n_1',
-    profileId: dummyProfiles[1].id,
-    profileImage: dummyProfiles[1].photos.first,
-    title: 'Interest Accepted — Sneha accepted your interest request!',
-    subtitle: 'Tap to view details & respond.',
-    time: '1 hr ago',
-    type: 'interest',
-  ));
-  list.add(NotificationItem(
-    id: 'n_2',
-    profileId: dummyProfiles[2].id,
-    profileImage: dummyProfiles[2].photos.first,
-    title: 'Received Interest — Priya sent you an interest request!',
-    subtitle: 'Tap to view details & respond.',
-    time: '3 hrs ago',
-    type: 'interest',
-  ));
-
-  // Profile views
-  list.add(NotificationItem(
-    id: 'n_3',
-    profileId: dummyProfiles[3].id,
-    profileImage: dummyProfiles[3].photos.first,
-    title: 'Kavita Joshi (30, Architect) viewed your profile.',
-    subtitle: 'Tap to view profile.',
-    time: '2 hrs ago',
-    type: 'views',
-  ));
-  list.add(NotificationItem(
-    id: 'n_4',
-    profileId: dummyProfiles[4].id,
-    profileImage: dummyProfiles[4].photos.first,
-    title: 'Anjali Rao (28, Doctor) checked your profile.',
-    subtitle: 'Tap to view profile.',
-    time: '5 hrs ago',
-    type: 'views',
-  ));
-
-  // Match alert
-  list.add(NotificationItem(
-    id: 'n_5',
-    profileId: dummyProfiles[0].id,
-    profileImage: dummyProfiles[0].photos.first,
-    title: 'You and Siya (89% match) both love travel & classical music!',
-    subtitle: 'Tap to view details & respond.',
-    time: '2 min ago',
-    type: 'match',
-  ));
-
-  // Admin message
-  list.add(NotificationItem(
-    id: 'n_6',
-    profileId: dummyProfiles[0].id,
-    profileImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
-    title: 'Welcome Message from Admin',
-    subtitle: 'Welcome to Soyrik Matrimony! Explore matching profiles and start communicating today.',
-    time: '1 day ago',
-    type: 'admin',
-  ));
-
-  // Verification status
-  list.add(NotificationItem(
-    id: 'n_7',
-    profileId: dummyProfiles[0].id,
-    profileImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
-    title: 'Aadhaar Verification Status Successful',
-    subtitle: 'Congratulations! Your profile has been verified successfully. A green badge is now visible on your card.',
-    time: '2 days ago',
-    type: 'verification',
-  ));
-
-  return list;
-}
-
-List<ConversationItem> _generateDummyConversations() {
-  final conversations = <ConversationItem>[];
-  
-  for (int i = 0; i < 15; i++) {
-    final p = dummyProfiles[i % dummyProfiles.length];
-    final messages = <MessageItem>[];
-    
-    if (i == 0) {
-      messages.addAll([
-        MessageItem(id: 'msg_0_1', senderId: p.id, text: 'Hi Anmol, I liked your profile.', timestamp: DateTime.now().subtract(const Duration(hours: 5))),
-        MessageItem(id: 'msg_0_2', senderId: 'me', text: 'Hello Riya! Thank you. I liked yours too.', timestamp: DateTime.now().subtract(const Duration(hours: 4))),
-        MessageItem(id: 'msg_0_3', senderId: p.id, text: 'Great! Are you open to relocating to Pune?', timestamp: DateTime.now().subtract(const Duration(hours: 3))),
-        MessageItem(id: 'msg_0_4', senderId: 'me', text: 'Yes, Pune works perfectly for me.', timestamp: DateTime.now().subtract(const Duration(hours: 2))),
-        MessageItem(id: 'msg_0_5', senderId: p.id, text: 'Awesome! Let\'s chat here.', timestamp: DateTime.now().subtract(const Duration(hours: 1))),
-        MessageItem(id: 'msg_0_6', senderId: 'me', text: 'Sure, tell me more about your family.', timestamp: DateTime.now().subtract(const Duration(minutes: 30))),
-      ]);
-    } else if (i == 1) {
-      messages.addAll([
-        MessageItem(id: 'msg_1_1', senderId: p.id, text: 'Hello, are you open to connect?', timestamp: DateTime.now().subtract(const Duration(hours: 8))),
-        MessageItem(id: 'msg_1_2', senderId: 'me', text: 'Yes, sure! Tell me about yourself.', timestamp: DateTime.now().subtract(const Duration(hours: 7))),
-        MessageItem(id: 'msg_1_3', senderId: p.id, text: 'I am a software engineer in Pune.', timestamp: DateTime.now().subtract(const Duration(hours: 6))),
-        MessageItem(id: 'msg_1_4', senderId: 'me', text: 'Nice, me too!', timestamp: DateTime.now().subtract(const Duration(hours: 5))),
-        MessageItem(id: 'msg_1_5', senderId: p.id, text: 'Let\'s connect on WhatsApp.', timestamp: DateTime.now().subtract(const Duration(hours: 4))),
-      ]);
-    } else if (i == 2) {
-      messages.addAll([
-        MessageItem(id: 'msg_2_1', senderId: p.id, text: 'Hi, nice meeting you.', timestamp: DateTime.now().subtract(const Duration(hours: 12))),
-        MessageItem(id: 'msg_2_2', senderId: 'me', text: 'Likewise, how is your day?', timestamp: DateTime.now().subtract(const Duration(hours: 11))),
-        MessageItem(id: 'msg_2_3', senderId: p.id, text: 'Busy with work, what about you?', timestamp: DateTime.now().subtract(const Duration(hours: 10))),
-        MessageItem(id: 'msg_2_4', senderId: 'me', text: 'Just wrapping up coding.', timestamp: DateTime.now().subtract(const Duration(hours: 9))),
-      ]);
-    } else if (i == 3) {
-      messages.addAll([
-        MessageItem(id: 'msg_3_1', senderId: p.id, text: 'Hey there!', timestamp: DateTime.now().subtract(const Duration(hours: 24))),
-        MessageItem(id: 'msg_3_2', senderId: 'me', text: 'Hello, how can I help you?', timestamp: DateTime.now().subtract(const Duration(hours: 23))),
-        MessageItem(id: 'msg_3_3', senderId: p.id, text: 'Just wanted to say hi.', timestamp: DateTime.now().subtract(const Duration(hours: 22))),
-      ]);
-    } else if (i == 4) {
-      messages.addAll([
-        MessageItem(id: 'msg_4_1', senderId: p.id, text: 'Hi, liked your profile details.', timestamp: DateTime.now().subtract(const Duration(days: 2))),
-        MessageItem(id: 'msg_4_2', senderId: 'me', text: 'Thanks! Let me know if you want to connect.', timestamp: DateTime.now().subtract(const Duration(days: 1))),
-        MessageItem(id: 'msg_4_3', senderId: p.id, text: 'Yes, sure.', timestamp: DateTime.now().subtract(const Duration(hours: 15))),
-      ]);
-    } else if (i < 12) {
-      messages.addAll([
-        MessageItem(id: 'msg_${i}_1', senderId: p.id, text: 'Hello!', timestamp: DateTime.now().subtract(const Duration(days: 3))),
-        MessageItem(id: 'msg_${i}_2', senderId: 'me', text: 'Hi, nice to connect with you.', timestamp: DateTime.now().subtract(const Duration(days: 2))),
-      ]);
-    } else {
-      messages.add(
-        MessageItem(id: 'msg_${i}_1', senderId: p.id, text: 'Hi, would love to connect!', timestamp: DateTime.now().subtract(const Duration(days: 4))),
-      );
-      if (i == 13 || i == 14) {
-        messages.add(
-          MessageItem(id: 'msg_${i}_2', senderId: 'me', text: 'Hello! I accepted your request.', timestamp: DateTime.now().subtract(const Duration(days: 3))),
-        );
-      }
-    }
-
-    conversations.add(ConversationItem(
-      partnerId: p.id,
-      partnerName: p.fullName,
-      partnerAvatar: p.photos.first,
-      messages: messages,
-    ));
-  }
-  return conversations;
-}
-
-// ==========================================
-// STATE NOTIFIERS
+// STATE NOTIFIERS CONNECTED TO BACKEND
 // ==========================================
 
 class FavouriteNotifier extends StateNotifier<List<String>> {
@@ -308,78 +157,73 @@ class FavouriteNotifier extends StateNotifier<List<String>> {
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final favs = prefs.getStringList('favourites');
-    if (favs != null) {
-      state = favs;
-    } else {
-      // Mock pre-populated likes
-      final defaultLikes = [dummyProfiles[0].id, dummyProfiles[1].id, dummyProfiles[2].id];
-      state = defaultLikes;
-      await prefs.setStringList('favourites', defaultLikes);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/favorites');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((e) => e.toString()).toList();
+    } catch (_) {
+      final prefs = await SharedPreferences.getInstance();
+      final favs = prefs.getStringList('favourites');
+      state = favs ?? [];
     }
   }
 
   Future<void> toggle(String id) async {
-    final updated = List<String>.from(state);
-    if (updated.contains(id)) {
-      updated.remove(id);
-    } else {
-      updated.add(id);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.post('/favorites/$id/toggle');
+      final list = response.data['data']['favorites'] as List<dynamic>;
+      state = list.map((e) => e.toString()).toList();
+    } catch (_) {
+      final updated = List<String>.from(state);
+      if (updated.contains(id)) {
+        updated.remove(id);
+      } else {
+        updated.add(id);
+      }
+      state = updated;
     }
-    state = updated;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('favourites', updated);
-    
-    // Sync back to homeController
-    _ref.read(homeControllerProvider.notifier).syncFavourites(updated);
+    _ref.read(homeControllerProvider.notifier).syncFavourites(state);
   }
 }
 
 class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
-  NotificationNotifier() : super([]) {
+  final Ref _ref;
+
+  NotificationNotifier(this._ref) : super([]) {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final listJson = prefs.getString('notifications');
-    if (listJson != null) {
-      try {
-        final List<dynamic> decoded = jsonDecode(listJson);
-        state = decoded.map((item) => NotificationItem.fromJson(item)).toList();
-      } catch (_) {
-        _initDummy();
-      }
-    } else {
-      _initDummy();
-    }
-  }
-
-  Future<void> _initDummy() async {
-    state = _generateDummyNotifications();
-    await _save();
-  }
-
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    final listJson = jsonEncode(state.map((item) => item.toJson()).toList());
-    await prefs.setString('notifications', listJson);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/notifications');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (_) {}
   }
 
   Future<void> markAsRead(String id) async {
-    state = state.map((item) {
-      if (item.id == id) {
-        return item.copyWith(isRead: true);
-      }
-      return item;
-    }).toList();
-    await _save();
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.put('/notifications/$id/read');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (_) {
+      state = state.map((item) => item.id == id ? item.copyWith(isRead: true) : item).toList();
+    }
   }
 
   Future<void> clearAllUnread() async {
-    state = state.map((item) => item.copyWith(isRead: true)).toList();
-    await _save();
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.put('/notifications/read-all');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (_) {
+      state = state.map((item) => item.copyWith(isRead: true)).toList();
+    }
   }
 
   int getUnreadCount() {
@@ -388,119 +232,114 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
 }
 
 class MessageNotifier extends StateNotifier<List<ConversationItem>> {
-  MessageNotifier() : super([]) {
+  final Ref _ref;
+
+  MessageNotifier(this._ref) : super([]) {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final listJson = prefs.getString('conversations');
-    if (listJson != null) {
-      try {
-        final List<dynamic> decoded = jsonDecode(listJson);
-        state = decoded.map((item) => ConversationItem.fromJson(item)).toList();
-      } catch (_) {
-        _initDummy();
-      }
-    } else {
-      _initDummy();
-    }
-  }
-
-  Future<void> _initDummy() async {
-    state = _generateDummyConversations();
-    await _save();
-  }
-
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    final listJson = jsonEncode(state.map((item) => item.toJson()).toList());
-    await prefs.setString('conversations', listJson);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/messages/conversations');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((item) => ConversationItem.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (_) {}
   }
 
   Future<void> sendMessage(String partnerId, String text) async {
-    final exists = state.any((c) => c.partnerId == partnerId);
-    if (!exists) {
-      final profile = dummyProfiles.firstWhere(
-        (p) => 'dummy_${p.fullName.hashCode}' == partnerId || p.id == partnerId,
-        orElse: () => dummyProfiles.first,
-      );
-      state = [
-        ...state,
-        ConversationItem(
-          partnerId: partnerId,
-          partnerName: profile.fullName,
-          partnerAvatar: profile.photos.first,
-          messages: [],
-        )
-      ];
-    }
-
-    state = state.map((c) {
-      if (c.partnerId == partnerId) {
-        final updatedMsgs = List<MessageItem>.from(c.messages)
-          ..add(MessageItem(
-            id: 'msg_user_${DateTime.now().millisecondsSinceEpoch}',
-            senderId: 'me',
-            text: text,
-            timestamp: DateTime.now(),
-          ));
-        return c.copyWith(messages: updatedMsgs);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      await apiClient.post('/messages/$partnerId', data: {'text': text});
+      await _load();
+    } catch (_) {
+      // Fallback local update
+      final exists = state.any((c) => c.partnerId == partnerId);
+      if (!exists) {
+        state = [
+          ...state,
+          ConversationItem(
+            partnerId: partnerId,
+            partnerName: 'Member',
+            partnerAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+            messages: [],
+          )
+        ];
       }
-      return c;
-    }).toList();
-    await _save();
-
-    // Trigger simulated reply after 1.2 seconds
-    Future.delayed(const Duration(milliseconds: 1200), () async {
       state = state.map((c) {
         if (c.partnerId == partnerId) {
-          final updatedMsgs = List<MessageItem>.from(c.messages)
+          final updated = List<MessageItem>.from(c.messages)
             ..add(MessageItem(
-              id: 'msg_reply_${DateTime.now().millisecondsSinceEpoch}',
-              senderId: partnerId,
-              text: 'Hey! Thanks for messaging. I really like your background too.',
+              id: 'msg_user_${DateTime.now().millisecondsSinceEpoch}',
+              senderId: 'me',
+              text: text,
               timestamp: DateTime.now(),
             ));
-          return c.copyWith(messages: updatedMsgs);
+          return c.copyWith(messages: updated);
         }
         return c;
       }).toList();
-      await _save();
-    });
+    }
   }
 }
 
-class ProfileViewNotifier extends StateNotifier<List<String>> {
+class ProfileViewState {
+  final int count;
+  final List<MatrimonialProfile> viewerProfiles;
+  final bool isLoading;
+
+  ProfileViewState({
+    this.count = 0,
+    this.viewerProfiles = const [],
+    this.isLoading = false,
+  });
+
+  ProfileViewState copyWith({
+    int? count,
+    List<MatrimonialProfile>? viewerProfiles,
+    bool? isLoading,
+  }) {
+    return ProfileViewState(
+      count: count ?? this.count,
+      viewerProfiles: viewerProfiles ?? this.viewerProfiles,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+}
+
+class ProfileViewNotifier extends StateNotifier<ProfileViewState> {
   final Ref _ref;
 
-  ProfileViewNotifier(this._ref) : super([]) {
-    _load();
+  ProfileViewNotifier(this._ref) : super(ProfileViewState()) {
+    loadViews();
   }
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final views = prefs.getStringList('viewedProfileIds');
-    if (views != null) {
-      state = views;
-    } else {
-      // Prepopulate view history with first 6 profiles to match "13 viewed" layout mockup
-      final initialViews = List.generate(6, (i) => dummyProfiles[i].id);
-      state = initialViews;
-      await prefs.setStringList('viewedProfileIds', initialViews);
+  Future<void> loadViews() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/profile/views');
+      final data = response.data['data'];
+      final count = data['count'] is int ? data['count'] as int : 0;
+      final viewsList = data['views'] as List<dynamic>? ?? [];
+
+      final List<MatrimonialProfile> profiles = [];
+      for (var item in viewsList) {
+        if (item['profile'] != null) {
+          profiles.add(MatrimonialProfile.fromJson(Map<String, dynamic>.from(item['profile'])));
+        }
+      }
+      state = ProfileViewState(count: count, viewerProfiles: profiles, isLoading: false);
+    } catch (_) {
+      state = state.copyWith(isLoading: false);
     }
   }
 
-  Future<void> addView(String id) async {
-    final updated = List<String>.from(state);
-    updated.remove(id);
-    updated.insert(0, id);
-    state = updated;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('viewedProfileIds', updated);
-    
-    // Sync with homeController
-    _ref.read(homeControllerProvider.notifier).syncViews(updated);
+  Future<void> recordView(String targetProfileId) async {
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      await apiClient.post('/profile/views/$targetProfileId');
+    } catch (_) {}
   }
 }
 
@@ -512,22 +351,33 @@ final favouriteProvider = StateNotifierProvider<FavouriteNotifier, List<String>>
   return FavouriteNotifier(ref);
 });
 
+final favoriteProfilesProvider = FutureProvider<List<MatrimonialProfile>>((ref) async {
+  try {
+    final apiClient = ref.watch(apiClientProvider);
+    final response = await apiClient.get('/favorites/profiles');
+    final list = response.data['data'] as List<dynamic>;
+    return list.map((e) => MatrimonialProfile.fromJson(Map<String, dynamic>.from(e))).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
 final notificationProvider = StateNotifierProvider<NotificationNotifier, List<NotificationItem>>((ref) {
-  return NotificationNotifier();
+  return NotificationNotifier(ref);
 });
 
 final messageProvider = StateNotifierProvider<MessageNotifier, List<ConversationItem>>((ref) {
-  return MessageNotifier();
+  return MessageNotifier(ref);
 });
 
-final profileViewProvider = StateNotifierProvider<ProfileViewNotifier, List<String>>((ref) {
+final profileViewProvider = StateNotifierProvider<ProfileViewNotifier, ProfileViewState>((ref) {
   return ProfileViewNotifier(ref);
 });
 
 final homeProvider = homeControllerProvider;
 
 // ==========================================
-// NEW SETTINGS MODELS & PROVIDERS
+// SETTINGS MODELS & PROVIDERS
 // ==========================================
 
 class PrivacySettings {
@@ -591,29 +441,32 @@ class PrivacySettings {
 }
 
 class PrivacySettingsNotifier extends StateNotifier<PrivacySettings> {
-  PrivacySettingsNotifier() : super(PrivacySettings()) {
+  final Ref _ref;
+
+  PrivacySettingsNotifier(this._ref) : super(PrivacySettings()) {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString('privacySettings');
-    if (jsonStr != null) {
-      try {
-        state = PrivacySettings.fromJson(jsonDecode(jsonStr));
-      } catch (_) {}
-    }
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/settings');
+      final data = response.data['data']['privacySettings'] as Map<String, dynamic>;
+      state = PrivacySettings.fromJson(data);
+    } catch (_) {}
   }
 
   Future<void> save(PrivacySettings settings) async {
     state = settings;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('privacySettings', jsonEncode(settings.toJson()));
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      await apiClient.put('/settings/privacy', data: settings.toJson());
+    } catch (_) {}
   }
 }
 
 final privacySettingsProvider = StateNotifierProvider<PrivacySettingsNotifier, PrivacySettings>((ref) {
-  return PrivacySettingsNotifier();
+  return PrivacySettingsNotifier(ref);
 });
 
 class NotificationPrefs {
@@ -653,86 +506,109 @@ class NotificationPrefs {
 }
 
 class NotificationPrefsNotifier extends StateNotifier<NotificationPrefs> {
-  NotificationPrefsNotifier() : super(NotificationPrefs()) {
+  final Ref _ref;
+
+  NotificationPrefsNotifier(this._ref) : super(NotificationPrefs()) {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString('notificationPrefs');
-    if (jsonStr != null) {
-      try {
-        state = NotificationPrefs.fromJson(jsonDecode(jsonStr));
-      } catch (_) {}
-    }
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/settings');
+      final data = response.data['data']['notificationPrefs'] as Map<String, dynamic>;
+      state = NotificationPrefs.fromJson(data);
+    } catch (_) {}
   }
 
   Future<void> save(NotificationPrefs prefsData) async {
     state = prefsData;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('notificationPrefs', jsonEncode(prefsData.toJson()));
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      await apiClient.put('/settings/notifications', data: prefsData.toJson());
+    } catch (_) {}
   }
 }
 
 final notificationPrefsProvider = StateNotifierProvider<NotificationPrefsNotifier, NotificationPrefs>((ref) {
-  return NotificationPrefsNotifier();
+  return NotificationPrefsNotifier(ref);
 });
 
 class LanguageNotifier extends StateNotifier<String> {
-  LanguageNotifier() : super('English') {
+  final Ref _ref;
+
+  LanguageNotifier(this._ref) : super('English') {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString('appLanguage') ?? 'English';
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/settings');
+      state = response.data['data']['language'] ?? 'English';
+    } catch (_) {
+      final prefs = await SharedPreferences.getInstance();
+      state = prefs.getString('appLanguage') ?? 'English';
+    }
   }
 
   Future<void> save(String lang) async {
     state = lang;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('appLanguage', lang);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      await apiClient.put('/settings/language', data: {'language': lang});
+    } catch (_) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('appLanguage', lang);
+    }
   }
 }
 
 final languageProvider = StateNotifierProvider<LanguageNotifier, String>((ref) {
-  return LanguageNotifier();
+  return LanguageNotifier(ref);
 });
 
 class BlockedUsersNotifier extends StateNotifier<List<String>> {
-  BlockedUsersNotifier() : super([]) {
+  final Ref _ref;
+
+  BlockedUsersNotifier(this._ref) : super([]) {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList('blockedUsers');
-    if (list != null) {
-      state = list;
-    } else {
-      final defaultBlocked = ['p7', 'p8'];
-      state = defaultBlocked;
-      await prefs.setStringList('blockedUsers', defaultBlocked);
-    }
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/blocked');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((e) => e.toString()).toList();
+    } catch (_) {}
   }
 
   Future<void> block(String id) async {
-    if (!state.contains(id)) {
-      state = [...state, id];
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('blockedUsers', state);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.post('/blocked/$id');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((e) => e.toString()).toList();
+    } catch (_) {
+      if (!state.contains(id)) state = [...state, id];
     }
   }
 
   Future<void> unblock(String id) async {
-    state = state.where((item) => item != id).toList();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('blockedUsers', state);
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.delete('/blocked/$id');
+      final list = response.data['data'] as List<dynamic>;
+      state = list.map((e) => e.toString()).toList();
+    } catch (_) {
+      state = state.where((item) => item != id).toList();
+    }
   }
 }
 
 final blockedUsersProvider = StateNotifierProvider<BlockedUsersNotifier, List<String>>((ref) {
-  return BlockedUsersNotifier();
+  return BlockedUsersNotifier(ref);
 });
 
 class PartnerPreference {
@@ -826,73 +702,30 @@ class PartnerPreference {
 }
 
 class PartnerPreferenceNotifier extends StateNotifier<PartnerPreference> {
-  PartnerPreferenceNotifier() : super(PartnerPreference()) {
+  final Ref _ref;
+
+  PartnerPreferenceNotifier(this._ref) : super(PartnerPreference()) {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString('partnerPreference');
-    if (jsonStr != null) {
-      try {
-        state = PartnerPreference.fromJson(jsonDecode(jsonStr));
-      } catch (_) {}
-    }
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/profile/me');
+      final data = response.data['data']['profile']['partnerPreference'] as Map<String, dynamic>?;
+      if (data != null) state = PartnerPreference.fromJson(data);
+    } catch (_) {}
   }
 
-  Future<void> save(PartnerPreference prefsData) async {
-    state = prefsData;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('partnerPreference', jsonEncode(prefsData.toJson()));
+  Future<void> save(PartnerPreference pref) async {
+    state = pref;
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+      await apiClient.post('/profile/partner-preference', data: pref.toJson());
+    } catch (_) {}
   }
 }
 
 final partnerPreferenceProvider = StateNotifierProvider<PartnerPreferenceNotifier, PartnerPreference>((ref) {
-  return PartnerPreferenceNotifier();
-});
-
-// Dynamic Profile score calculation
-final profileCompletionProvider = Provider<int>((ref) {
-  final authState = ref.watch(authControllerProvider);
-  final partnerPref = ref.watch(partnerPreferenceProvider);
-  final user = authState.user;
-  if (user == null) return 0;
-
-  int score = 0;
-
-  // 1. Photo: 10%
-  if (user.photos != null && user.photos!.isNotEmpty) {
-    score += 10;
-  }
-
-  // 2. Personal Details: 20%
-  if (user.fullName != null && user.fullName!.isNotEmpty &&
-      user.gender != null && user.dob != null &&
-      user.religion != null && user.religion!.isNotEmpty) {
-    score += 20;
-  }
-
-  // 3. Professional Details: 20%
-  if (user.qualification != null && user.qualification!.isNotEmpty &&
-      user.occupation != null && user.occupation!.isNotEmpty &&
-      user.annualIncome != null && user.annualIncome!.isNotEmpty) {
-    score += 20;
-  }
-
-  // 4. Documents: 20%
-  if (user.aadharNumber != null && user.aadharNumber!.isNotEmpty) {
-    score += 20;
-  }
-
-  // 5. Partner Preference: 20%
-  if (partnerPref.religion.isNotEmpty && partnerPref.caste.isNotEmpty) {
-    score += 20;
-  }
-
-  // 6. Verification: 10%
-  if (user.isVerified) {
-    score += 10;
-  }
-
-  return score;
+  return PartnerPreferenceNotifier(ref);
 });

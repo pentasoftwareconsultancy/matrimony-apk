@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import '../controllers/app_providers.dart';
 import 'profile_details_screen.dart';
@@ -53,25 +54,44 @@ class NotificationsScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (matchAlerts.isNotEmpty) ...[
-            _buildSectionHeader('Match alerts'),
-            ...matchAlerts.map((n) => _buildNotificationCard(context, ref, n)),
-            const SizedBox(height: 16),
-          ],
-          if (interestAlerts.isNotEmpty) ...[
-            _buildSectionHeader('Interest alerts'),
-            ...interestAlerts.map((n) => _buildNotificationCard(context, ref, n)),
-            const SizedBox(height: 16),
-          ],
-          if (profileActivity.isNotEmpty) ...[
-            _buildSectionHeader('Profile Activity'),
-            ...profileActivity.map((n) => _buildNotificationCard(context, ref, n)),
-          ],
-        ],
-      ),
+      body: notifications.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No notifications yet',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'When you get notifications, they will appear here.',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                ],
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (matchAlerts.isNotEmpty) ...[
+                  _buildSectionHeader('Match alerts'),
+                  ...matchAlerts.map((n) => _buildNotificationCard(context, ref, n)),
+                  const SizedBox(height: 16),
+                ],
+                if (interestAlerts.isNotEmpty) ...[
+                  _buildSectionHeader('Interest alerts'),
+                  ...interestAlerts.map((n) => _buildNotificationCard(context, ref, n)),
+                  const SizedBox(height: 16),
+                ],
+                if (profileActivity.isNotEmpty) ...[
+                  _buildSectionHeader('Profile Activity'),
+                  ...profileActivity.map((n) => _buildNotificationCard(context, ref, n)),
+                ],
+              ],
+            ),
     );
   }
 
@@ -130,23 +150,25 @@ class NotificationsScreen extends ConsumerWidget {
           ),
           child: const Icon(Icons.favorite_border, color: AppColors.primary, size: 16),
         ),
-        onTap: () {
-          // Mark read
+        onTap: () async {
           ref.read(notificationProvider.notifier).markAsRead(n.id);
           
-          // Resolve profile
-          final profile = dummyProfiles.firstWhere(
-            (p) => p.id == n.profileId,
-            orElse: () => dummyProfiles.first,
-          );
-
-          // Open Profile Details
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProfileDetailsScreen(profile: profile),
-            ),
-          );
+          if (n.profileId.isNotEmpty) {
+            try {
+              final apiClient = ref.read(apiClientProvider);
+              final response = await apiClient.get('/profile/${n.profileId}');
+              final profileData = response.data['data'] as Map<String, dynamic>;
+              final profile = MatrimonialProfile.fromJson(profileData);
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileDetailsScreen(profile: profile),
+                  ),
+                );
+              }
+            } catch (_) {}
+          }
         },
       ),
     );

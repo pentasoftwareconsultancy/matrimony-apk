@@ -55,8 +55,8 @@ class ProfileController extends StateNotifier<ProfileState> {
 
   ProfileController(this._repository)
       : super(ProfileState(
-          profile: ProfileModel.referenceInitial(),
-          completionPercentage: ProfileModel.referenceInitial().calculateCompletionPercentage(),
+          profile: ProfileModel.empty(),
+          completionPercentage: 0.0,
         )) {
     loadProfile();
   }

@@ -10,13 +10,9 @@ export const protect = async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     try {
-      // Get token from header
       token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkey123!@#');
 
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Get user from database (excluding password)
       const user = await UserRepository.findById(decoded.id);
       if (!user) {
         return ApiResponse.error(res, 'Not authorized, user not found', 401);
@@ -25,12 +21,10 @@ export const protect = async (req, res, next) => {
       req.user = user;
       next();
     } catch (error) {
-      console.error(error);
+      console.error('Auth middleware error:', error.message);
       return ApiResponse.error(res, 'Not authorized, token failed', 401);
     }
-  }
-
-  if (!token) {
+  } else {
     return ApiResponse.error(res, 'Not authorized, no token provided', 401);
   }
 };
@@ -54,7 +48,7 @@ export const optionalProtect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkey123!@#');
       const user = await UserRepository.findById(decoded.id);
       if (user) {
         req.user = user;
@@ -66,3 +60,5 @@ export const optionalProtect = async (req, res, next) => {
   next();
 };
 
+export const authMiddleware = protect;
+export default protect;

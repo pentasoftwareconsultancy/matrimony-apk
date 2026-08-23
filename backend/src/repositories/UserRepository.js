@@ -1,36 +1,48 @@
-import User from '../models/User.js';
+import Matrimony from '../models/Matrimony.js';
 
 class UserRepository {
   async findByEmail(email) {
-    return await User.findOne({ email });
+    if (!email) return null;
+    const cleanEmail = email.toString().trim().toLowerCase();
+    return await Matrimony.findOne({
+      "userRegistration.email": { $regex: new RegExp(`^${cleanEmail}$`, "i") }
+    });
   }
 
   async findByPhone(phone) {
-    return await User.findOne({ phone });
+    if (!phone) return null;
+    const numericPhone = Number(phone.toString().replace(/\D/g, ''));
+    return await Matrimony.findOne({
+      $or: [
+        { "userRegistration.phoneNumber": numericPhone },
+        { "userRegistration.phoneNumber": phone.toString().trim() }
+      ]
+    });
   }
 
   async findById(id) {
-    return await User.findById(id);
+    if (!id) return null;
+    return await Matrimony.findById(id);
   }
 
   async create(userData) {
-    const user = new User(userData);
-    return await user.save();
+    const matrimony = new Matrimony(userData);
+    return await matrimony.save();
   }
 
   async update(id, updateData) {
-    return await User.findByIdAndUpdate(id, updateData, {
+    return await Matrimony.findByIdAndUpdate(id, updateData, {
       new: true,
-      runValidators: true,
+      runValidators: false,
     });
   }
 
   async delete(id) {
-    return await User.findByIdAndDelete(id);
+    return await Matrimony.findByIdAndDelete(id);
   }
 
-  async save(user) {
-    return await user.save();
+  async save(matrimony) {
+    return await matrimony.save();
   }
 }
 

@@ -1,6 +1,5 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/models/profile_model.dart';
 
 abstract class ProfileRepository {
@@ -10,49 +9,46 @@ abstract class ProfileRepository {
   Future<void> uploadDocument(String documentId, String filePathOrUrl);
 }
 
-class LocalProfileRepository implements ProfileRepository {
-  static const String _storageKey = 'user_profile_data_v1';
+class ApiProfileRepository implements ProfileRepository {
+  final ApiClient _apiClient;
+
+  ApiProfileRepository(this._apiClient);
 
   @override
   Future<ProfileModel> getProfile() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString(_storageKey);
-      if (jsonStr != null) {
-        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-        return ProfileModel.fromJson(map);
-      }
+      final response = await _apiClient.get('/profile/me');
+      final resData = response.data['data'] as Map<String, dynamic>;
+      final profileMap = resData['profile'] as Map<String, dynamic>;
+      return ProfileModel.fromJson(profileMap);
     } catch (e) {
-      // Fallback to default on parse error
+      return ProfileModel.empty();
     }
-    return ProfileModel.referenceInitial();
   }
 
   @override
   Future<void> saveProfile(ProfileModel profile) async {
-    // Simulate slight network delay for production-quality loading feedback
-    await Future.delayed(const Duration(milliseconds: 600));
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStr = jsonEncode(profile.toJson());
-    await prefs.setString(_storageKey, jsonStr);
+    await _apiClient.put('/profile/me', data: profile.toJson());
   }
 
   @override
   Future<String> uploadPhoto(String filePathOrUrl) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    // If it's already a http/https URL, return it directly, else return mock uploaded URL
     if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
       return filePathOrUrl;
     }
-    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500';
+    return filePathOrUrl;
   }
 
   @override
   Future<void> uploadDocument(String documentId, String filePathOrUrl) async {
-    await Future.delayed(const Duration(milliseconds: 800));
+    await _apiClient.put('/profile/me', data: {
+      if (documentId == 'aadhar') 'aadharCardUrl': filePathOrUrl,
+      if (documentId == 'caste') 'casteCertificateUrl': filePathOrUrl,
+    });
   }
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  return LocalProfileRepository();
+  final apiClient = ref.watch(apiClientProvider);
+  return ApiProfileRepository(apiClient);
 });

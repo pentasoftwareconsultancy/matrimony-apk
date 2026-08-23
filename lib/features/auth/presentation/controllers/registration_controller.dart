@@ -570,10 +570,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
       final user = result['user'] as User;
       final token = result['token'] as String;
 
-      final isAuthenticated = _ref.read(authControllerProvider).isAuthenticated;
-      if (isAuthenticated) {
-        _ref.read(authControllerProvider.notifier).setAuthenticatedState(user);
-      }
+      _ref.read(authControllerProvider.notifier).setAuthenticatedState(user);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {

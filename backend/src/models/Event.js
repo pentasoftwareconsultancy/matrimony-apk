@@ -1,30 +1,35 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const eventSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
-    subtitle: { type: String, default: 'meet' },
+    heading: { type: String, required: true },
+    subHeading: { type: String, required: true },
+    img: { type: String },
     date: { type: String, required: true },
-    time: { type: String, default: '9 PM' },
-    location: { type: String, required: true },
-    organizer: { type: String, default: 'Matrimony Team' },
-    description: { type: String, required: true },
-    status: {
-      type: String,
-      required: true,
-      enum: ['upcoming', 'past'],
-      default: 'upcoming',
-    },
-    badgeText: { type: String, default: 'SOON' },
-    images: [{ type: String }],
-    whatsappNumber: { type: String, default: '919856543232' },
-    isActive: { type: Boolean, default: true },
+
+    title: { type: String },
+    description: { type: String },
+
+    imageScroll: [{ type: String }],
+
+    eventInfo: [
+      {
+        Date: { type: String },
+        Time: { type: String },
+        Location: { type: String },
+        Organizers: { type: String },
+      },
+    ],
+
+    schedule: [
+      {
+        time: { type: String },
+        event: { type: String },
+      },
+    ],
   },
-  {
-    timestamps: true,
-    collection: 'events',
-  }
+  { timestamps: true, collection: "events" }
 );
 
-const Event = mongoose.model('Event', eventSchema);
+const Event = mongoose.models.Event || mongoose.model("Event", eventSchema);
 export default Event;
