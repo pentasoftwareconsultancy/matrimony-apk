@@ -319,212 +319,880 @@ class AuthService {
     };
   }
 
-  async completeRegistration(userId, registrationData) {
-    const {
-      email,
-      phone,
-      phoneNumber,
-      password,
-      fullName,
-      gender,
-      dob,
-      dateOfBirth,
-      aadharNumber,
-      caste,
-      religion,
-      maritalStatus,
-      highestEducation,
-      qualification,
-      profession,
-      occupation,
-      annualIncome,
-      country,
-      state,
-      city,
-      district,
-      village,
-      address,
-      pincode,
-      fatherName,
-      motherName,
-      familyType,
-      nativePlace,
-      rashi,
-      gotra,
-      photos,
-    } = registrationData;
+async completeRegistration(userId, registrationData) {
+  const data = registrationData || {};
 
-    const rawPhone = phone || phoneNumber;
-    const cleanPhone = rawPhone ? Number(rawPhone.toString().replace(/\D/g, '')) : null;
-    const cleanEmail = email ? email.toString().trim().toLowerCase() : null;
-    const cleanAadhar = aadharNumber ? aadharNumber.toString().trim() : null;
+  // ============================================================
+  // HELPER FUNCTIONS
+  // ============================================================
 
-    // 1. Check duplicate phone
-    if (cleanPhone) {
-      const existingPhone = await Matrimony.findOne({ "userRegistration.phoneNumber": cleanPhone });
-      if (existingPhone && (!userId || existingPhone._id.toString() !== userId.toString())) {
-        const error = new Error('Mobile number already registered');
-        error.statusCode = 409;
-        throw error;
-      }
+  const optionalString = (value) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === ''
+    ) {
+      return 'Not Specified';
     }
 
-    // 2. Check duplicate email
-    if (cleanEmail) {
-      const existingEmail = await Matrimony.findOne({ "userRegistration.email": cleanEmail });
-      if (existingEmail && (!userId || existingEmail._id.toString() !== userId.toString())) {
-        const error = new Error('Email already registered');
-        error.statusCode = 409;
-        throw error;
-      }
+    return value.toString().trim();
+  };
+
+  const optionalNumber = (value) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === ''
+    ) {
+      return null;
     }
 
-    // 3. Check duplicate Aadhaar
-    if (cleanAadhar) {
-      const existingAadhar = await Matrimony.findOne({ "documentDetails.aadharCardNumber": cleanAadhar });
-      if (existingAadhar && (!userId || existingAadhar._id.toString() !== userId.toString())) {
-        const error = new Error('Aadhaar number already registered');
-        error.statusCode = 409;
-        throw error;
-      }
+    const number = Number(value);
+
+    return Number.isNaN(number) ? null : number;
+  };
+
+  const optionalArray = (value) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === ''
+    ) {
+      return [];
     }
 
-    let matrimonyUser;
-    if (userId) {
-      matrimonyUser = await Matrimony.findById(userId);
-    }
-    if (!matrimonyUser && cleanEmail) {
-      matrimonyUser = await Matrimony.findOne({ "userRegistration.email": cleanEmail });
+    if (Array.isArray(value)) {
+      return value;
     }
 
-    // Calculate age from dob
-    let calculatedAge = registrationData.age || 25;
-    const dobValue = dob || dateOfBirth;
-    if (dobValue) {
-      const bDate = new Date(dobValue);
-      if (!isNaN(bDate.getTime())) {
-        const today = new Date();
-        calculatedAge = today.getFullYear() - bDate.getFullYear();
-        const m = today.getMonth() - bDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < bDate.getDate())) {
-          calculatedAge--;
-        }
-      }
+    return [value];
+  };
+
+  const optionalDocument = (value) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === ''
+    ) {
+      return '';
     }
 
-    let formattedGender = gender || 'Bride';
-    if (formattedGender === 'Female') formattedGender = 'Bride';
-    if (formattedGender === 'Male') formattedGender = 'Groom';
+    return value.toString().trim();
+  };
 
-    const defaultRegData = {
-      fullName: fullName || 'App User',
-      dateOfBirth: dobValue ? new Date(dobValue) : new Date('2000-01-01'),
-      phoneNumber: cleanPhone || 9999999999,
-      email: cleanEmail || `user_${Date.now()}@matrimony.com`,
-      password: password || 'DefaultPass123!',
-      profileCreatedFor: registrationData.accountType || 'Yourself',
-      pincode: pincode || '400001',
-      address: address || '',
-      village: village || city || 'Pune',
-      taluka: district || city || 'Pune',
-      district: district || city || 'Pune',
-      state: state || 'Maharashtra',
-      country: country || 'India',
-    };
+  // ============================================================
+  // NORMALIZE BASIC VALUES
+  // ============================================================
 
-    const defaultPersonalData = {
-      gender: formattedGender,
-      maritalStatus: maritalStatus || 'Single',
-      numberOfChildren: 0,
-      age: calculatedAge,
-      height: registrationData.height || 165,
-      weight: registrationData.weight || 60,
-      complexionType: registrationData.complexionType || 'Fair',
-      bloodGroup: registrationData.bloodGroup || 'O+',
-      diet: registrationData.diet || 'Vegetarian',
-      smoking: 'No',
-      drinking: 'No',
-      hobbies: registrationData.hobbies || [],
-      descriptionAboutSelf: registrationData.about || registrationData.aboutMe || '',
-    };
+  const cleanEmail = data.email
+    ? data.email.toString().trim().toLowerCase()
+    : null;
 
-    const defaultEducationalData = {
-      highestEducation: highestEducation || qualification || 'Graduate',
-      educationField: registrationData.educationField || 'General',
-      profession: profession || occupation || 'Private Job',
-      annualIncome: annualIncome || 500000,
-    };
+  const rawPhone =
+    data.phone ||
+    data.phoneNumber;
 
-    const defaultFamilyData = {
-      fatherName: fatherName || 'Father',
-      motherName: motherName || 'Mother',
-      familyType: familyType || 'Nuclear',
-      familyValues: 'Moderate',
-      nativePlace: nativePlace || city || '',
-      brothers: registrationData.siblings || 0,
-      sisters: 0,
-    };
+  const cleanPhone = rawPhone
+    ? Number(
+        rawPhone
+          .toString()
+          .replace(/\D/g, '')
+      )
+    : null;
 
-    const defaultAstrologyData = {
-      motherTongue: 'Marathi',
-      religion: religion || 'Hindu',
-      caste: caste || 'Kunbi',
-      rashi: rashi || '',
-      gotra: gotra || '',
-      isManglik: registrationData.manglik ?? false,
-    };
+  const cleanAadhar = data.aadharNumber
+    ? data.aadharNumber.toString().trim()
+    : null;
 
-    const defaultPartnerData = {
-      partnerMaritalStatus: 'Single',
-      expectedAgeRange: { from: 21, to: 35 },
-      partnerComplexionType: 'Fair',
-      partnerHeight: 160,
-      partnerDiet: 'Vegetarian',
-      partnerSmoking: 'No',
-      partnerDrinking: 'No',
-      partnerIncome: 500000,
-      partnerEducation: 'Graduate',
-      wantsWorkingPartner: true,
-    };
+  const dobValue =
+    data.dob ||
+    data.dateOfBirth;
 
-    const defaultDocumentData = {
-      aadharCardNumber: cleanAadhar || '',
-      photos: Array.isArray(photos) ? photos : [],
-      photoFulls: Array.isArray(photos) && photos.length > 0 ? photos[0] : '',
-    };
+  // ============================================================
+  // DUPLICATE PHONE CHECK
+  // ============================================================
 
-    if (!matrimonyUser) {
-      matrimonyUser = new Matrimony({
-        approvalStatus: 'Approved',
-        userRegistration: defaultRegData,
-        personalDetail: defaultPersonalData,
-        educationalDetail: defaultEducationalData,
-        familyDetails: defaultFamilyData,
-        astrologyDetails: defaultAstrologyData,
-        partnerDetail: defaultPartnerData,
-        documentDetails: defaultDocumentData,
+  if (cleanPhone) {
+    const existingPhone =
+      await Matrimony.findOne({
+        "userRegistration.phoneNumber":
+          cleanPhone,
       });
-    } else {
-      matrimonyUser.userRegistration = { ...matrimonyUser.userRegistration, ...defaultRegData };
-      matrimonyUser.personalDetail = { ...matrimonyUser.personalDetail, ...defaultPersonalData };
-      matrimonyUser.educationalDetail = { ...matrimonyUser.educationalDetail, ...defaultEducationalData };
-      matrimonyUser.familyDetails = { ...matrimonyUser.familyDetails, ...defaultFamilyData };
-      matrimonyUser.astrologyDetails = { ...matrimonyUser.astrologyDetails, ...defaultAstrologyData };
-      matrimonyUser.partnerDetail = { ...matrimonyUser.partnerDetail, ...defaultPartnerData };
-      matrimonyUser.documentDetails = { ...matrimonyUser.documentDetails, ...defaultDocumentData };
+
+    if (
+      existingPhone &&
+      (
+        !userId ||
+        existingPhone._id.toString() !==
+          userId.toString()
+      )
+    ) {
+      const error = new Error(
+        'Mobile number already registered'
+      );
+
+      error.statusCode = 409;
+
+      throw error;
     }
+  }
 
-    await matrimonyUser.save();
+  // ============================================================
+  // DUPLICATE EMAIL CHECK
+  // ============================================================
 
-    const token = matrimonyUser.jwtToken ? matrimonyUser.jwtToken() : this.generateToken(matrimonyUser._id, matrimonyUser.userRegistration.email);
-    const mergedUser = await this.getMergedUser(matrimonyUser);
+  if (cleanEmail) {
+    const existingEmail =
+      await Matrimony.findOne({
+        "userRegistration.email":
+          cleanEmail,
+      });
 
-    return {
-      token,
-      user: mergedUser,
+    if (
+      existingEmail &&
+      (
+        !userId ||
+        existingEmail._id.toString() !==
+          userId.toString()
+      )
+    ) {
+      const error = new Error(
+        'Email already registered'
+      );
+
+      error.statusCode = 409;
+
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // DUPLICATE AADHAAR CHECK
+  // ============================================================
+
+  if (cleanAadhar) {
+    const existingAadhar =
+      await Matrimony.findOne({
+        "documentDetails.aadharCardNumber":
+          cleanAadhar,
+      });
+
+    if (
+      existingAadhar &&
+      (
+        !userId ||
+        existingAadhar._id.toString() !==
+          userId.toString()
+      )
+    ) {
+      const error = new Error(
+        'Aadhaar number already registered'
+      );
+
+      error.statusCode = 409;
+
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // FIND EXISTING USER
+  // ============================================================
+
+  let matrimonyUser = null;
+
+  if (userId) {
+    matrimonyUser =
+      await Matrimony.findById(userId);
+  }
+
+  if (
+    !matrimonyUser &&
+    cleanEmail
+  ) {
+    matrimonyUser =
+      await Matrimony.findOne({
+        "userRegistration.email":
+          cleanEmail,
+      });
+  }
+
+  // ============================================================
+  // CALCULATE AGE
+  // ============================================================
+
+  let calculatedAge =
+    optionalNumber(data.age);
+
+  if (dobValue) {
+    const birthDate =
+      new Date(dobValue);
+
+    if (!isNaN(birthDate.getTime())) {
+      const today =
+        new Date();
+
+      calculatedAge =
+        today.getFullYear() -
+        birthDate.getFullYear();
+
+      const monthDifference =
+        today.getMonth() -
+        birthDate.getMonth();
+
+      if (
+        monthDifference < 0 ||
+        (
+          monthDifference === 0 &&
+          today.getDate() <
+            birthDate.getDate()
+        )
+      ) {
+        calculatedAge--;
+      }
+    }
+  }
+
+  // ============================================================
+  // NORMALIZE GENDER
+  // ============================================================
+
+  let formattedGender =
+    data.gender;
+
+  if (
+    formattedGender === 'Female'
+  ) {
+    formattedGender =
+      'Bride';
+  }
+
+  if (
+    formattedGender === 'Male'
+  ) {
+    formattedGender =
+      'Groom';
+  }
+
+  // ============================================================
+  // USER REGISTRATION
+  // ============================================================
+
+  const registration = {
+    fullName:
+      data.fullName,
+
+    dateOfBirth:
+      dobValue
+        ? new Date(dobValue)
+        : null,
+
+    phoneNumber:
+      cleanPhone,
+
+    email:
+      cleanEmail,
+
+    password:
+      data.password,
+
+    confirmPassword:
+      optionalString(
+        data.confirmPassword
+      ),
+
+    profileCreatedFor:
+      optionalString(
+        data.accountType
+      ),
+
+    alternativePhoneNumber:
+      optionalString(
+        data.alternativePhoneNumber
+      ),
+
+    pincode:
+      optionalString(
+        data.pincode
+      ),
+
+    address:
+      optionalString(
+        data.address
+      ),
+
+    village:
+      optionalString(
+        data.village
+      ),
+
+    taluka:
+      optionalString(
+        data.taluka
+      ),
+
+    district:
+      optionalString(
+        data.district
+      ),
+
+    state:
+      optionalString(
+        data.state
+      ),
+
+    country:
+      optionalString(
+        data.country
+      ),
+  };
+
+  // ============================================================
+  // PERSONAL DETAILS
+  // ============================================================
+
+  const personalDetails = {
+    gender:
+      formattedGender,
+
+    maritalStatus:
+      data.maritalStatus,
+
+    numberOfChildren:
+      optionalNumber(
+        data.numberOfChildren
+      ) ?? 0,
+
+    age:
+      calculatedAge,
+
+    height:
+      optionalNumber(
+        data.height
+      ),
+
+    weight:
+      optionalNumber(
+        data.weight
+      ),
+
+    complexionType:
+      optionalString(
+        data.complexionType
+      ),
+
+    bloodGroup:
+      data.bloodGroup,
+
+    specialCase:
+      optionalString(
+        data.specialCase
+      ),
+
+    bodyType:
+      optionalString(
+        data.bodyType
+      ),
+
+    diet:
+      data.diet,
+
+    smoking:
+      data.smoking,
+
+    drinking:
+      data.drinking,
+
+    hobbies:
+      optionalArray(
+        data.hobbies
+      ),
+
+    agriculturalLandAcres:
+      optionalString(
+        data.agriculturalLandAcres
+      ),
+
+    descriptionAboutSelf:
+      optionalString(
+        data.about ||
+        data.aboutMe
+      ),
+  };
+
+  // ============================================================
+  // EDUCATIONAL DETAILS
+  // ============================================================
+
+  const educationalDetails = {
+    highestEducation:
+      data.highestEducation,
+
+    educationField:
+      data.educationField,
+
+    universityCollege:
+      optionalString(
+        data.universityCollege
+      ),
+
+    profession:
+      data.profession,
+
+    occupationPosition:
+      data.occupationPosition,
+
+    organizationName:
+      optionalString(
+        data.organizationName
+      ),
+
+    companyAddress:
+      optionalString(
+        data.companyAddress
+      ),
+
+    annualIncome:
+      data.annualIncome,
+  };
+
+  // ============================================================
+  // FAMILY DETAILS
+  // ============================================================
+
+  const familyDetails = {
+    fatherName:
+      data.fatherName,
+
+    fatherOccupation:
+      optionalString(
+        data.fatherOccupation
+      ),
+
+    motherName:
+      data.motherName,
+
+    motherOccupation:
+      optionalString(
+        data.motherOccupation
+      ),
+
+    familyType:
+      data.familyType,
+
+    familyValues:
+      data.familyValues,
+
+    familyStatus:
+      optionalString(
+        data.familyStatus
+      ),
+
+    nativePlace:
+      data.nativePlace,
+
+    brothers:
+      optionalNumber(
+        data.brothers
+      ) ?? 0,
+
+    marriedBrothers:
+      optionalString(
+        data.marriedBrothers
+      ),
+
+    sisters:
+      optionalNumber(
+        data.sisters
+      ) ?? 0,
+
+    marriedSisters:
+      optionalString(
+        data.marriedSisters
+      ),
+
+    maternalUncleName:
+      optionalString(
+        data.maternalUncleName
+      ),
+
+    maternalUnclePhone:
+      optionalString(
+        data.maternalUnclePhone
+      ),
+
+    uncleName:
+      optionalString(
+        data.uncleName
+      ),
+
+    unclePhone:
+      optionalString(
+        data.unclePhone
+      ),
+
+    aboutFamily:
+      optionalString(
+        data.aboutFamily
+      ),
+  };
+
+  // ============================================================
+  // ASTROLOGY DETAILS
+  // ============================================================
+
+  const astrologyDetails = {
+    motherTongue:
+      data.motherTongue,
+
+    religion:
+      data.religion,
+
+    caste:
+      data.caste,
+
+    subCast:
+      optionalString(
+        data.subCast
+      ),
+
+    placeOfBirth:
+      optionalString(
+        data.placeOfBirth
+      ),
+
+    timeOfBirth:
+      optionalString(
+        data.timeOfBirth
+      ),
+
+    rashi:
+      optionalString(
+        data.rashi
+      ),
+
+    gotra:
+      optionalString(
+        data.gotra
+      ),
+
+    gan:
+      optionalString(
+        data.gan
+      ),
+
+    nadi:
+      optionalString(
+        data.nadi
+      ),
+
+    charan:
+      optionalString(
+        data.charan
+      ),
+
+    nakshatra:
+      optionalString(
+        data.nakshatra
+      ),
+
+    isManglik:
+      data.manglik ?? false,
+
+    importanceOfPatrika:
+      data.importanceOfPatrika ??
+      'Not Specified',
+  };
+
+  // ============================================================
+  // PARTNER DETAILS
+  // ============================================================
+
+  const ageRange =
+    data.expectedAgeRange || {};
+
+  const partnerDetails = {
+    partnerMaritalStatus:
+      data.partnerMaritalStatus,
+
+    expectedAgeRange: {
+      from:
+        optionalNumber(
+          ageRange.from
+        ),
+
+      to:
+        optionalNumber(
+          ageRange.to
+        ),
+    },
+
+    partnerComplexionType:
+      optionalString(
+        data.partnerComplexionType
+      ),
+
+    partnerHeight:
+      optionalNumber(
+        data.partnerHeight
+      ),
+
+    partnerWeight:
+      optionalNumber(
+        data.partnerWeight
+      ),
+
+    partnerDiet:
+      data.partnerDiet,
+
+    partnerSmoking:
+      data.partnerSmoking,
+
+    partnerDrinking:
+      data.partnerDrinking,
+
+    partnerWorkingLocation:
+      optionalString(
+        data.partnerWorkingLocation
+      ),
+
+    partnerIncome:
+      optionalNumber(
+        data.partnerIncome
+      ),
+
+    partnerEducation:
+      data.partnerEducation,
+
+    partnerProfession:
+      data.partnerProfession,
+
+    wantsWorkingPartner:
+      data.wantsWorkingPartner,
+  };
+
+  // ============================================================
+  // DOCUMENT DETAILS
+  // ============================================================
+
+  const documentDetails = {
+    aadharCardNumber:
+      optionalDocument(
+        data.aadharNumber
+      ),
+
+    panCardNumber:
+      optionalDocument(
+        data.panCardNumber
+      ),
+
+    passportNumber:
+      optionalDocument(
+        data.passportNumber
+      ),
+
+    aadhaarFrontphoto:
+      optionalDocument(
+        data.aadhaarFrontphoto
+      ),
+
+    aadhaarBackphoto:
+      optionalDocument(
+        data.aadhaarBackphoto
+      ),
+
+    panFrontphoto:
+      optionalDocument(
+        data.panFrontphoto
+      ),
+
+    panBackphoto:
+      optionalDocument(
+        data.panBackphoto
+      ),
+
+    highestEducationalDoc:
+      optionalDocument(
+        data.highestEducationalDoc
+      ),
+
+    castecertificate:
+      optionalDocument(
+        data.castecertificate
+      ),
+
+    passportFrontphoto:
+      optionalDocument(
+        data.passportFrontphoto
+      ),
+
+    passportBackphoto:
+      optionalDocument(
+        data.passportBackphoto
+      ),
+
+    photoFulls:
+      optionalDocument(
+        data.photoFulls
+      ),
+
+    photoCloseup:
+      optionalDocument(
+        data.photoCloseup
+      ),
+
+    photoFull:
+      optionalDocument(
+        data.photoFull
+      ),
+
+    familyPhoto:
+      optionalDocument(
+        data.familyPhoto
+      ),
+
+    photos:
+      optionalArray(
+        data.photos
+      ),
+  };
+
+  // ============================================================
+  // CREATE NEW USER
+  // ============================================================
+
+  if (!matrimonyUser) {
+    matrimonyUser =
+      new Matrimony({
+        approvalStatus:
+          'Approved',
+
+        userRegistration:
+          registration,
+
+        personalDetail:
+          personalDetails,
+
+        educationalDetail:
+          educationalDetails,
+
+        familyDetails:
+          familyDetails,
+
+        astrologyDetails:
+          astrologyDetails,
+
+        partnerDetail:
+          partnerDetails,
+
+        documentDetails:
+          documentDetails,
+      });
+  }
+
+  // ============================================================
+  // UPDATE EXISTING USER
+  // ============================================================
+
+  else {
+    matrimonyUser.userRegistration = {
+      ...(
+        matrimonyUser
+          .userRegistration
+          ?.toObject?.() || {}
+      ),
+      ...registration,
+    };
+
+    matrimonyUser.personalDetail = {
+      ...(
+        matrimonyUser
+          .personalDetail
+          ?.toObject?.() || {}
+      ),
+      ...personalDetails,
+    };
+
+    matrimonyUser.educationalDetail = {
+      ...(
+        matrimonyUser
+          .educationalDetail
+          ?.toObject?.() || {}
+      ),
+      ...educationalDetails,
+    };
+
+    matrimonyUser.familyDetails = {
+      ...(
+        matrimonyUser
+          .familyDetails
+          ?.toObject?.() || {}
+      ),
+      ...familyDetails,
+    };
+
+    matrimonyUser.astrologyDetails = {
+      ...(
+        matrimonyUser
+          .astrologyDetails
+          ?.toObject?.() || {}
+      ),
+      ...astrologyDetails,
+    };
+
+    matrimonyUser.partnerDetail = {
+      ...(
+        matrimonyUser
+          .partnerDetail
+          ?.toObject?.() || {}
+      ),
+      ...partnerDetails,
+    };
+
+    matrimonyUser.documentDetails = {
+      ...(
+        matrimonyUser
+          .documentDetails
+          ?.toObject?.() || {}
+      ),
+      ...documentDetails,
     };
   }
 
+  // ============================================================
+  // SAVE
+  // ============================================================
+
+  await matrimonyUser.save();
+
+  // ============================================================
+  // GENERATE JWT
+  // ============================================================
+
+  const token =
+    matrimonyUser.jwtToken
+      ? matrimonyUser.jwtToken()
+      : this.generateToken(
+          matrimonyUser._id,
+          matrimonyUser
+            .userRegistration
+            .email
+        );
+
+  // ============================================================
+  // RETURN USER
+  // ============================================================
+
+  const mergedUser =
+    await this.getMergedUser(
+      matrimonyUser
+    );
+
+  return {
+    token,
+    user: mergedUser,
+  };
+}
   async forgotPassword({ identifier }) {
     if (!identifier) {
       const error = new Error('Identifier is required');

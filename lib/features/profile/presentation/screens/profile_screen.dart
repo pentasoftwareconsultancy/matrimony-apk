@@ -292,7 +292,7 @@ class ProfileScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$displayName | $displayProfileId',
+                            '$displayName',
                             style: const TextStyle(
                               color: Colors.black87,
                               fontSize: 14.5,
