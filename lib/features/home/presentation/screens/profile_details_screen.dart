@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/app_providers.dart';
+import '../../../../core/network/api_client.dart';
 import 'chat_screen.dart'; // We will create ChatDetailScreen here or import it
 
 class ProfileDetailsScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,13 @@ class ProfileDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
+
+
+
+
+
+
+
   int _selectedPhotoIndex = 0;
   bool _interestExpressing = false;
   bool _interestExpressed = false;
@@ -23,14 +31,84 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(profileViewProvider.notifier).recordView(widget.profile.id);
-        ref.read(homeControllerProvider.notifier).addProfileView(widget.profile.id);
-      }
+      if (!mounted) return;
+
+      debugPrint(
+        'PROFILE OPENED => '
+            'name=${widget.profile.fullName}, '
+            'id="${widget.profile.id}"',
+      );
+
+      ref
+          .read(profileViewProvider.notifier)
+          .recordView(widget.profile.id);
     });
   }
 
+  Future<void> _expressInterest() async {
+    if (_interestExpressing || _interestExpressed) {
+      return;
+    }
+
+    setState(() {
+      _interestExpressing = true;
+    });
+
+    try {
+      final apiClient = ref.read(apiClientProvider);
+
+      debugPrint(
+        '[Interest] Sending interest for profile: ${widget.profile.id}',
+      );
+
+      final response = await apiClient.post(
+        '/connections/interest/${widget.profile.id}',
+      );
+
+      debugPrint(
+        '[Interest] Response: ${response.statusCode}',
+      );
+
+      debugPrint(
+        '[Interest] Data: ${response.data}',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _interestExpressing = false;
+        _interestExpressed = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Interest Sent'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[Interest] ERROR: $e');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _interestExpressing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to send interest: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
@@ -344,43 +422,43 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _interestExpressed
                           ? null
-                          : () {
-                              setState(() {
-                                _interestExpressing = true;
-                              });
-                              Future.delayed(const Duration(milliseconds: 600), () {
-                                if (mounted) {
-                                  setState(() {
-                                    _interestExpressing = false;
-                                    _interestExpressed = true;
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Interest Sent'),
-                                      backgroundColor: AppColors.primary,
-                                    ),
-                                  );
-                                }
-                              });
-                            },
+                          : _expressInterest,
+
                       icon: _interestExpressing
                           ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
-                            )
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeWidth: 2,
+                        ),
+                      )
                           : Icon(
-                              _interestExpressed ? Icons.check : Icons.favorite_border,
-                              color: _interestExpressed ? Colors.grey : AppColors.primary,
-                              size: 16,
-                            ),
-                      label: Text(_interestExpressed ? 'Interest Sent' : 'Express Interest'),
+                        _interestExpressed
+                            ? Icons.check
+                            : Icons.favorite_border,
+                        color: _interestExpressed
+                            ? Colors.grey
+                            : AppColors.primary,
+                        size: 16,
+                      ),
+
+                      label: Text(
+                        _interestExpressed
+                            ? 'Interest Sent'
+                            : 'Express Interest',
+                      ),
+
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: BorderSide(
-                          color: _interestExpressed ? Colors.grey.shade300 : AppColors.primary,
+                          color: _interestExpressed
+                              ? Colors.grey.shade300
+                              : AppColors.primary,
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
@@ -397,9 +475,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => ChatDetailScreen(
+                              partnerId: profile.id,
                               name: profile.fullName,
                               avatarUrl: profile.photos.first,
-                            ),
+                            )
                           ),
                         );
                       },

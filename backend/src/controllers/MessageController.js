@@ -31,6 +31,31 @@ class MessageController {
       next(error);
     }
   }
+
+
+  async getUserPresence(req, res, next) {
+    try {
+      const { userId } = req.params;
+
+      const { getUserPresence } =
+        await import("../sockets/presence.js");
+
+      const presence = getUserPresence(userId);
+
+      return ApiResponse.success(
+        res,
+        "User presence retrieved",
+        {
+          userId,
+          ...presence,
+        },
+        200
+      );
+
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new MessageController();

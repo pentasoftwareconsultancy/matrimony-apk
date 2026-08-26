@@ -4,6 +4,8 @@ import UserAction from '../models/UserAction.js';
 import ProfileView from '../models/ProfileView.js';
 import AuthService from './AuthService.js';
 
+import NotificationService from './NotificationService.js';
+
 class ProfileService {
   async getProfileByUserId(userId) {
     const matrimony = await ProfileRepository.findByUserId(userId);
@@ -174,11 +176,12 @@ class ProfileService {
 
     const docs = await Matrimony.find(query).sort(sortOptions).limit(100).lean();
 
-    const sanitizedProfiles = [];
-    for (const doc of docs) {
-      const merged = await AuthService.getMergedUser(doc);
-      sanitizedProfiles.push(merged);
-    }
+   const sanitizedProfiles =
+     await Promise.all(
+       docs.map((doc) =>
+         AuthService.getMergedUser(doc)
+       )
+     );
 
     // Prioritize location for 'Near me'
     if (categoryTab === 'Near me' && currentUserDoc) {
@@ -218,34 +221,247 @@ class ProfileService {
     return await AuthService.getMergedUser(matrimony);
   }
 
-  async recordProfileView(viewerId, viewedId) {
-    if (viewerId.toString() === viewedId.toString()) return null;
-    await ProfileView.create({
-      viewer: viewerId,
-      viewed: viewedId,
-      viewedAt: new Date()
-    });
-    return { success: true };
+async recordProfileView(viewerId, viewedId) {
+  if (!viewerId || !viewedId) {
+    throw new Error('Viewer and viewed profile are required');
   }
 
-  async getProfileViews(userId) {
-    const views = await ProfileView.find({ viewed: userId })
-      .populate('viewer')
-      .sort({ viewedAt: -1 })
+  const viewerIdString = viewerId.toString();
+  const viewedIdString = viewedId.toString();
+
+  // ------------------------------------------------------------
+  // Prevent self-view
+  // ------------------------------------------------------------
+
+  if (viewerIdString === viewedIdString) {
+    return {
+      recorded: false,
+      reason: 'SELF_VIEW',
+    };
+  }
+
+  // ------------------------------------------------------------
+  // Verify target profile exists
+  // ------------------------------------------------------------
+
+  const viewedProfile = await Matrimony.findById(viewedId)
+    .select('_id');
+
+  if (!viewedProfile) {
+    const error = new Error('Profile not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // ------------------------------------------------------------
+  // 24-hour window
+  // ------------------------------------------------------------
+
+  const twentyFourHoursAgo = new Date(
+    Date.now() - 24 * 60 * 60 * 1000
+  );
+
+  // ------------------------------------------------------------
+  // First check.
+  //
+  // This handles the normal case without attempting an insert.
+  // ------------------------------------------------------------
+
+  const existingView = await ProfileView.findOne({
+    viewerUserId: viewerId,
+    viewedUserId: viewedId,
+    viewedProfileId: viewedId,
+    createdAt: {
+      $gte: twentyFourHoursAgo,
+    },
+  }).select('_id');
+
+  if (existingView) {
+    return {
+      recorded: false,
+      reason: 'ALREADY_VIEWED_TODAY',
+    };
+  }
+
+  // ------------------------------------------------------------
+  // IMPORTANT:
+  //
+  // Create a deterministic key for this 24-hour viewing window.
+  //
+  // The same viewer + viewed profile + current 24-hour window
+  // produces the same key.
+  // ------------------------------------------------------------
+
+  const windowStart = new Date(
+    Math.floor(
+      Date.now() / (24 * 60 * 60 * 1000)
+    ) * (24 * 60 * 60 * 1000)
+  );
+
+  const viewKey =
+    `${viewerIdString}_${viewedIdString}_${windowStart.getTime()}`;
+
+  // ------------------------------------------------------------
+  // Atomic protection.
+  //
+  // If multiple requests arrive simultaneously, MongoDB's unique
+  // index on viewKey allows only ONE of them to create the view.
+  // ------------------------------------------------------------
+
+  let createdView = false;
+
+  try {
+    await ProfileView.create({
+      viewerUserId: viewerId,
+      viewedUserId: viewedId,
+      viewedProfileId: viewedId,
+      viewKey,
+    });
+
+    createdView = true;
+  } catch (error) {
+    // MongoDB duplicate-key error.
+    //
+    // Another simultaneous request already created this view.
+    if (error?.code === 11000) {
+      return {
+        recorded: false,
+        reason: 'ALREADY_VIEWED_TODAY',
+      };
+    }
+
+    throw error;
+  }
+
+  // ------------------------------------------------------------
+  // Only the request that successfully created the ProfileView
+  // reaches this section.
+  //
+  // Therefore only ONE notification is generated.
+  // ------------------------------------------------------------
+
+  if (createdView) {
+    const viewerProfile = await Matrimony.findById(viewerId)
+      .select('documentDetails userRegistration');
+
+    const photos =
+      viewerProfile?.documentDetails?.photos || [];
+
+    const senderImage =
+      photos.length > 0
+        ? photos[0]
+        : '';
+
+    await NotificationService.createProfileViewNotification({
+      recipientUserId: viewedId,
+      actorUserId: viewerId,
+      profileId: viewerId,
+      senderImage,
+    });
+  }
+
+  return {
+    recorded: true,
+    reason: 'NEW_VIEW',
+  };
+}
+
+async getProfileViews(userId) {
+  if (!userId) {
+    return {
+      count: 0,
+      views: [],
+    };
+  }
+
+  // ============================================================
+  // GET ALL PROFILE VIEWS FOR THE LOGGED-IN USER
+  // ============================================================
+
+  const views = await ProfileView.find({
+    viewedUserId: userId,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const sanitizedViews = [];
+
+  for (const view of views) {
+    // ==========================================================
+    // viewerUserId = THE PERSON WHO VIEWED THE PROFILE
+    // viewedUserId = THE PERSON WHOSE PROFILE WAS VIEWED
+    // ==========================================================
+
+    if (!view.viewerUserId) {
+      continue;
+    }
+
+    const viewerId = view.viewerUserId.toString();
+
+    // ==========================================================
+    // IMPORTANT:
+    // Fetch the ACTUAL Matrimony document of the viewer.
+    // Do NOT pass a populated {_id} object to getMergedUser().
+    // ==========================================================
+
+    const viewerMatrimony = await Matrimony.findById(viewerId)
       .lean();
 
-    const sanitizedViewers = [];
-    for (const v of views) {
-      if (v.viewer) {
-        const merged = await AuthService.getMergedUser(v.viewer);
-        sanitizedViewers.push({
-          ...merged,
-          viewedAt: v.viewedAt
-        });
-      }
+    if (!viewerMatrimony) {
+      continue;
     }
-    return sanitizedViewers;
+
+    // ==========================================================
+    // Convert the complete viewer document into the same
+    // profile format used everywhere else in the application.
+    // ==========================================================
+
+    const viewerProfile =
+      await AuthService.getMergedUser(viewerMatrimony);
+
+    if (!viewerProfile) {
+      continue;
+    }
+
+    // ==========================================================
+    // DEBUG
+    // ==========================================================
+
+    console.log(
+      '[ProfileViews] Viewer ID:',
+      viewerId
+    );
+
+    console.log(
+      '[ProfileViews] Viewer name:',
+      viewerMatrimony.userRegistration?.fullName
+    );
+
+    console.log(
+      '[ProfileViews] Merged profile name:',
+      viewerProfile.fullName
+    );
+
+    console.log(
+      '[ProfileViews] Merged profile ID:',
+      viewerProfile.id
+    );
+
+    // ==========================================================
+    // RETURN VIEWER PROFILE
+    // ==========================================================
+
+    sanitizedViews.push({
+      profile: viewerProfile,
+      viewedAt: view.createdAt,
+    });
   }
+
+  return {
+    count: sanitizedViews.length,
+    views: sanitizedViews,
+  };
+}
 }
 
 export default new ProfileService();

@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import 'home_controller.dart';
+import 'package:flutter/foundation.dart';
+
+import '../../../../core/network/socket_service.dart';
 
 // ==========================================
 // MODELS
@@ -15,7 +18,7 @@ class NotificationItem {
   final String title;
   final String subtitle;
   final String time;
-  final String type; // 'match', 'interest', 'views', 'admin', 'verification'
+  final String type;
   final bool isRead;
 
   NotificationItem({
@@ -59,7 +62,8 @@ class NotificationItem {
     return NotificationItem(
       id: json['id'] ?? json['_id'] ?? 'n_${DateTime.now().millisecondsSinceEpoch}',
       profileId: json['profileId'] ?? '',
-      profileImage: json['profileImage'] ?? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      profileImage: json['profileImage'] ??
+          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
       title: json['title'] ?? '',
       subtitle: json['subtitle'] ?? '',
       time: json['time'] ?? 'Just now',
@@ -69,36 +73,106 @@ class NotificationItem {
   }
 }
 
+
 class MessageItem {
   final String id;
-  final String senderId; // 'me' or partnerId
+  final String senderId;
+  final String receiverId;
   final String text;
   final DateTime timestamp;
+
+  final String status;
+  final DateTime? deliveredAt;
+  final DateTime? readAt;
 
   MessageItem({
     required this.id,
     required this.senderId,
+    this.receiverId = '',
     required this.text,
     required this.timestamp,
+    this.status = 'sent',
+    this.deliveredAt,
+    this.readAt,
   });
+
+  MessageItem copyWith({
+    String? senderId,
+    String? receiverId,
+    String? text,
+    DateTime? timestamp,
+    String? status,
+    DateTime? deliveredAt,
+    DateTime? readAt,
+  }) {
+    return MessageItem(
+      id: id,
+      senderId: senderId ?? this.senderId,
+      receiverId: receiverId ?? this.receiverId,
+      text: text ?? this.text,
+      timestamp: timestamp ?? this.timestamp,
+      status: status ?? this.status,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
+      readAt: readAt ?? this.readAt,
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'senderId': senderId,
+      'receiverId': receiverId,
       'text': text,
       'timestamp': timestamp.toIso8601String(),
+      'status': status,
+      'deliveredAt': deliveredAt?.toIso8601String(),
+      'readAt': readAt?.toIso8601String(),
     };
   }
 
-  factory MessageItem.fromJson(Map<String, dynamic> json) {
+  factory MessageItem.fromJson(
+      Map<String, dynamic> json,
+      ) {
     return MessageItem(
-      id: json['id'] ?? json['_id'] ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
-      senderId: json['senderId'] ?? 'me',
-      text: json['text'] ?? '',
-      timestamp: json['timestamp'] != null
-          ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
+      id: json['id'] ??
+          json['_id'] ??
+          'msg_${DateTime.now().millisecondsSinceEpoch}',
+
+      senderId:
+      json['senderId'] ?? 'me',
+
+      receiverId:
+      json['receiverId'] ?? '',
+
+      text:
+      json['text'] ??
+          json['content'] ??
+          '',
+
+      timestamp:
+      json['timestamp'] != null
+          ? DateTime.tryParse(
+        json['timestamp'].toString(),
+      ) ??
+          DateTime.now()
           : DateTime.now(),
+
+      status:
+      json['status'] ?? 'sent',
+
+      deliveredAt:
+      json['deliveredAt'] != null
+          ? DateTime.tryParse(
+        json['deliveredAt'].toString(),
+      )
+          : null,
+
+      readAt:
+      json['readAt'] != null
+          ? DateTime.tryParse(
+        json['readAt'].toString(),
+      )
+          : null,
     );
   }
 }
@@ -116,7 +190,9 @@ class ConversationItem {
     required this.messages,
   });
 
-  ConversationItem copyWith({List<MessageItem>? messages}) {
+  ConversationItem copyWith({
+    List<MessageItem>? messages,
+  }) {
     return ConversationItem(
       partnerId: partnerId,
       partnerName: partnerName,
@@ -136,11 +212,17 @@ class ConversationItem {
 
   factory ConversationItem.fromJson(Map<String, dynamic> json) {
     final List<dynamic> msgsJson = json['messages'] ?? [];
+
     return ConversationItem(
       partnerId: json['partnerId'] ?? '',
       partnerName: json['partnerName'] ?? 'Member',
-      partnerAvatar: json['partnerAvatar'] ?? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
-      messages: msgsJson.map((m) => MessageItem.fromJson(m as Map<String, dynamic>)).toList(),
+      partnerAvatar: json['partnerAvatar'] ??
+          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      messages: msgsJson
+          .map((m) => MessageItem.fromJson(
+        m as Map<String, dynamic>,
+      ))
+          .toList(),
     );
   }
 }
@@ -162,6 +244,9 @@ class FavouriteNotifier extends StateNotifier<List<String>> {
       final response = await apiClient.get('/favorites');
       final list = response.data['data'] as List<dynamic>;
       state = list.map((e) => e.toString()).toList();
+      _ref
+          .read(homeControllerProvider.notifier)
+          .syncFavourites(state);
     } catch (_) {
       final prefs = await SharedPreferences.getInstance();
       final favs = prefs.getStringList('favourites');
@@ -169,119 +254,819 @@ class FavouriteNotifier extends StateNotifier<List<String>> {
     }
   }
 
+
   Future<void> toggle(String id) async {
+    final wasFavourite = state.contains(id);
+
+    // 1. Optimistic local update
+    final updated = List<String>.from(state);
+
+    if (wasFavourite) {
+      updated.remove(id);
+    } else {
+      updated.add(id);
+    }
+
+    state = updated;
+
+    // 2. Send request to backend
     try {
       final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.post('/favorites/$id/toggle');
-      final list = response.data['data']['favorites'] as List<dynamic>;
-      state = list.map((e) => e.toString()).toList();
-    } catch (_) {
-      final updated = List<String>.from(state);
-      if (updated.contains(id)) {
-        updated.remove(id);
+
+      await apiClient.post('/favorites/$id/toggle');
+      _ref.invalidate(favoriteProfilesProvider);
+
+    } catch (error) {
+      // 3. Backend failed → rollback to previous state
+      final rollback = List<String>.from(state);
+
+      if (wasFavourite) {
+        // It was liked before → restore liked state
+        if (!rollback.contains(id)) {
+          rollback.add(id);
+        }
       } else {
-        updated.add(id);
+        // It was not liked before → restore unliked state
+        rollback.remove(id);
       }
-      state = updated;
+
+      state = rollback;
     }
-    _ref.read(homeControllerProvider.notifier).syncFavourites(state);
   }
 }
 
-class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
+// ============================================================
+// NOTIFICATION NOTIFIER
+// ============================================================
+
+class NotificationNotifier
+    extends StateNotifier<List<NotificationItem>> {
   final Ref _ref;
 
   NotificationNotifier(this._ref) : super([]) {
     _load();
   }
 
+  // ============================================================
+  // LOAD NOTIFICATIONS
+  // ============================================================
+
   Future<void> _load() async {
     try {
       final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.get('/notifications');
-      final list = response.data['data'] as List<dynamic>;
-      state = list.map((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (_) {}
+
+      final response =
+      await apiClient.get('/notifications');
+
+      final data = response.data['data'];
+
+      if (data is! List) {
+        debugPrint(
+          'Notifications API returned invalid data',
+        );
+
+        state = [];
+        return;
+      }
+
+      final notifications = data
+          .map(
+            (item) => NotificationItem.fromJson(
+          Map<String, dynamic>.from(item),
+        ),
+      )
+          .toList();
+
+      state = notifications;
+
+      debugPrint(
+        'NOTIFICATIONS LOADED: ${notifications.length}',
+      );
+
+      for (final notification in notifications) {
+        debugPrint(
+          'Notification => '
+              'title=${notification.title}, '
+              'type=${notification.type}, '
+              'isRead=${notification.isRead}, '
+              'profileId=${notification.profileId}',
+        );
+      }
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Notification load error: $error',
+      );
+
+      debugPrint(
+        stackTrace.toString(),
+      );
+    }
   }
+
+  Future<void> refresh() async {
+    await _load();
+  }
+
+  // ============================================================
+  // MARK ONE AS READ
+  // ============================================================
 
   Future<void> markAsRead(String id) async {
     try {
       final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.put('/notifications/$id/read');
-      final list = response.data['data'] as List<dynamic>;
-      state = list.map((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (_) {
-      state = state.map((item) => item.id == id ? item.copyWith(isRead: true) : item).toList();
+
+      final response = await apiClient.put(
+        '/notifications/$id/read',
+      );
+
+      final data = response.data['data'];
+
+      if (data is! List) {
+        return;
+      }
+
+      state = data
+          .map(
+            (item) => NotificationItem.fromJson(
+          Map<String, dynamic>.from(item),
+        ),
+      )
+          .toList();
+    } catch (error) {
+      debugPrint(
+        'Mark notification as read error: $error',
+      );
+
+      state = state
+          .map(
+            (item) {
+          if (item.id == id) {
+            return item.copyWith(
+              isRead: true,
+            );
+          }
+
+          return item;
+        },
+      )
+          .toList();
     }
   }
+
+  // ============================================================
+  // DELETE ONE NOTIFICATION
+  // ============================================================
+
+  Future<void> deleteNotification(String id) async {
+    try {
+      final apiClient = _ref.read(apiClientProvider);
+
+      debugPrint(
+        '[Notification] Deleting notification: $id',
+      );
+
+      final response = await apiClient.delete(
+        '/notifications/$id',
+      );
+
+      debugPrint(
+        '[Notification] Delete response: '
+            '${response.statusCode}',
+      );
+
+      final data = response.data['data'];
+
+      if (data is List) {
+        state = data
+            .map(
+              (item) => NotificationItem.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+            .toList();
+      } else {
+        // Fallback: remove it locally if the backend
+        // successfully deleted it but did not return a list.
+        state = state
+            .where((notification) => notification.id != id)
+            .toList();
+      }
+
+      debugPrint(
+        '[Notification] Deleted successfully: $id',
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[Notification] Delete error: $error',
+      );
+
+      debugPrint(
+        stackTrace.toString(),
+      );
+
+      rethrow;
+    }
+  }
+
+  // ============================================================
+  // MARK ALL AS READ
+  // ============================================================
 
   Future<void> clearAllUnread() async {
     try {
       final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.put('/notifications/read-all');
-      final list = response.data['data'] as List<dynamic>;
-      state = list.map((item) => NotificationItem.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (_) {
-      state = state.map((item) => item.copyWith(isRead: true)).toList();
+
+      final response = await apiClient.put(
+        '/notifications/read-all',
+      );
+
+      final data = response.data['data'];
+
+      if (data is! List) {
+        return;
+      }
+
+      state = data
+          .map(
+            (item) => NotificationItem.fromJson(
+          Map<String, dynamic>.from(item),
+        ),
+      )
+          .toList();
+    } catch (error) {
+      debugPrint(
+        'Clear notifications error: $error',
+      );
+
+      state = state
+          .map(
+            (item) => item.copyWith(
+          isRead: true,
+        ),
+      )
+          .toList();
     }
   }
 
+  // ============================================================
+  // UNREAD COUNT
+  // ============================================================
+
   int getUnreadCount() {
-    return state.where((item) => !item.isRead).length;
+    return state
+        .where(
+          (item) => !item.isRead,
+    )
+        .length;
   }
 }
 
-class MessageNotifier extends StateNotifier<List<ConversationItem>> {
+// ============================================================
+// MESSAGE NOTIFIER
+// ============================================================
+class MessageNotifier
+    extends StateNotifier<List<ConversationItem>> {
   final Ref _ref;
 
   MessageNotifier(this._ref) : super([]) {
     _load();
+    _initializeSocket();
   }
+
+  // ============================================================
+  // LOAD MESSAGE HISTORY
+  // ============================================================
 
   Future<void> _load() async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.get('/messages/conversations');
-      final list = response.data['data'] as List<dynamic>;
-      state = list.map((item) => ConversationItem.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (_) {}
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.get(
+        '/messages/conversations',
+      );
+
+      final list =
+      response.data['data'] as List<dynamic>;
+
+      state = list
+          .map(
+            (item) =>
+            ConversationItem.fromJson(
+              item as Map<String, dynamic>,
+            ),
+      )
+          .toList();
+
+      debugPrint(
+        '[Messages] Conversations loaded: '
+            '${state.length}',
+      );
+    } catch (error) {
+      debugPrint(
+        '[Messages] Load error: $error',
+      );
+    }
   }
 
-  Future<void> sendMessage(String partnerId, String text) async {
+  // ============================================================
+  // INITIALIZE SOCKET
+  // ============================================================
+
+  Future<void> _initializeSocket() async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      await apiClient.post('/messages/$partnerId', data: {'text': text});
-      await _load();
-    } catch (_) {
-      // Fallback local update
-      final exists = state.any((c) => c.partnerId == partnerId);
-      if (!exists) {
+      final socket =
+      _ref.read(socketServiceProvider);
+
+      await socket.connect();
+
+      debugPrint(
+        '[Messages] Socket connected',
+      );
+
+      // --------------------------------------------
+      // NEW MESSAGE
+      // --------------------------------------------
+
+      socket.on(
+        'newMessage',
+        _handleNewMessage,
+      );
+
+      // --------------------------------------------
+      // MESSAGE DELIVERED
+      // --------------------------------------------
+
+      socket.on(
+        'messageDelivered',
+        _handleMessageDelivered,
+      );
+
+      // --------------------------------------------
+      // MESSAGE READ
+      // --------------------------------------------
+
+      socket.on(
+        'messageRead',
+        _handleMessageRead,
+      );
+
+    } catch (error) {
+      debugPrint(
+        '[Messages] Socket initialization error: $error',
+      );
+    }
+  }
+
+  // ============================================================
+  // RECEIVE NEW MESSAGE
+  // ============================================================
+
+  void _handleNewMessage(dynamic data) {
+    try {
+      if (data is! Map) {
+        return;
+      }
+
+      final messageData =
+      Map<String, dynamic>.from(data);
+
+      debugPrint(
+        '[Messages] 📩 New message: $messageData',
+      );
+
+      final message =
+      MessageItem.fromJson(
+        messageData,
+      );
+
+      final senderId =
+          message.senderId;
+
+      // --------------------------------------------
+      // Find conversation
+      // --------------------------------------------
+
+      final conversationIndex =
+      state.indexWhere(
+            (conversation) =>
+        conversation.partnerId ==
+            senderId,
+      );
+
+      // --------------------------------------------
+      // Conversation doesn't exist
+      // --------------------------------------------
+
+      if (conversationIndex == -1) {
         state = [
           ...state,
           ConversationItem(
-            partnerId: partnerId,
+            partnerId: senderId,
             partnerName: 'Member',
-            partnerAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
-            messages: [],
-          )
+            partnerAvatar:
+            'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+            messages: [
+              message,
+            ],
+          ),
         ];
+
+        // ----------------------------------------
+        // Mark received message as delivered
+        // ----------------------------------------
+
+        _markMessageDelivered(
+          message.id,
+        );
+
+        return;
       }
-      state = state.map((c) {
-        if (c.partnerId == partnerId) {
-          final updated = List<MessageItem>.from(c.messages)
-            ..add(MessageItem(
-              id: 'msg_user_${DateTime.now().millisecondsSinceEpoch}',
-              senderId: 'me',
-              text: text,
-              timestamp: DateTime.now(),
-            ));
-          return c.copyWith(messages: updated);
-        }
-        return c;
-      }).toList();
+
+      // --------------------------------------------
+      // Add message to existing conversation
+      // --------------------------------------------
+
+      final conversation =
+      state[conversationIndex];
+
+      // Prevent duplicate message
+      final alreadyExists =
+      conversation.messages.any(
+            (item) => item.id == message.id,
+      );
+
+      if (alreadyExists) {
+        return;
+      }
+
+      final updatedMessages =
+      List<MessageItem>.from(
+        conversation.messages,
+      )..add(message);
+
+      final updatedConversation =
+      conversation.copyWith(
+        messages: updatedMessages,
+      );
+
+      final updatedState =
+      List<ConversationItem>.from(
+        state,
+      );
+
+      updatedState[conversationIndex] =
+          updatedConversation;
+
+      state = updatedState;
+
+      // --------------------------------------------
+      // Mark delivered
+      // --------------------------------------------
+
+      _markMessageDelivered(
+        message.id,
+      );
+
+    } catch (error) {
+      debugPrint(
+        '[Messages] New message error: $error',
+      );
     }
   }
+
+  // ============================================================
+  // MARK MESSAGE DELIVERED
+  // ============================================================
+
+  void _markMessageDelivered(
+      String messageId,
+      ) {
+    final socket =
+    _ref.read(socketServiceProvider);
+
+    socket.emit(
+      'messageDelivered',
+      {
+        'messageId': messageId,
+      },
+    );
+  }
+
+  // ============================================================
+  // MESSAGE DELIVERED UPDATE
+  // ============================================================
+
+  void _handleMessageDelivered(
+      dynamic data,
+      ) {
+    try {
+      if (data is! Map) {
+        return;
+      }
+
+      final update =
+      Map<String, dynamic>.from(data);
+
+      final messageId =
+      update['messageId']?.toString();
+
+      if (messageId == null) {
+        return;
+      }
+
+      debugPrint(
+        '[Messages] ✓✓ Delivered: $messageId',
+      );
+
+      _updateMessage(
+        messageId,
+            (message) {
+          return message.copyWith(
+            status:
+            update['status'] ?? 'delivered',
+            deliveredAt:
+            update['deliveredAt'] != null
+                ? DateTime.tryParse(
+              update['deliveredAt']
+                  .toString(),
+            )
+                : message.deliveredAt,
+          );
+        },
+      );
+    } catch (error) {
+      debugPrint(
+        '[Messages] Delivery update error: $error',
+      );
+    }
+  }
+
+  // ============================================================
+  // MESSAGE READ UPDATE
+  // ============================================================
+
+  void _handleMessageRead(
+      dynamic data,
+      ) {
+    try {
+      if (data is! Map) {
+        return;
+      }
+
+      final update =
+      Map<String, dynamic>.from(data);
+
+      final messageId =
+      update['messageId']?.toString();
+
+      if (messageId == null) {
+        return;
+      }
+
+      debugPrint(
+        '[Messages] 🔴✓✓ Read: $messageId',
+      );
+
+      _updateMessage(
+        messageId,
+            (message) {
+          return message.copyWith(
+            status:
+            update['status'] ?? 'read',
+            readAt:
+            update['readAt'] != null
+                ? DateTime.tryParse(
+              update['readAt']
+                  .toString(),
+            )
+                : message.readAt,
+          );
+        },
+      );
+    } catch (error) {
+      debugPrint(
+        '[Messages] Read update error: $error',
+      );
+    }
+  }
+
+  // ============================================================
+  // UPDATE MESSAGE IN STATE
+  // ============================================================
+
+  void _updateMessage(
+      String messageId,
+      MessageItem Function(
+          MessageItem,
+          ) updater,
+      ) {
+    state = state.map(
+          (conversation) {
+        final containsMessage =
+        conversation.messages.any(
+              (message) =>
+          message.id == messageId,
+        );
+
+        if (!containsMessage) {
+          return conversation;
+        }
+
+        return conversation.copyWith(
+          messages:
+          conversation.messages.map(
+                (message) {
+              if (message.id == messageId) {
+                return updater(message);
+              }
+
+              return message;
+            },
+          ).toList(),
+        );
+      },
+    ).toList();
+  }
+
+  // ============================================================
+  // SEND MESSAGE
+  // ============================================================
+
+  Future<void> sendMessage(
+      String partnerId,
+      String text,
+      ) async {
+    if (text.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      final socket =
+      _ref.read(socketServiceProvider);
+
+      // --------------------------------------------
+      // Make sure socket is connected
+      // --------------------------------------------
+
+      if (!socket.isConnected) {
+        await socket.connect();
+      }
+
+      if (!socket.isConnected) {
+        debugPrint(
+          '[Messages] Socket not connected',
+        );
+        return;
+      }
+
+      debugPrint(
+        '[Messages] 📤 Sending message',
+      );
+
+      // --------------------------------------------
+      // Send through Socket.IO
+      // --------------------------------------------
+
+      socket.socket!.emitWithAck(
+        'sendMessage',
+        {
+          'receiverId': partnerId,
+          'text': text.trim(),
+        },
+        ack: (response) {
+          debugPrint(
+            '[Messages] Server ACK: $response',
+          );
+
+          if (response is Map &&
+              response['success'] == true) {
+            final messageData =
+            response['message'];
+
+            if (messageData is Map) {
+              _addOwnMessage(
+                partnerId,
+                Map<String, dynamic>.from(
+                  messageData,
+                ),
+              );
+            }
+          }
+        },
+      );
+
+    } catch (error) {
+      debugPrint(
+        '[Messages] Send error: $error',
+      );
+    }
+  }
+
+  // ============================================================
+  // ADD OWN MESSAGE
+  // ============================================================
+
+  void _addOwnMessage(
+      String partnerId,
+      Map<String, dynamic> data,
+      ) {
+    final message =
+    MessageItem.fromJson({
+      ...data,
+      'receiverId':
+      data['receiverId'] ?? partnerId,
+      'senderId':
+      data['senderId'] ?? 'me',
+      'status':
+      data['status'] ?? 'sent',
+    });
+
+    final conversationIndex =
+    state.indexWhere(
+          (conversation) =>
+      conversation.partnerId ==
+          partnerId,
+    );
+
+    // --------------------------------------------
+    // New conversation
+    // --------------------------------------------
+
+    if (conversationIndex == -1) {
+      state = [
+        ...state,
+        ConversationItem(
+          partnerId: partnerId,
+          partnerName: 'Member',
+          partnerAvatar:
+          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+          messages: [
+            message,
+          ],
+        ),
+      ];
+
+      return;
+    }
+
+    // --------------------------------------------
+    // Existing conversation
+    // --------------------------------------------
+
+    final conversation =
+    state[conversationIndex];
+
+    final alreadyExists =
+    conversation.messages.any(
+          (item) => item.id == message.id,
+    );
+
+    if (alreadyExists) {
+      return;
+    }
+
+    final updatedMessages =
+    List<MessageItem>.from(
+      conversation.messages,
+    )..add(message);
+
+    final updatedState =
+    List<ConversationItem>.from(
+      state,
+    );
+
+    updatedState[conversationIndex] =
+        conversation.copyWith(
+          messages: updatedMessages,
+        );
+
+    state = updatedState;
+  }
+
+  // ============================================================
+  // MARK MESSAGE AS READ
+  // ============================================================
+
+  void markMessageAsRead(
+      String messageId,
+      ) {
+    final socket =
+    _ref.read(socketServiceProvider);
+
+    socket.emit(
+      'messageRead',
+      {
+        'messageId': messageId,
+      },
+    );
+  }
 }
+
+// ============================================================
+// PROFILE VIEW STATE
+// ============================================================
 
 class ProfileViewState {
   final int count;
@@ -301,45 +1086,239 @@ class ProfileViewState {
   }) {
     return ProfileViewState(
       count: count ?? this.count,
-      viewerProfiles: viewerProfiles ?? this.viewerProfiles,
-      isLoading: isLoading ?? this.isLoading,
+      viewerProfiles:
+      viewerProfiles ?? this.viewerProfiles,
+      isLoading:
+      isLoading ?? this.isLoading,
     );
   }
 }
 
-class ProfileViewNotifier extends StateNotifier<ProfileViewState> {
+// ============================================================
+// PROFILE VIEW NOTIFIER
+// ============================================================
+
+class ProfileViewNotifier
+    extends StateNotifier<ProfileViewState> {
   final Ref _ref;
 
-  ProfileViewNotifier(this._ref) : super(ProfileViewState()) {
+  // ------------------------------------------------------------
+  // Profiles currently being recorded.
+  //
+  // This prevents:
+  //
+  // POST /profile/views/id
+  // POST /profile/views/id
+  //
+  // from happening simultaneously.
+  // ------------------------------------------------------------
+
+  final Set<String> _viewsInProgress = <String>{};
+
+  ProfileViewNotifier(this._ref)
+      : super(ProfileViewState()) {
     loadViews();
   }
 
+  // ============================================================
+  // LOAD PROFILE VIEWS
+  // ============================================================
+
   Future<void> loadViews() async {
+    debugPrint('==============================================');
+    debugPrint('PROFILE VIEWS: LOAD STARTED');
+    debugPrint('==============================================');
+
     state = state.copyWith(isLoading: true);
+
     try {
       final apiClient = _ref.read(apiClientProvider);
+
+      debugPrint('[ProfileViews] Calling GET /profile/views');
+
       final response = await apiClient.get('/profile/views');
-      final data = response.data['data'];
-      final count = data['count'] is int ? data['count'] as int : 0;
-      final viewsList = data['views'] as List<dynamic>? ?? [];
+
+      debugPrint('[ProfileViews] STATUS: ${response.statusCode}');
+      debugPrint('[ProfileViews] RAW RESPONSE: ${response.data}');
+
+      final responseData = response.data;
+
+      if (responseData is! Map<String, dynamic>) {
+        debugPrint('[ProfileViews] ERROR: response is not a Map');
+        return;
+      }
+
+      final data = responseData['data'];
+
+      debugPrint('[ProfileViews] DATA: $data');
+
+      if (data is! Map<String, dynamic>) {
+        debugPrint('[ProfileViews] ERROR: data is not a Map');
+        return;
+      }
+
+      final count = data['count'] is int
+          ? data['count'] as int
+          : int.tryParse(data['count']?.toString() ?? '') ?? 0;
+
+      final viewsList = data['views'] is List
+          ? data['views'] as List<dynamic>
+          : <dynamic>[];
+
+      debugPrint('[ProfileViews] COUNT: $count');
+      debugPrint('[ProfileViews] VIEWS LENGTH: ${viewsList.length}');
 
       final List<MatrimonialProfile> profiles = [];
-      for (var item in viewsList) {
-        if (item['profile'] != null) {
-          profiles.add(MatrimonialProfile.fromJson(Map<String, dynamic>.from(item['profile'])));
+
+      for (int i = 0; i < viewsList.length; i++) {
+        final item = viewsList[i];
+
+        debugPrint('----------------------------------------------');
+        debugPrint('[ProfileViews] VIEW #$i');
+        debugPrint('RAW VIEW: $item');
+
+        if (item is! Map) {
+          debugPrint('[ProfileViews] SKIPPED: view is not a Map');
+          continue;
+        }
+
+        final profileData = item['profile'];
+
+        debugPrint('[ProfileViews] PROFILE RAW: $profileData');
+
+        if (profileData == null) {
+          debugPrint('[ProfileViews] SKIPPED: profile is null');
+          continue;
+        }
+
+        if (profileData is! Map) {
+          debugPrint('[ProfileViews] SKIPPED: profile is not a Map');
+          continue;
+        }
+
+        final profileMap =
+        Map<String, dynamic>.from(profileData);
+
+        debugPrint(
+          '[ProfileViews] PROFILE ID: '
+              '${profileMap['_id'] ?? profileMap['id']}',
+        );
+
+        debugPrint(
+          '[ProfileViews] PROFILE NAME: '
+              '${profileMap['fullName'] ?? profileMap['name']}',
+        );
+
+        try {
+          final profile =
+          MatrimonialProfile.fromJson(profileMap);
+
+          debugPrint(
+            '[ProfileViews] PARSED ID: ${profile.id}',
+          );
+
+          debugPrint(
+            '[ProfileViews] PARSED NAME: ${profile.fullName}',
+          );
+
+          profiles.add(profile);
+        } catch (e, stackTrace) {
+          debugPrint(
+            '[ProfileViews] PROFILE PARSE ERROR: $e',
+          );
+          debugPrint('$stackTrace');
         }
       }
-      state = ProfileViewState(count: count, viewerProfiles: profiles, isLoading: false);
-    } catch (_) {
+
+      debugPrint('==============================================');
+      debugPrint('[ProfileViews] FINAL PROFILES: ${profiles.length}');
+
+      for (final profile in profiles) {
+        debugPrint(
+          'PROFILE => id=${profile.id}, '
+              'name=${profile.fullName}',
+        );
+      }
+
+      debugPrint('==============================================');
+
+      state = ProfileViewState(
+        count: count,
+        viewerProfiles: profiles,
+        isLoading: false,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('==============================================');
+      debugPrint('[ProfileViews] LOAD ERROR: $e');
+      debugPrint('$stackTrace');
+      debugPrint('==============================================');
+
       state = state.copyWith(isLoading: false);
     }
   }
 
-  Future<void> recordView(String targetProfileId) async {
+  // ============================================================
+  // RECORD PROFILE VIEW
+  // ============================================================
+
+  Future<void> recordView(
+      String targetProfileId,
+      ) async {
+    // ----------------------------------------------------------
+    // Validate ID
+    // ----------------------------------------------------------
+
+    final profileId =
+    targetProfileId.trim();
+
+    if (profileId.isEmpty) {
+      debugPrint(
+        'Profile view skipped: empty profile ID',
+      );
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // Prevent duplicate requests while one is already running.
+    // ----------------------------------------------------------
+
+    if (_viewsInProgress.contains(profileId)) {
+      debugPrint(
+        'Profile view skipped: already recording '
+            'profile=$profileId',
+      );
+      return;
+    }
+
+    _viewsInProgress.add(profileId);
+
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      await apiClient.post('/profile/views/$targetProfileId');
-    } catch (_) {}
+      debugPrint(
+        'Recording profile view: profile=$profileId',
+      );
+
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.post(
+        '/profile/views/$profileId',
+      );
+
+      debugPrint(
+        'Profile view response: '
+            '${response.statusCode} '
+            'profile=$profileId',
+      );
+    } catch (error) {
+      debugPrint(
+        'Profile view error: '
+            'profile=$profileId '
+            'error=$error',
+      );
+    } finally {
+      _viewsInProgress.remove(profileId);
+    }
   }
 }
 
@@ -347,32 +1326,65 @@ class ProfileViewNotifier extends StateNotifier<ProfileViewState> {
 // PROVIDERS DEFINITIONS
 // ==========================================
 
-final favouriteProvider = StateNotifierProvider<FavouriteNotifier, List<String>>((ref) {
-  return FavouriteNotifier(ref);
-});
+final favouriteProvider =
+StateNotifierProvider<FavouriteNotifier, List<String>>(
+      (ref) {
+    return FavouriteNotifier(ref);
+  },
+);
 
-final favoriteProfilesProvider = FutureProvider<List<MatrimonialProfile>>((ref) async {
-  try {
-    final apiClient = ref.watch(apiClientProvider);
-    final response = await apiClient.get('/favorites/profiles');
-    final list = response.data['data'] as List<dynamic>;
-    return list.map((e) => MatrimonialProfile.fromJson(Map<String, dynamic>.from(e))).toList();
-  } catch (_) {
-    return [];
-  }
-});
+final favoriteProfilesProvider =
+FutureProvider<List<MatrimonialProfile>>(
+      (ref) async {
+    try {
+      final apiClient =
+      ref.watch(apiClientProvider);
 
-final notificationProvider = StateNotifierProvider<NotificationNotifier, List<NotificationItem>>((ref) {
-  return NotificationNotifier(ref);
-});
+      final response =
+      await apiClient.get('/favorites/profiles');
 
-final messageProvider = StateNotifierProvider<MessageNotifier, List<ConversationItem>>((ref) {
-  return MessageNotifier(ref);
-});
+      final list =
+      response.data['data'] as List<dynamic>;
 
-final profileViewProvider = StateNotifierProvider<ProfileViewNotifier, ProfileViewState>((ref) {
-  return ProfileViewNotifier(ref);
-});
+      return list
+          .map(
+            (e) => MatrimonialProfile.fromJson(
+          Map<String, dynamic>.from(e),
+        ),
+      )
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  },
+);
+
+final notificationProvider =
+StateNotifierProvider<
+    NotificationNotifier,
+    List<NotificationItem>>(
+      (ref) {
+    return NotificationNotifier(ref);
+  },
+);
+
+final messageProvider =
+StateNotifierProvider<
+    MessageNotifier,
+    List<ConversationItem>>(
+      (ref) {
+    return MessageNotifier(ref);
+  },
+);
+
+final profileViewProvider =
+StateNotifierProvider<
+    ProfileViewNotifier,
+    ProfileViewState>(
+      (ref) {
+    return ProfileViewNotifier(ref);
+  },
+);
 
 final homeProvider = homeControllerProvider;
 
@@ -409,13 +1421,21 @@ class PrivacySettings {
     bool? hideProfile,
   }) {
     return PrivacySettings(
-      hidePhone: hidePhone ?? this.hidePhone,
-      hideEmail: hideEmail ?? this.hideEmail,
-      hidePhotos: hidePhotos ?? this.hidePhotos,
-      hideIncome: hideIncome ?? this.hideIncome,
-      hideLastSeen: hideLastSeen ?? this.hideLastSeen,
-      hideOnlineStatus: hideOnlineStatus ?? this.hideOnlineStatus,
-      hideProfile: hideProfile ?? this.hideProfile,
+      hidePhone:
+      hidePhone ?? this.hidePhone,
+      hideEmail:
+      hideEmail ?? this.hideEmail,
+      hidePhotos:
+      hidePhotos ?? this.hidePhotos,
+      hideIncome:
+      hideIncome ?? this.hideIncome,
+      hideLastSeen:
+      hideLastSeen ?? this.hideLastSeen,
+      hideOnlineStatus:
+      hideOnlineStatus ??
+          this.hideOnlineStatus,
+      hideProfile:
+      hideProfile ?? this.hideProfile,
     );
   }
 
@@ -429,45 +1449,77 @@ class PrivacySettings {
     'hideProfile': hideProfile,
   };
 
-  factory PrivacySettings.fromJson(Map<String, dynamic> json) => PrivacySettings(
-    hidePhone: json['hidePhone'] ?? false,
-    hideEmail: json['hideEmail'] ?? false,
-    hidePhotos: json['hidePhotos'] ?? false,
-    hideIncome: json['hideIncome'] ?? false,
-    hideLastSeen: json['hideLastSeen'] ?? false,
-    hideOnlineStatus: json['hideOnlineStatus'] ?? false,
-    hideProfile: json['hideProfile'] ?? false,
-  );
+  factory PrivacySettings.fromJson(
+      Map<String, dynamic> json,
+      ) =>
+      PrivacySettings(
+        hidePhone:
+        json['hidePhone'] ?? false,
+        hideEmail:
+        json['hideEmail'] ?? false,
+        hidePhotos:
+        json['hidePhotos'] ?? false,
+        hideIncome:
+        json['hideIncome'] ?? false,
+        hideLastSeen:
+        json['hideLastSeen'] ?? false,
+        hideOnlineStatus:
+        json['hideOnlineStatus'] ?? false,
+        hideProfile:
+        json['hideProfile'] ?? false,
+      );
 }
 
-class PrivacySettingsNotifier extends StateNotifier<PrivacySettings> {
+class PrivacySettingsNotifier
+    extends StateNotifier<PrivacySettings> {
   final Ref _ref;
 
-  PrivacySettingsNotifier(this._ref) : super(PrivacySettings()) {
+  PrivacySettingsNotifier(this._ref)
+      : super(PrivacySettings()) {
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.get('/settings');
-      final data = response.data['data']['privacySettings'] as Map<String, dynamic>;
-      state = PrivacySettings.fromJson(data);
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.get('/settings');
+
+      final data = response.data['data']
+      ['privacySettings'] as Map<String, dynamic>;
+
+      state =
+          PrivacySettings.fromJson(data);
     } catch (_) {}
   }
 
-  Future<void> save(PrivacySettings settings) async {
+  Future<void> save(
+      PrivacySettings settings,
+      ) async {
     state = settings;
+
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      await apiClient.put('/settings/privacy', data: settings.toJson());
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      await apiClient.put(
+        '/settings/privacy',
+        data: settings.toJson(),
+      );
     } catch (_) {}
   }
 }
 
-final privacySettingsProvider = StateNotifierProvider<PrivacySettingsNotifier, PrivacySettings>((ref) {
-  return PrivacySettingsNotifier(ref);
-});
+final privacySettingsProvider =
+StateNotifierProvider<
+    PrivacySettingsNotifier,
+    PrivacySettings>(
+      (ref) {
+    return PrivacySettingsNotifier(ref);
+  },
+);
 
 class NotificationPrefs {
   final bool push;
@@ -488,7 +1540,8 @@ class NotificationPrefs {
     return NotificationPrefs(
       push: push ?? this.push,
       email: email ?? this.email,
-      whatsapp: whatsapp ?? this.whatsapp,
+      whatsapp:
+      whatsapp ?? this.whatsapp,
     );
   }
 
@@ -498,118 +1551,211 @@ class NotificationPrefs {
     'whatsapp': whatsapp,
   };
 
-  factory NotificationPrefs.fromJson(Map<String, dynamic> json) => NotificationPrefs(
-    push: json['push'] ?? true,
-    email: json['email'] ?? true,
-    whatsapp: json['whatsapp'] ?? false,
-  );
+  factory NotificationPrefs.fromJson(
+      Map<String, dynamic> json,
+      ) =>
+      NotificationPrefs(
+        push: json['push'] ?? true,
+        email: json['email'] ?? true,
+        whatsapp:
+        json['whatsapp'] ?? false,
+      );
 }
 
-class NotificationPrefsNotifier extends StateNotifier<NotificationPrefs> {
+class NotificationPrefsNotifier
+    extends StateNotifier<NotificationPrefs> {
   final Ref _ref;
 
-  NotificationPrefsNotifier(this._ref) : super(NotificationPrefs()) {
+  NotificationPrefsNotifier(this._ref)
+      : super(NotificationPrefs()) {
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.get('/settings');
-      final data = response.data['data']['notificationPrefs'] as Map<String, dynamic>;
-      state = NotificationPrefs.fromJson(data);
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.get('/settings');
+
+      final data = response.data['data']
+      ['notificationPrefs'] as Map<String, dynamic>;
+
+      state =
+          NotificationPrefs.fromJson(data);
     } catch (_) {}
   }
 
-  Future<void> save(NotificationPrefs prefsData) async {
+  Future<void> save(
+      NotificationPrefs prefsData,
+      ) async {
     state = prefsData;
+
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      await apiClient.put('/settings/notifications', data: prefsData.toJson());
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      await apiClient.put(
+        '/settings/notifications',
+        data: prefsData.toJson(),
+      );
     } catch (_) {}
   }
 }
 
-final notificationPrefsProvider = StateNotifierProvider<NotificationPrefsNotifier, NotificationPrefs>((ref) {
-  return NotificationPrefsNotifier(ref);
-});
+final notificationPrefsProvider =
+StateNotifierProvider<
+    NotificationPrefsNotifier,
+    NotificationPrefs>(
+      (ref) {
+    return NotificationPrefsNotifier(ref);
+  },
+);
 
-class LanguageNotifier extends StateNotifier<String> {
+class LanguageNotifier
+    extends StateNotifier<String> {
   final Ref _ref;
 
-  LanguageNotifier(this._ref) : super('English') {
+  LanguageNotifier(this._ref)
+      : super('English') {
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.get('/settings');
-      state = response.data['data']['language'] ?? 'English';
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.get('/settings');
+
+      state =
+          response.data['data']['language'] ??
+              'English';
     } catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      state = prefs.getString('appLanguage') ?? 'English';
+      final prefs =
+      await SharedPreferences.getInstance();
+
+      state =
+          prefs.getString('appLanguage') ??
+              'English';
     }
   }
 
   Future<void> save(String lang) async {
     state = lang;
+
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      await apiClient.put('/settings/language', data: {'language': lang});
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      await apiClient.put(
+        '/settings/language',
+        data: {
+          'language': lang,
+        },
+      );
     } catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('appLanguage', lang);
+      final prefs =
+      await SharedPreferences.getInstance();
+
+      await prefs.setString(
+        'appLanguage',
+        lang,
+      );
     }
   }
 }
 
-final languageProvider = StateNotifierProvider<LanguageNotifier, String>((ref) {
-  return LanguageNotifier(ref);
-});
+final languageProvider =
+StateNotifierProvider<
+    LanguageNotifier,
+    String>(
+      (ref) {
+    return LanguageNotifier(ref);
+  },
+);
 
-class BlockedUsersNotifier extends StateNotifier<List<String>> {
+class BlockedUsersNotifier
+    extends StateNotifier<List<String>> {
   final Ref _ref;
 
-  BlockedUsersNotifier(this._ref) : super([]) {
+  BlockedUsersNotifier(this._ref)
+      : super([]) {
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.get('/blocked');
-      final list = response.data['data'] as List<dynamic>;
-      state = list.map((e) => e.toString()).toList();
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.get('/blocked');
+
+      final list =
+      response.data['data'] as List<dynamic>;
+
+      state =
+          list.map((e) => e.toString()).toList();
     } catch (_) {}
   }
 
   Future<void> block(String id) async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.post('/blocked/$id');
-      final list = response.data['data'] as List<dynamic>;
-      state = list.map((e) => e.toString()).toList();
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.post('/blocked/$id');
+
+      final list =
+      response.data['data'] as List<dynamic>;
+
+      state =
+          list.map((e) => e.toString()).toList();
     } catch (_) {
-      if (!state.contains(id)) state = [...state, id];
+      if (!state.contains(id)) {
+        state = [
+          ...state,
+          id,
+        ];
+      }
     }
   }
 
   Future<void> unblock(String id) async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.delete('/blocked/$id');
-      final list = response.data['data'] as List<dynamic>;
-      state = list.map((e) => e.toString()).toList();
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.delete('/blocked/$id');
+
+      final list =
+      response.data['data'] as List<dynamic>;
+
+      state =
+          list.map((e) => e.toString()).toList();
     } catch (_) {
-      state = state.where((item) => item != id).toList();
+      state = state
+          .where(
+            (item) => item != id,
+      )
+          .toList();
     }
   }
 }
 
-final blockedUsersProvider = StateNotifierProvider<BlockedUsersNotifier, List<String>>((ref) {
-  return BlockedUsersNotifier(ref);
-});
+final blockedUsersProvider =
+StateNotifierProvider<
+    BlockedUsersNotifier,
+    List<String>>(
+      (ref) {
+    return BlockedUsersNotifier(ref);
+  },
+);
 
 class PartnerPreference {
   final int ageMin;
@@ -661,10 +1807,13 @@ class PartnerPreference {
       religion: religion ?? this.religion,
       caste: caste ?? this.caste,
       city: city ?? this.city,
-      education: education ?? this.education,
-      occupation: occupation ?? this.occupation,
+      education:
+      education ?? this.education,
+      occupation:
+      occupation ?? this.occupation,
       income: income ?? this.income,
-      maritalStatus: maritalStatus ?? this.maritalStatus,
+      maritalStatus:
+      maritalStatus ?? this.maritalStatus,
       diet: diet ?? this.diet,
       manglik: manglik ?? this.manglik,
     );
@@ -685,47 +1834,94 @@ class PartnerPreference {
     'manglik': manglik,
   };
 
-  factory PartnerPreference.fromJson(Map<String, dynamic> json) => PartnerPreference(
-    ageMin: json['ageMin'] ?? 22,
-    ageMax: json['ageMax'] ?? 32,
-    height: json['height'] ?? '5\'2" - 6\'0"',
-    religion: json['religion'] ?? 'Hindu',
-    caste: json['caste'] ?? 'Any',
-    city: json['city'] ?? 'Pune',
-    education: json['education'] ?? 'Bachelor\'s',
-    occupation: json['occupation'] ?? 'Software Engineer',
-    income: json['income'] ?? '5 LPA - 20 LPA',
-    maritalStatus: json['maritalStatus'] ?? 'Never Married',
-    diet: json['diet'] ?? 'Vegetarian',
-    manglik: json['manglik'] ?? 'No',
-  );
+  factory PartnerPreference.fromJson(
+      Map<String, dynamic> json,
+      ) =>
+      PartnerPreference(
+        ageMin:
+        json['ageMin'] ?? 22,
+        ageMax:
+        json['ageMax'] ?? 32,
+        height:
+        json['height'] ??
+            '5\'2" - 6\'0"',
+        religion:
+        json['religion'] ?? 'Hindu',
+        caste:
+        json['caste'] ?? 'Any',
+        city:
+        json['city'] ?? 'Pune',
+        education:
+        json['education'] ??
+            'Bachelor\'s',
+        occupation:
+        json['occupation'] ??
+            'Software Engineer',
+        income:
+        json['income'] ??
+            '5 LPA - 20 LPA',
+        maritalStatus:
+        json['maritalStatus'] ??
+            'Never Married',
+        diet:
+        json['diet'] ??
+            'Vegetarian',
+        manglik:
+        json['manglik'] ?? 'No',
+      );
 }
 
-class PartnerPreferenceNotifier extends StateNotifier<PartnerPreference> {
+class PartnerPreferenceNotifier
+    extends StateNotifier<PartnerPreference> {
   final Ref _ref;
 
-  PartnerPreferenceNotifier(this._ref) : super(PartnerPreference()) {
+  PartnerPreferenceNotifier(this._ref)
+      : super(PartnerPreference()) {
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final response = await apiClient.get('/profile/me');
-      final data = response.data['data']['profile']['partnerPreference'] as Map<String, dynamic>?;
-      if (data != null) state = PartnerPreference.fromJson(data);
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      final response =
+      await apiClient.get('/profile/me');
+
+      final data =
+      response.data['data']['profile']
+      ['partnerPreference']
+      as Map<String, dynamic>?;
+
+      if (data != null) {
+        state =
+            PartnerPreference.fromJson(data);
+      }
     } catch (_) {}
   }
 
-  Future<void> save(PartnerPreference pref) async {
+  Future<void> save(
+      PartnerPreference pref,
+      ) async {
     state = pref;
+
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      await apiClient.post('/profile/partner-preference', data: pref.toJson());
+      final apiClient =
+      _ref.read(apiClientProvider);
+
+      await apiClient.post(
+        '/profile/partner-preference',
+        data: pref.toJson(),
+      );
     } catch (_) {}
   }
 }
 
-final partnerPreferenceProvider = StateNotifierProvider<PartnerPreferenceNotifier, PartnerPreference>((ref) {
-  return PartnerPreferenceNotifier(ref);
-});
+final partnerPreferenceProvider =
+StateNotifierProvider<
+    PartnerPreferenceNotifier,
+    PartnerPreference>(
+      (ref) {
+    return PartnerPreferenceNotifier(ref);
+  },
+);

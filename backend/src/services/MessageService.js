@@ -1,8 +1,12 @@
-import Message from '../models/Message.js';
-import Matrimony from '../models/Matrimony.js';
-import AuthService from './AuthService.js';
+import Message from "../models/Message.js";
+import Matrimony from "../models/Matrimony.js";
+import AuthService from "./AuthService.js";
 
 class MessageService {
+  // --------------------------------------------------
+  // GET ALL CONVERSATIONS
+  // --------------------------------------------------
+
   async getConversations(userId) {
     if (!userId) return [];
 
@@ -10,80 +14,198 @@ class MessageService {
       $or: [
         { sender: userId },
         { receiver: userId },
-        { senderId: userId },
-        { recipientId: userId }
-      ]
-    }).sort({ createdAt: 1 }).lean();
+      ],
+    })
+      .sort({ createdAt: 1 })
+      .lean();
 
     const conversationMap = {};
 
     for (const msg of messages) {
-      const msgSender = msg.sender || msg.senderId;
-      const msgReceiver = msg.receiver || msg.recipientId;
-      if (!msgSender || !msgReceiver) continue;
+      const senderId = msg.sender.toString();
+      const receiverId = msg.receiver.toString();
 
-      const isSender = msgSender.toString() === userId.toString();
-      const partnerIdStr = isSender ? msgReceiver.toString() : msgSender.toString();
+      const isSender = senderId === userId.toString();
 
-      if (!conversationMap[partnerIdStr]) {
-        conversationMap[partnerIdStr] = [];
+      const partnerId = isSender
+        ? receiverId
+        : senderId;
+
+      if (!conversationMap[partnerId]) {
+        conversationMap[partnerId] = [];
       }
 
-      conversationMap[partnerIdStr].push({
+      conversationMap[partnerId].push({
         id: msg._id.toString(),
-        senderId: isSender ? 'me' : partnerIdStr,
-        text: msg.content || msg.text || '',
+
+        senderId: senderId === userId.toString()
+          ? "me"
+          : senderId,
+
+        receiverId,
+
+        text: msg.content,
+
+        status: msg.status,
+
+        deliveredAt: msg.deliveredAt,
+
+        readAt: msg.readAt,
+
         timestamp: msg.createdAt,
       });
     }
 
     const partnerIds = Object.keys(conversationMap);
-    const partnerDocs = await Matrimony.find({ _id: { $in: partnerIds } });
 
-    const partnerMap = {};
-    for (const doc of partnerDocs) {
-      partnerMap[doc._id.toString()] = await AuthService.getMergedUser(doc);
+    if (partnerIds.length === 0) {
+      return [];
     }
 
-    const conversations = partnerIds.map(partnerId => {
-      const p = partnerMap[partnerId];
+    const partnerDocs = await Matrimony.find({
+      _id: { $in: partnerIds },
+    }).lean();
+
+    const partnerMap = {};
+
+    for (const doc of partnerDocs) {
+      partnerMap[doc._id.toString()] =
+        await AuthService.getMergedUser(doc);
+    }
+
+    const conversations = partnerIds.map((partnerId) => {
+      const partner = partnerMap[partnerId];
+
+      const messagesForPartner =
+        conversationMap[partnerId] || [];
+
+      const lastMessage =
+        messagesForPartner[messagesForPartner.length - 1];
+
       return {
         partnerId,
-        partnerName: p ? (p.fullName || 'Matrimony Member') : 'Matrimony Member',
-        partnerAvatar: (p && p.photos && p.photos.length > 0) ? p.photos[0] : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
-        messages: conversationMap[partnerId] || [],
+
+        partnerName:
+          partner?.fullName ||
+          "Matrimony Member",
+
+        partnerAvatar:
+          partner?.photos?.length > 0
+            ? partner.photos[0]
+            : "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100",
+
+        lastMessage: lastMessage?.text || "",
+
+        lastMessageTime:
+          lastMessage?.timestamp || null,
+
+        messages: messagesForPartner,
       };
+    });
+
+    // Most recent conversation first
+    conversations.sort((a, b) => {
+      return (
+        new Date(b.lastMessageTime || 0) -
+        new Date(a.lastMessageTime || 0)
+      );
     });
 
     return conversations;
   }
 
+  // --------------------------------------------------
+  // GET MESSAGES WITH PARTNER
+  // --------------------------------------------------
+
   async getMessagesWithPartner(userId, partnerId) {
+    if (!userId || !partnerId) {
+      const error = new Error(
+        "User ID and partner ID are required"
+      );
+
+      error.statusCode = 400;
+
+      throw error;
+    }
+
     const messages = await Message.find({
       $or: [
-        { sender: userId, receiver: partnerId },
-        { sender: partnerId, receiver: userId },
-        { senderId: userId, recipientId: partnerId },
-        { senderId: partnerId, recipientId: userId }
-      ]
-    }).sort({ createdAt: 1 }).lean();
+        {
+          sender: userId,
+          receiver: partnerId,
+        },
+        {
+          sender: partnerId,
+          receiver: userId,
+        },
+      ],
+    })
+      .sort({ createdAt: 1 })
+      .lean();
 
-    return messages.map(msg => {
-      const msgSender = msg.sender || msg.senderId;
-      const isSender = msgSender.toString() === userId.toString();
+    return messages.map((msg) => {
+      const senderId = msg.sender.toString();
+
       return {
         id: msg._id.toString(),
-        senderId: isSender ? 'me' : partnerId,
-        text: msg.content || msg.text || '',
+
+        senderId:
+          senderId === userId.toString()
+            ? "me"
+            : senderId,
+
+        receiverId:
+          msg.receiver.toString(),
+
+        text: msg.content,
+
+        status: msg.status,
+
+        deliveredAt: msg.deliveredAt,
+
+        readAt: msg.readAt,
+
         timestamp: msg.createdAt,
       };
     });
   }
 
+  // --------------------------------------------------
+  // SEND MESSAGE
+  // --------------------------------------------------
+
   async sendMessage(senderId, partnerId, text) {
-    if (!text || text.trim() === '') {
-      const error = new Error('Message text cannot be empty');
+    if (!senderId || !partnerId) {
+      const error = new Error(
+        "Sender and receiver are required"
+      );
+
       error.statusCode = 400;
+
+      throw error;
+    }
+
+    if (!text || text.trim() === "") {
+      const error = new Error(
+        "Message text cannot be empty"
+      );
+
+      error.statusCode = 400;
+
+      throw error;
+    }
+
+    // Make sure receiver exists
+    const receiver = await Matrimony.findById(partnerId);
+
+    if (!receiver) {
+      const error = new Error(
+        "Receiver not found"
+      );
+
+      error.statusCode = 404;
+
       throw error;
     }
 
@@ -91,14 +213,91 @@ class MessageService {
       sender: senderId,
       receiver: partnerId,
       content: text.trim(),
+      status: "sent",
     });
 
     return {
       id: message._id.toString(),
-      senderId: 'me',
+
+      senderId: "me",
+
+      receiverId: partnerId,
+
       text: message.content,
+
+      status: message.status,
+
+      deliveredAt: message.deliveredAt,
+
+      readAt: message.readAt,
+
       timestamp: message.createdAt,
     };
+  }
+
+  // --------------------------------------------------
+  // MARK MESSAGE AS DELIVERED
+  // --------------------------------------------------
+
+  async markAsDelivered(messageId, userId) {
+    const message = await Message.findOne({
+      _id: messageId,
+      receiver: userId,
+    });
+
+    if (!message) {
+      const error = new Error(
+        "Message not found"
+      );
+
+      error.statusCode = 404;
+
+      throw error;
+    }
+
+    if (message.status === "read") {
+      return message;
+    }
+
+    message.status = "delivered";
+    message.deliveredAt = new Date();
+
+    await message.save();
+
+    return message;
+  }
+
+  // --------------------------------------------------
+  // MARK MESSAGE AS READ
+  // --------------------------------------------------
+
+  async markAsRead(messageId, userId) {
+    const message = await Message.findOne({
+      _id: messageId,
+      receiver: userId,
+    });
+
+    if (!message) {
+      const error = new Error(
+        "Message not found"
+      );
+
+      error.statusCode = 404;
+
+      throw error;
+    }
+
+    message.status = "read";
+
+    if (!message.deliveredAt) {
+      message.deliveredAt = new Date();
+    }
+
+    message.readAt = new Date();
+
+    await message.save();
+
+    return message;
   }
 }
 
