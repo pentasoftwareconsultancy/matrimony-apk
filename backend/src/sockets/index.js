@@ -21,9 +21,13 @@ export const initializeSocket = (httpServer) => {
   io = new Server(httpServer, {
 
     cors: {
-      origin: true,
+      origin: [
+        'http://localhost:61602',
+        'https://matrimony-apk-9895.web.app',
+        'https://matrimony-apk-9895.firebaseapp.com',
+      ],
       credentials: true,
-      methods: ["GET", "POST"],
+      methods: ['GET', 'POST'],
     },
 
   });
