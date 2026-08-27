@@ -35,6 +35,7 @@ class _ChatDetailScreenState
 
 
   @override
+
   void initState() {
     super.initState();
 
@@ -42,8 +43,12 @@ class _ChatDetailScreenState
 
     Future.microtask(() {
       debugPrint(
-        '[ChatPresence] Loading presence for ${widget.partnerId}',
+        '[Chat] Opening conversation with ${widget.partnerId}',
       );
+
+      ref
+          .read(messageProvider.notifier)
+          .setActiveChat(widget.partnerId);
 
       ref
           .read(presenceProvider.notifier)
@@ -53,6 +58,10 @@ class _ChatDetailScreenState
 
   @override
   void dispose() {
+    ref
+        .read(messageProvider.notifier)
+        .clearActiveChat(widget.partnerId);
+
     _messageController.dispose();
     _scrollController.dispose();
 
@@ -137,6 +146,36 @@ class _ChatDetailScreenState
         : 'AM';
 
     return 'Last seen $hour:$minute $period';
+  }
+
+
+
+
+
+
+
+
+
+
+  // ============================================================
+// MESSAGE TIME FORMATTER
+// ============================================================
+
+  String _formatMessageTime(DateTime timestamp) {
+    final localTime = timestamp.toLocal();
+
+    final hour = localTime.hour;
+    final minute = localTime.minute;
+
+    final hour12 = hour % 12 == 0
+        ? 12
+        : hour % 12;
+
+    final period = hour >= 12
+        ? 'PM'
+        : 'AM';
+
+    return '$hour12:${minute.toString().padLeft(2, '0')} $period';
   }
 
   // ============================================================
@@ -329,8 +368,7 @@ class _ChatDetailScreenState
                         'me';
 
                 final timeStr =
-                    '${msg.timestamp.hour.toString().padLeft(2, '0')}:'
-                    '${msg.timestamp.minute.toString().padLeft(2, '0')}';
+                _formatMessageTime(msg.timestamp);
 
                 return Align(
                   alignment: isMe

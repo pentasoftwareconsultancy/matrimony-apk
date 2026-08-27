@@ -527,6 +527,7 @@ class NotificationNotifier
 class MessageNotifier
     extends StateNotifier<List<ConversationItem>> {
   final Ref _ref;
+  String? _activeChatPartnerId;
 
   MessageNotifier(this._ref) : super([]) {
     _load();
@@ -568,6 +569,45 @@ class MessageNotifier
         '[Messages] Load error: $error',
       );
     }
+  }
+
+
+  void setActiveChat(String partnerId) {
+    _activeChatPartnerId = partnerId;
+
+    final conversationIndex = state.indexWhere(
+          (conversation) => conversation.partnerId == partnerId,
+    );
+
+    if (conversationIndex == -1) {
+      return;
+    }
+
+    final conversation = state[conversationIndex];
+
+    for (final message in conversation.messages) {
+      if (message.senderId != 'me' &&
+          message.readAt == null) {
+        _markMessageRead(message.id);
+      }
+    }
+  }
+
+  void clearActiveChat(String partnerId) {
+    if (_activeChatPartnerId == partnerId) {
+      _activeChatPartnerId = null;
+    }
+  }
+
+
+  int getUnreadCount(ConversationItem conversation) {
+    return conversation.messages
+        .where(
+          (message) =>
+      message.senderId != 'me' &&
+          message.readAt == null,
+    )
+        .length;
   }
 
   // ============================================================
@@ -622,7 +662,6 @@ class MessageNotifier
   // ============================================================
   // RECEIVE NEW MESSAGE
   // ============================================================
-
   void _handleNewMessage(dynamic data) {
     try {
       if (data is! Map) {
@@ -637,12 +676,9 @@ class MessageNotifier
       );
 
       final message =
-      MessageItem.fromJson(
-        messageData,
-      );
+      MessageItem.fromJson(messageData);
 
-      final senderId =
-          message.senderId;
+      final senderId = message.senderId;
 
       // --------------------------------------------
       // Find conversation
@@ -651,8 +687,7 @@ class MessageNotifier
       final conversationIndex =
       state.indexWhere(
             (conversation) =>
-        conversation.partnerId ==
-            senderId,
+        conversation.partnerId == senderId,
       );
 
       // --------------------------------------------
@@ -680,6 +715,17 @@ class MessageNotifier
         _markMessageDelivered(
           message.id,
         );
+
+        // ----------------------------------------
+        // If this conversation is currently open,
+        // immediately mark the message as read
+        // ----------------------------------------
+
+        if (_activeChatPartnerId == senderId) {
+          _markMessageRead(
+            message.id,
+          );
+        }
 
         return;
       }
@@ -722,13 +768,23 @@ class MessageNotifier
       state = updatedState;
 
       // --------------------------------------------
-      // Mark delivered
+      // Mark message as delivered
       // --------------------------------------------
 
       _markMessageDelivered(
         message.id,
       );
 
+      // --------------------------------------------
+      // If this conversation is currently open,
+      // immediately mark the message as read
+      // --------------------------------------------
+
+      if (_activeChatPartnerId == senderId) {
+        _markMessageRead(
+          message.id,
+        );
+      }
     } catch (error) {
       debugPrint(
         '[Messages] New message error: $error',
@@ -754,6 +810,26 @@ class MessageNotifier
     );
   }
 
+  void _markMessageRead(String messageId) {
+    try {
+      final socket = _ref.read(socketServiceProvider);
+
+      debugPrint(
+        '[Messages] 👁 Marking message as read: $messageId',
+      );
+
+      socket.emit(
+        'messageRead',
+        {
+          'messageId': messageId,
+        },
+      );
+    } catch (error) {
+      debugPrint(
+        '[Messages] Mark read error: $error',
+      );
+    }
+  }
   // ============================================================
   // MESSAGE DELIVERED UPDATE
   // ============================================================

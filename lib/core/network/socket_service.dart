@@ -31,8 +31,7 @@ class SocketService {
   // ==================================================
 
   String getSocketUrl() {
-    // Flutter Web development
-    return 'http://127.0.0.1:8000';
+    return 'https://matrimony-apk-1.onrender.com';
   }
 
   // ==================================================
@@ -55,7 +54,7 @@ class SocketService {
       return;
     }
 
-    const socketUrl = 'http://127.0.0.1:8000';
+    final socketUrl = getSocketUrl();
 
     debugPrint('[Socket] Connecting to $socketUrl');
 

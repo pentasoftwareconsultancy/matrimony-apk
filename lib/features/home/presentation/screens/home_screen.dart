@@ -771,56 +771,94 @@
     // Chat Screen Tab (Inbox)
     Widget _buildChatTab(BuildContext context) {
       final conversations = ref.watch(messageProvider);
-  
+      final messageNotifier = ref.read(messageProvider.notifier);
+
       var activeConversations = conversations;
+
       if (_chatSearchQuery.isNotEmpty) {
         final q = _chatSearchQuery.toLowerCase();
-        activeConversations = conversations.where((c) =>
-            c.partnerName.toLowerCase().contains(q)
-        ).toList();
+
+        activeConversations = conversations.where((conversation) {
+          return conversation.partnerName
+              .toLowerCase()
+              .contains(q);
+        }).toList();
       }
-  
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // --------------------------------------------------
+          // HEADER
+          // --------------------------------------------------
+
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 8.0,
+            ),
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.black,
+                  ),
                   onPressed: () {
-                    ref.read(homeControllerProvider.notifier).setBottomTab(0);
+                    ref
+                        .read(homeControllerProvider.notifier)
+                        .setBottomTab(0);
                   },
                 ),
                 const Text(
                   'Messages',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.black,
+                  ),
                 ),
               ],
             ),
           ),
-  
-          // Search bar
+
+          // --------------------------------------------------
+          // SEARCH BAR
+          // --------------------------------------------------
+
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 8.0,
+            ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(
+                  color: Colors.grey.shade200,
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.search, color: Colors.grey.shade400, size: 20),
+                  Icon(
+                    Icons.search,
+                    color: Colors.grey.shade400,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       controller: _chatSearchController,
                       decoration: const InputDecoration(
                         hintText: 'Search messages...',
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
                         border: InputBorder.none,
                       ),
                     ),
@@ -829,18 +867,30 @@
               ),
             ),
           ),
-  
+
+          // --------------------------------------------------
+          // CONVERSATION LIST
+          // --------------------------------------------------
+
           Expanded(
             child: activeConversations.isEmpty
                 ? Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment:
+                MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey.shade400),
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No messages found',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
@@ -848,65 +898,178 @@
                 : ListView.builder(
               itemCount: activeConversations.length,
               itemBuilder: (context, idx) {
-                final conversation = activeConversations[idx];
-                final lastMsg = conversation.messages.isNotEmpty
+                final conversation =
+                activeConversations[idx];
+
+                // ------------------------------------------------
+                // LAST MESSAGE
+                // ------------------------------------------------
+
+                final lastMsg =
+                conversation.messages.isNotEmpty
                     ? conversation.messages.last
                     : null;
-  
-                final timeStr = lastMsg != null
-                    ? '${lastMsg.timestamp.hour.toString().padLeft(2, '0')}:${lastMsg.timestamp.minute.toString().padLeft(2, '0')}'
-                    : '';
-  
+
+                // ------------------------------------------------
+                // UNREAD COUNT
+                // ------------------------------------------------
+
+                final unreadCount =
+                messageNotifier.getUnreadCount(
+                  conversation,
+                );
+
+                // ------------------------------------------------
+                // LAST MESSAGE TIME
+                // Convert UTC → device local time (IST)
+                // ------------------------------------------------
+
+                String timeStr = '';
+
+                if (lastMsg != null) {
+                  final localTime =
+                  lastMsg.timestamp.toLocal();
+
+                  final hour = localTime.hour;
+                  final minute = localTime.minute;
+
+                  final hour12 = hour == 0
+                      ? 12
+                      : (hour > 12
+                      ? hour - 12
+                      : hour);
+
+                  final period =
+                  hour >= 12 ? 'PM' : 'AM';
+
+                  timeStr =
+                  '$hour12:${minute.toString().padLeft(2, '0')} $period';
+                }
+
+                // ------------------------------------------------
+                // CHAT TILE
+                // ------------------------------------------------
+
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  contentPadding:
+                  const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 4,
+                  ),
+
                   leading: CircleAvatar(
                     radius: 24,
-                    backgroundImage: NetworkImage(conversation.partnerAvatar),
+                    backgroundImage:
+                    NetworkImage(
+                      conversation.partnerAvatar,
+                    ),
                   ),
+
                   title: Text(
                     conversation.partnerName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
+
                   subtitle: Text(
-                    lastMsg?.text ?? 'No messages yet',
+                    lastMsg?.text ??
+                        'No messages yet',
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    overflow:
+                    TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color:
+                      Colors.grey.shade600,
+                      fontSize: 12,
+                      fontWeight:
+                      unreadCount > 0
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
                   ),
+
+                  // ------------------------------------------------
+                  // TIME + UNREAD BADGE
+                  // ------------------------------------------------
+
                   trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment:
+                    MainAxisAlignment.center,
+                    crossAxisAlignment:
+                    CrossAxisAlignment.end,
                     children: [
-                      Text(timeStr, style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
-                      const SizedBox(height: 4),
-                      if (idx < 2)
+                      Text(
+                        timeStr,
+                        style: TextStyle(
+                          color: unreadCount > 0
+                              ? AppColors.primary
+                              : Colors.grey.shade400,
+                          fontSize: 10,
+                          fontWeight:
+                          unreadCount > 0
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+
+                      if (unreadCount > 0) ...[
+                        const SizedBox(height: 4),
+
                         Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
+                          constraints:
+                          const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          padding:
+                          const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          decoration:
+                          const BoxDecoration(
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
-                          child: const Text(
-                            '1',
-                            style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                          child: Text(
+                            unreadCount > 99
+                                ? '99+'
+                                : unreadCount
+                                .toString(),
+                            textAlign:
+                            TextAlign.center,
+                            style:
+                            const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight:
+                              FontWeight.bold,
+                            ),
                           ),
-                        )
-                      else
-                        const Text(
-                          'Seen',
-                          style: TextStyle(color: Colors.grey, fontSize: 8),
-                        )
+                        ),
+                      ],
                     ],
                   ),
+
+                  // ------------------------------------------------
+                  // OPEN CHAT
+                  // ------------------------------------------------
+
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ChatDetailScreen(
-                          partnerId: conversation.partnerId,
-                          name: conversation.partnerName,
-                          avatarUrl: conversation.partnerAvatar,
-                        )
+                        builder: (context) =>
+                            ChatDetailScreen(
+                              partnerId:
+                              conversation.partnerId,
+                              name:
+                              conversation.partnerName,
+                              avatarUrl:
+                              conversation.partnerAvatar,
+                            ),
                       ),
                     );
                   },
@@ -917,7 +1080,6 @@
         ],
       );
     }
-  
     Widget _buildProfileTab(BuildContext context, dynamic user) {
       return const ProfileScreen();
     }
