@@ -32,6 +32,36 @@ const allowedOrigins = [
   'https://matrimony-apk-9895.firebaseapp.com',
 ];
 
+export const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+
+  if (allowedOrigins.includes(origin)) return true;
+
+  const envOrigins = [
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    process.env.CORS_ORIGIN,
+    process.env.ALLOWED_ORIGINS,
+  ].filter(Boolean);
+
+  for (const envOrigin of envOrigins) {
+    const splitOrigins = envOrigin.split(',').map((o) => o.trim());
+    if (splitOrigins.includes(origin) || splitOrigins.includes('*')) {
+      return true;
+    }
+  }
+
+  const localhostRegex = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+  if (localhostRegex.test(origin)) return true;
+
+  const firebaseRegex = /^https:\/\/[a-zA-Z0-9-]+\.(web\.app|firebaseapp\.com)$/;
+  if (firebaseRegex.test(origin)) return true;
+
+  const renderRegex = /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/;
+  if (renderRegex.test(origin)) return true;
+
+  return false;
+};
 
 // --------------------------------------------------
 // CORS
@@ -40,16 +70,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
 
       console.log(`[CORS] Blocked origin: ${origin}`);
-      return callback(new Error('Not allowed by CORS'));
+      return callback(null, false);
     },
 
     credentials: true,
@@ -62,6 +88,7 @@ app.use(
       'Accept',
       'Origin',
     ],
+    optionsSuccessStatus: 200,
   })
 );
 // --------------------------------------------------

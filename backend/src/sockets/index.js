@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 
 import { socketAuth } from "./socketAuth.js";
 import { registerMessageSocket } from "./messageSocket.js";
+import { isOriginAllowed } from "../app.js";
 
 import {
   userConnected,
@@ -21,11 +22,12 @@ export const initializeSocket = (httpServer) => {
   io = new Server(httpServer, {
 
     cors: {
-      origin: [
-        'http://localhost:61602',
-        'https://matrimony-apk-9895.web.app',
-        'https://matrimony-apk-9895.firebaseapp.com',
-      ],
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          return callback(null, true);
+        }
+        return callback(null, false);
+      },
       credentials: true,
       methods: ['GET', 'POST'],
     },
