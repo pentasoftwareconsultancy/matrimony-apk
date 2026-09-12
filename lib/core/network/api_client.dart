@@ -16,8 +16,8 @@ class ApiClient {
   ApiClient(this._dio, SecureStorageService secureStorage) {
     _dio.options = BaseOptions(
       baseUrl: getBaseUrl(),
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 45),
+      receiveTimeout: const Duration(seconds: 45),
       contentType: 'application/json',
       headers: {
         'Accept': 'application/json',
