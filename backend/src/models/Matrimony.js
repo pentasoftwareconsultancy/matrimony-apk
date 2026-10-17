@@ -163,6 +163,10 @@ const matrimonySchema = new mongoose.Schema(
     documentDetails: documentationSchema,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
+    lastSeenAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     strict: false,

@@ -10,23 +10,14 @@ class ApiClient {
   final Dio _dio;
 
   static String getBaseUrl() {
-    const port = 8000;
-    if (kIsWeb) {
-      return 'http://127.0.0.1:$port/api';
-    }
-    try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:$port/api';
-      }
-    } catch (_) {}
-    return 'http://127.0.0.1:$port/api';
+    return 'https://matrimony-apk-1.onrender.com/api';
   }
 
   ApiClient(this._dio, SecureStorageService secureStorage) {
     _dio.options = BaseOptions(
       baseUrl: getBaseUrl(),
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 45),
+      receiveTimeout: const Duration(seconds: 45),
       contentType: 'application/json',
       headers: {
         'Accept': 'application/json',

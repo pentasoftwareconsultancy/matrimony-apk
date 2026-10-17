@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import favoriteRoutes from './routes/favoriteRoutes.js';
@@ -14,63 +15,158 @@ import eventRoutes from './routes/eventRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import testimonialRoutes from './routes/testimonialRoutes.js';
 import faqRoutes from './routes/faqRoutes.js';
+
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 
+// --------------------------------------------------
 // Load environment variables
+// --------------------------------------------------
+
 dotenv.config();
 
 const app = express();
 
-// Custom CORS Header Middleware for Web Browsers & Preflight OPTIONS
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+const allowedOrigins = [
+  'http://localhost:61602',
+  'https://matrimony-apk-9895.web.app',
+  'https://matrimony-apk-9895.firebaseapp.com',
+];
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+export const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+
+  if (allowedOrigins.includes(origin)) return true;
+
+  const envOrigins = [
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    process.env.CORS_ORIGIN,
+    process.env.ALLOWED_ORIGINS,
+  ].filter(Boolean);
+
+  for (const envOrigin of envOrigins) {
+    const splitOrigins = envOrigin.split(',').map((o) => o.trim());
+    if (splitOrigins.includes(origin) || splitOrigins.includes('*')) {
+      return true;
+    }
   }
-  next();
-});
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
+  const localhostRegex = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+  if (localhostRegex.test(origin)) return true;
+
+  const firebaseRegex = /^https:\/\/[a-zA-Z0-9-]+\.(web\.app|firebaseapp\.com)$/;
+  if (firebaseRegex.test(origin)) return true;
+
+  const renderRegex = /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/;
+  if (renderRegex.test(origin)) return true;
+
+  return false;
+};
+
+// --------------------------------------------------
+// CORS
+// --------------------------------------------------
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+
+      console.log(`[CORS] Blocked origin: ${origin}`);
+      return callback(null, false);
+    },
+
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    optionsSuccessStatus: 200,
+  })
+);
+// --------------------------------------------------
+// Body parsers
+// --------------------------------------------------
 
 app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Request logger middleware
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: '50mb',
+  })
+);
+
+// --------------------------------------------------
+// Request logger
+// --------------------------------------------------
+
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
+  );
+
   next();
 });
 
-// Health check endpoint
+// --------------------------------------------------
+// Health check
+// --------------------------------------------------
+
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', time: new Date() });
+  res.status(200).json({
+    status: 'ok',
+    time: new Date(),
+  });
 });
 
-// Routes
+// --------------------------------------------------
+// API Routes
+// --------------------------------------------------
+
 app.use('/api/auth', authRoutes);
+
 app.use('/api/profile', profileRoutes);
+
 app.use('/api/favorites', favoriteRoutes);
+
 app.use('/api/connections', connectionRoutes);
+
 app.use('/api/messages', messageRoutes);
+
 app.use('/api/blocked', blockedRoutes);
+
 app.use('/api/notifications', notificationRoutes);
+
 app.use('/api/settings', settingsRoutes);
+
 app.use('/api/services', serviceRoutes);
+
 app.use('/api/events', eventRoutes);
+
 app.use('/api/payments', paymentRoutes);
+
 app.use('/api/testimonials', testimonialRoutes);
+
 app.use('/api/faqs', faqRoutes);
 
-// Error Handling Middlewares
+// --------------------------------------------------
+// 404 handler
+// --------------------------------------------------
+
 app.use(notFound);
+
+// --------------------------------------------------
+// Global error handler
+// --------------------------------------------------
+
 app.use(errorHandler);
 
 export default app;

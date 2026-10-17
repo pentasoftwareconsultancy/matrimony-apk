@@ -13,47 +13,140 @@ class ConnectionService {
     return actions;
   }
 
-  async expressInterest(fromUserId, toUserId) {
-    if (fromUserId.toString() === toUserId.toString()) {
-      const error = new Error('You cannot express interest in your own profile.');
-      error.statusCode = 400;
-      throw error;
-    }
+async expressInterest(fromUserId, toUserId) {
+  if (fromUserId.toString() === toUserId.toString()) {
+    const error = new Error(
+      'You cannot express interest in your own profile.'
+    );
 
-    let existing = await UserAction.findOne({
-      fromUser: fromUserId,
-      toUser: toUserId,
-      actionType: 'interest'
-    });
+    error.statusCode = 400;
+    throw error;
+  }
 
-    if (existing) {
-      return { success: true, message: 'Interest request already sent or connected', connection: existing };
-    }
+  // ============================================================
+  // GET SENDER PROFILE
+  // ============================================================
 
-    const action = await UserAction.create({
-      fromUser: fromUserId,
-      toUser: toUserId,
-      actionType: 'interest',
-      active: true,
-    });
+  const senderMatrimony =
+    await Matrimony.findById(fromUserId);
 
-    const senderMatrimony = await Matrimony.findById(fromUserId);
-    const senderMerged = senderMatrimony ? await AuthService.getMergedUser(senderMatrimony) : null;
-    const senderName = senderMerged ? senderMerged.fullName : 'A member';
-    const senderImage = (senderMerged && senderMerged.photos && senderMerged.photos.length > 0)
+  const senderMerged =
+    senderMatrimony
+      ? await AuthService.getMergedUser(senderMatrimony)
+      : null;
+
+  const senderName =
+    senderMerged?.fullName?.trim() ||
+    'A member';
+
+  const senderImage =
+    senderMerged?.photos?.length > 0
       ? senderMerged.photos[0]
       : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100';
 
-    await Notification.create({
-      user: toUserId,
-      type: 'interest',
-      message: `${senderName} expressed interest in your profile.`,
-      senderImage,
-      isRead: false,
-    });
+  // ============================================================
+  // CHECK EXISTING INTEREST
+  // ============================================================
 
-    return { success: true, message: 'Interest expressed successfully', connection: action };
+  let existing = await UserAction.findOne({
+    fromUser: fromUserId,
+    toUser: toUserId,
+    actionType: 'interest',
+  });
+
+  // ============================================================
+  // IF INTEREST ALREADY EXISTS
+  //
+  // Still make sure the notification exists.
+  // This fixes interests that were created before notification
+  // creation was fixed.
+  // ============================================================
+
+  if (existing) {
+    const existingNotification =
+      await Notification.findOne({
+        user: toUserId,
+        actorUserId: fromUserId,
+        profileId: fromUserId,
+        type: 'interest',
+      });
+
+    if (!existingNotification) {
+      await Notification.create({
+        user: toUserId,
+
+        actorUserId: fromUserId,
+
+        profileId: fromUserId,
+
+        type: 'interest',
+
+        title: 'New Interest',
+
+        message:
+          `${senderName} expressed interest in your profile.`,
+
+        senderImage: senderImage,
+
+        isRead: false,
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Interest request already sent or connected',
+      connection: existing,
+    };
   }
+
+  // ============================================================
+  // CREATE INTEREST
+  // ============================================================
+
+  existing = await UserAction.create({
+    fromUser: fromUserId,
+    toUser: toUserId,
+    actionType: 'interest',
+    active: true,
+  });
+
+  // ============================================================
+  // CREATE NOTIFICATION
+  // ============================================================
+
+  await Notification.create({
+    // Recipient
+    user: toUserId,
+
+    // Person who expressed interest
+    actorUserId: fromUserId,
+
+    // Profile that should open when notification is tapped
+    profileId: fromUserId,
+
+    // Notification type
+    type: 'interest',
+
+    // Required field
+    title: 'New Interest',
+
+    // Dynamic sender name
+    message:
+      `${senderName} expressed interest in your profile.`,
+
+    // Dynamic sender image
+    senderImage: senderImage,
+
+    isRead: false,
+  });
+
+  return {
+    success: true,
+    message: 'Interest expressed successfully',
+    connection: existing,
+  };
+}
+
 
   async respondToInterest(userId, connectionId, status) {
     const action = await UserAction.findById(connectionId);
