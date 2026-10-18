@@ -810,26 +810,95 @@ class MessageNotifier
     );
   }
 
+
+  // Update local state immediately so unread badges refresh without
+  // waiting for the backend.
+  void _updateMessageReadLocally(String messageId) {
+    final conversationIndex = state.indexWhere(
+          (conversation) =>
+          conversation.messages.any((message) => message.id == messageId),
+    );
+
+    if (conversationIndex == -1) return;
+
+    final conversation = state[conversationIndex];
+
+    final messageIndex = conversation.messages.indexWhere(
+          (message) => message.id == messageId,
+    );
+
+    if (messageIndex == -1) return;
+
+    final message = conversation.messages[messageIndex];
+
+    // Avoid unnecessary state updates.
+    if (message.readAt != null && message.status == 'read') {
+      return;
+    }
+
+    final updatedMessages = conversation.messages.map((message) {
+      if (message.id != messageId) return message;
+
+      return message.copyWith(
+        readAt: message.readAt ?? DateTime.now(),
+        status: 'read',
+      );
+    }).toList();
+
+    final updatedState = List<ConversationItem>.from(state);
+
+    updatedState[conversationIndex] = conversation.copyWith(
+      messages: updatedMessages,
+    );
+
+    state = updatedState;
+  }
+
+
   void _markMessageRead(String messageId) {
     try {
+      // Update the local state immediately so the unread badge
+      // disappears without waiting for the server response.
+      final updatedState = List<ConversationItem>.from(state);
+      var changed = false;
+
+      for (var i = 0; i < updatedState.length; i++) {
+        final conversation = updatedState[i];
+
+        final messageIndex = conversation.messages.indexWhere(
+              (message) => message.id == messageId,
+        );
+
+        if (messageIndex == -1) continue;
+
+        final messages = List<MessageItem>.from(conversation.messages);
+        final message = messages[messageIndex];
+
+        if (message.readAt != null) return;
+
+        messages[messageIndex] = message.copyWith(
+          readAt: DateTime.now(),
+          status: 'read',
+        );
+
+        updatedState[i] = conversation.copyWith(messages: messages);
+        changed = true;
+        break;
+      }
+
+      if (changed) {
+        state = updatedState;
+      }
+
+      // Still notify the backend so the read receipt is persisted.
       final socket = _ref.read(socketServiceProvider);
-
-      debugPrint(
-        '[Messages] 👁 Marking message as read: $messageId',
-      );
-
-      socket.emit(
-        'messageRead',
-        {
-          'messageId': messageId,
-        },
-      );
+      debugPrint('[Messages] Marking message as read: $messageId');
+      socket.emit('messageRead', {'messageId': messageId});
     } catch (error) {
-      debugPrint(
-        '[Messages] Mark read error: $error',
-      );
+      debugPrint('[Messages] Mark read error: $error');
     }
   }
+
   // ============================================================
   // MESSAGE DELIVERED UPDATE
   // ============================================================

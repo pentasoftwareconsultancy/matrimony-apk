@@ -10,7 +10,7 @@ class ApiClient {
   final Dio _dio;
 
   static String getBaseUrl() {
-    return 'https://matrimony-apk-1.onrender.com/api';
+    return 'http://localhost:8000/api';
   }
 
   ApiClient(this._dio, SecureStorageService secureStorage) {

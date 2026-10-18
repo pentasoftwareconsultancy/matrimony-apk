@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../domain/models/user.dart';
+import 'package:dio/dio.dart';
 
 abstract class AuthRepository {
   Future<Map<String, dynamic>> login({required String email, required String password});
@@ -111,6 +112,7 @@ class AuthRepositoryImpl implements AuthRepository {
     };
   }
 
+
   @override
   Future<Map<String, dynamic>> uploadFiles({
     List<int>? aadharBytes,
@@ -119,18 +121,70 @@ class AuthRepositoryImpl implements AuthRepository {
     String? casteFileName,
     List<Map<String, dynamic>>? photos,
   }) async {
-    final photoUrls = <String>[];
+    final formData = FormData();
+
+    if (aadharBytes != null && aadharBytes.isNotEmpty) {
+      formData.files.add(
+        MapEntry(
+          'aadharCard',
+          MultipartFile.fromBytes(
+            aadharBytes,
+            filename: aadharFileName ?? 'aadhar_doc.pdf',
+          ),
+        ),
+      );
+    }
+
+    if (casteBytes != null && casteBytes.isNotEmpty) {
+      formData.files.add(
+        MapEntry(
+          'casteCertificate',
+          MultipartFile.fromBytes(
+            casteBytes,
+            filename: casteFileName ?? 'caste_certificate.pdf',
+          ),
+        ),
+      );
+    }
+
     if (photos != null) {
       for (final photo in photos) {
-        photoUrls.add(photo['fileName'] as String);
+        final bytes = photo['bytes'];
+        if (bytes is List<int> && bytes.isNotEmpty) {
+          formData.files.add(
+            MapEntry(
+              'photos',
+              MultipartFile.fromBytes(
+                bytes,
+                filename: photo['fileName']?.toString() ?? 'profile_photo.jpg',
+              ),
+            ),
+          );
+        }
       }
     }
+
+    if (formData.files.isEmpty) {
+      throw Exception('No valid files were selected for upload.');
+    }
+
+    final response = await _apiClient.post(
+      '/auth/upload',
+      data: formData,
+    );
+
+    final responseData = response.data['data'] as Map<String, dynamic>;
+    final photoUrls = (responseData['photoUrls'] as List? ?? [])
+        .map((url) => url.toString())
+        .toList();
+
     return {
-      'aadharUrl': aadharFileName ?? 'aadhar_doc.pdf',
-      'casteCertificateUrl': casteFileName ?? 'caste_doc.pdf',
+      'aadharUrl': responseData['aadharUrl'] ?? '',
+      'casteCertificateUrl': responseData['casteCertificateUrl'] ?? '',
       'photoUrls': photoUrls,
     };
   }
+
 
   @override
   Future<User> getMe() async {

@@ -30,6 +30,7 @@ class StepperNavigationWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+
     // Listen to changes in the currentStep to push/pop routes accordingly
     ref.listen<int>(
       registrationControllerProvider.select((s) => s.currentStep),
@@ -200,8 +201,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (matched == '/splash') {
         return null;
       }
+      await ref.read(authControllerProvider.notifier).initialization;
 
       final authState = ref.read(authControllerProvider);
+
+      // Keep the current route if the session could not be verified.
+      // Do not treat a temporary backend error as an incomplete profile.
+      if (authState.isAuthenticated &&
+          authState.user == null &&
+          authState.error != null) {
+        return null;
+      }
       if (authState.isNewUser) {
         Future.microtask(() {
           ref.read(authControllerProvider.notifier).resetNewUserFlag();

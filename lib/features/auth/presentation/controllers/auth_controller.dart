@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../domain/models/user.dart';
+import '../../../../core/network/network_exceptions.dart';
 
 class AuthState {
   final bool isLoading;
@@ -47,25 +48,55 @@ class AuthController extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
   final SecureStorageService _secureStorage;
 
-  AuthController(this._authRepository, this._secureStorage) : super(AuthState()) {
-    _checkInitialAuth();
+  late final Future<void> initialization;
+
+  AuthController(this._authRepository, this._secureStorage)
+      : super(AuthState()) {
+    initialization = _checkInitialAuth();
   }
 
   Future<void> _checkInitialAuth() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, error: null);
+
+    final token = await _secureStorage.getToken();
+
+    if (token == null || token.trim().isEmpty) {
+      state = AuthState(isLoading: false, isAuthenticated: false);
+      return;
+    }
+
     try {
-      final token = await _secureStorage.getToken();
-      if (token != null) {
-        final user = await _authRepository.getMe();
-        state = AuthState(user: user, isAuthenticated: true);
-      } else {
-        state = AuthState(isAuthenticated: false);
-      }
+      final user = await _authRepository.getMe();
+
+      state = AuthState(
+        isLoading: false,
+        user: user,
+        isAuthenticated: true,
+      );
     } catch (e) {
-      await _secureStorage.deleteToken();
-      state = AuthState(isAuthenticated: false);
+      final isUnauthorized =
+          e is NetworkException && e.statusCode == 401;
+
+      if (isUnauthorized) {
+        await _secureStorage.deleteToken();
+        state = AuthState(
+          isLoading: false,
+          isAuthenticated: false,
+          error: 'Your session has expired. Please log in again.',
+        );
+        return;
+      }
+
+      // Preserve the saved token if the backend is unavailable
+      // or another non-authentication error occurs.
+      state = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        error: 'Unable to verify your session. Please try again.',
+      );
     }
   }
+
 
   void setAuthenticatedState(User user) {
     state = AuthState(user: user, isAuthenticated: true);

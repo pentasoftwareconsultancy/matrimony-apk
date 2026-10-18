@@ -164,9 +164,14 @@ class EventsScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: past.map((e) => Expanded(child: _buildPastCard(context, e))).toList(),
+                          SizedBox(
+                            height: 270,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: past.length,
+                              separatorBuilder: (context, index) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) => _buildPastCard(context, past[index]),
+                            ),
                           ),
                           const SizedBox(height: 24),
                         ],
@@ -182,24 +187,31 @@ class EventsScreen extends ConsumerWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Register for next event',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Register for next event',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'events@matrimony.com',
-                                    style: TextStyle(color: Colors.grey, fontSize: 10),
-                                  ),
-                                ],
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'events@matrimony.com',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 10),
                               ElevatedButton(
                                 onPressed: () {
                                   if (upcoming.isNotEmpty) {
@@ -209,8 +221,9 @@ class EventsScreen extends ConsumerWidget {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFC9003F),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                  minimumSize: const Size(80, 32),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  minimumSize: const Size(76, 32),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
@@ -271,52 +284,66 @@ class EventsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      dayNum,
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        dayNum,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
-                    Text(
-                      monthYear,
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
+                      Text(
+                        monthYear,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
-                if (event.badgeText.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFC9003F),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      event.badgeText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.bold,
+                if (event.badgeText.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 92),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC9003F),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        event.badgeText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 10),
 
             Text(
               event.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
+                height: 1.2,
               ),
             ),
             const SizedBox(height: 4),
@@ -371,7 +398,7 @@ class EventsScreen extends ConsumerWidget {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(right: 8),
+        width: 220,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -402,15 +429,20 @@ class EventsScreen extends ConsumerWidget {
                   ),
                   Text(
                     monthYear,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 9.5, color: Colors.grey),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     event.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
+                      height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -430,6 +462,18 @@ class EventsScreen extends ConsumerWidget {
                 height: 90,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                placeholder: (context, url) => const SizedBox(
+                  height: 90,
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                errorWidget: (context, url, error) => const SizedBox(
+                  height: 90,
+                  child: Center(
+                    child: Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                  ),
+                ),
               ),
             ),
           ],

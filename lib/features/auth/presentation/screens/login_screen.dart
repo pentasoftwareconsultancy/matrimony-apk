@@ -29,6 +29,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final authState = ref.read(authControllerProvider);
+
         final prefill = authState.tempEmail;
         if (prefill != null && prefill.isNotEmpty) {
           _emailController.text = prefill;
@@ -48,14 +49,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
-      
+
       ref.read(authControllerProvider.notifier).clearError();
 
       final success = await ref.read(authControllerProvider.notifier).login(
-            email: email,
-            password: password,
-          );
-          
+        email: email,
+        password: password,
+      );
+
       if (success && mounted) {
         context.go('/home');
       }
@@ -107,7 +108,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
@@ -123,7 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        // Bottom container sliding up (white curved container)
+                        // Bottom white container
                         Container(
                           width: double.infinity,
                           decoration: const BoxDecoration(
@@ -133,14 +137,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               topRight: Radius.circular(32),
                             ),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 36.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 36,
+                          ),
                           child: Form(
                             key: _formKey,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  'Log In',
+                                  'Login',
                                   style: AppTextStyles.titleLarge.copyWith(
                                     fontSize: 24,
                                     color: Colors.black,
@@ -148,9 +155,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 AppSpacing.verticalLg,
 
-                                // Email Label Text
+                                // Email label
                                 Text(
-                                  'Email ID',
+                                  'Email address',
                                   style: AppTextStyles.bodyMedium.copyWith(
                                     color: Colors.black87,
                                     fontWeight: FontWeight.w500,
@@ -158,32 +165,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 AppSpacing.verticalSm,
 
-                                // Email Input Field
+                                // Email input
                                 TextFormField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
                                   decoration: const InputDecoration(
-                                    hintText: 'Enter email id',
-                                    hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                                    hintText: 'Enter your email address',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter your email';
+                                      return 'Please enter your email address';
                                     }
+
                                     final input = value.trim();
+
                                     if (!input.contains('@')) {
                                       return 'Email must contain @';
                                     }
-                                    final isEmail = RegExp(r'^[\w-\.]+@([\w-]+\.)+com$', caseSensitive: false).hasMatch(input);
+
+                                    final isEmail = RegExp(
+                                      r'^[\w-\.]+@([\w-]+\.)+com$',
+                                      caseSensitive: false,
+                                    ).hasMatch(input);
+
                                     if (!isEmail) {
-                                      return 'Please enter a valid email ending with .com';
+                                      return 'Please enter a valid email address ending in .com';
                                     }
+
                                     return null;
                                   },
                                 ),
                                 AppSpacing.verticalLg,
 
-                                // Password Label Text
+                                // Password label
                                 Text(
                                   'Password',
                                   style: AppTextStyles.bodyMedium.copyWith(
@@ -193,13 +211,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 AppSpacing.verticalSm,
 
-                                // Password Input Field with eye toggle
+                                // Password input
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
                                   decoration: InputDecoration(
                                     hintText: 'Enter your password',
-                                    hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                                    hintStyle: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
                                     suffixIcon: IconButton(
                                       icon: Icon(
                                         _obscurePassword
@@ -219,15 +240,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter your password';
                                     }
+
                                     if (value.length < 8) {
-                                      return 'Password must be at least 8 characters';
+                                      return 'Password must be at least 8 characters long';
                                     }
+
                                     if (!RegExp(r'[A-Z]').hasMatch(value)) {
-                                      return 'Password must contain at least 1 uppercase letter';
+                                      return 'Password must contain at least one uppercase letter';
                                     }
+
                                     if (!RegExp(r'[a-z]').hasMatch(value)) {
-                                      return 'Password must contain at least 1 lowercase letter';
+                                      return 'Password must contain at least one lowercase letter';
                                     }
+
                                     return null;
                                   },
                                 ),
@@ -236,22 +261,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
-                                    onPressed: () => context.push('/forgot-password'),
+                                    onPressed: () =>
+                                        context.push('/forgot-password'),
                                     child: const Text(
                                       'Forgot password?',
                                       style: TextStyle(
                                         color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                 ),
                                 AppSpacing.verticalMd,
 
-                                // Log In Button
+                                // Login button
                                 ElevatedButton(
-                                  onPressed: authState.isLoading ? null : _submit,
+                                  onPressed:
+                                  authState.isLoading ? null : _submit,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
@@ -261,45 +287,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   child: authState.isLoading
                                       ? const SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                        )
-                                      : const Text('Log In'),
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                      : const Text('Login'),
                                 ),
                                 AppSpacing.verticalMd,
 
-                                // "Or" separator
+                                // Or separator
                                 const Center(
                                   child: Text(
-                                    'or',
-                                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                                    'OR',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                                 AppSpacing.verticalMd,
 
-                                // Google Log in Button
+                                // Google sign-in button
                                 OutlinedButton(
                                   onPressed: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Google Sign-In coming soon!')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Google sign-in is coming soon',
+                                        ),
+                                      ),
                                     );
                                   },
                                   style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(double.infinity, 54),
-                                    side: BorderSide(color: Colors.grey.shade300),
+                                    minimumSize:
+                                    const Size(double.infinity, 54),
+                                    side: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Text('Log in with '),
+                                      Text('Continue with Google'),
                                       Text(
                                         'G',
                                         style: TextStyle(
-                                          color: Colors.blue.shade700,
+                                          // Same as Colors.blue.shade700, but const-friendly
+                                          color: Color(0xFF1976D2),
                                           fontWeight: FontWeight.bold,
                                           fontSize: 18,
                                         ),
@@ -309,42 +349,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 AppSpacing.verticalLg,
 
-                                // T&C disclaimer text
+                                // Terms and privacy disclaimer
                                 Center(
                                   child: RichText(
                                     textAlign: TextAlign.center,
                                     text: TextSpan(
-                                      style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: Colors.grey,
+                                      ),
                                       children: [
-                                        const TextSpan(text: 'By proceeding, you agree to terms\n'),
+                                        const TextSpan(
+                                          text:
+                                          'By continuing, you agree to our ',
+                                        ),
                                         TextSpan(
-                                          text: 'Terms & Conditions',
+                                          text: 'Terms and Conditions',
                                           style: const TextStyle(
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w600,
-                                            decoration: TextDecoration.underline,
+                                            decoration:
+                                            TextDecoration.underline,
                                           ),
                                           recognizer: TapGestureRecognizer()
                                             ..onTap = () {
                                               Navigator.push(
                                                 context,
-                                                MaterialPageRoute(builder: (context) => const TermsScreen()),
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                  const TermsScreen(),
+                                                ),
                                               );
                                             },
                                         ),
                                         const TextSpan(text: ' and '),
                                         TextSpan(
-                                          text: 'Privacy Policy.',
+                                          text: 'Privacy Policy',
                                           style: const TextStyle(
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w600,
-                                            decoration: TextDecoration.underline,
+                                            decoration:
+                                            TextDecoration.underline,
                                           ),
                                           recognizer: TapGestureRecognizer()
                                             ..onTap = () {
                                               Navigator.push(
                                                 context,
-                                                MaterialPageRoute(builder: (context) => const PrivacyScreen()),
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                  const PrivacyScreen(),
+                                                ),
                                               );
                                             },
                                         ),
@@ -354,18 +407,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 AppSpacing.verticalLg,
 
-                                // Footer Register Link
+                                // Registration link
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text("Don't have an account? "),
+                                    const Text("Don't have an account?"),
                                     GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onTap: () {
                                         context.push('/register/step1');
                                       },
                                       child: const Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         child: Text(
                                           'Register',
                                           style: TextStyle(

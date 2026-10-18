@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../domain/models/profile_model.dart';
 
@@ -55,9 +56,9 @@ class ProfileController extends StateNotifier<ProfileState> {
 
   ProfileController(this._repository)
       : super(ProfileState(
-          profile: ProfileModel.empty(),
-          completionPercentage: 0.0,
-        )) {
+    profile: ProfileModel.empty(),
+    completionPercentage: 0.0,
+  )) {
     loadProfile();
   }
 
@@ -85,7 +86,7 @@ class ProfileController extends StateNotifier<ProfileState> {
     errors.remove(key);
 
     switch (key) {
-      // Summary
+    // Summary
       case 'fullName':
         if (value.toString().trim().length < 2) {
           errors['fullName'] = 'Name must be at least 2 characters';
@@ -103,7 +104,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         current = current.copyWith(aboutMe: value.toString());
         break;
 
-      // Personal Details
+    // Personal Details
       case 'birthDate':
         current = current.copyWith(birthDate: value.toString());
         break;
@@ -197,7 +198,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         current = current.copyWith(caste: value.toString());
         break;
 
-      // Educational
+    // Educational
       case 'highestEdu':
         current = current.copyWith(highestEdu: value.toString());
         break;
@@ -220,7 +221,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         current = current.copyWith(designation: value.toString());
         break;
 
-      // Horoscope
+    // Horoscope
       case 'birthTime':
         current = current.copyWith(birthTime: value.toString());
         break;
@@ -249,7 +250,7 @@ class ProfileController extends StateNotifier<ProfileState> {
         current = current.copyWith(partnerPriority: value.toString());
         break;
 
-      // Family Details
+    // Family Details
       case 'fatherName':
         current = current.copyWith(fatherName: value.toString());
         break;
@@ -322,49 +323,111 @@ class ProfileController extends StateNotifier<ProfileState> {
     }
   }
 
-  Future<void> uploadPhoto(String sourcePathOrUrl) async {
-    state = state.copyWith(isPhotoUploading: true, errorMessage: null);
+  Future<void> uploadPhoto(XFile file) async {
+    if (state.profile.photos.length >= 6) {
+      state = state.copyWith(
+        errorMessage: 'Maximum 6 profile photos are allowed.',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isPhotoUploading: true,
+      errorMessage: null,
+      successMessage: null,
+    );
+
     try {
-      final uploadedUrl = await _repository.uploadPhoto(sourcePathOrUrl);
+      final uploadedUrl = await _repository.uploadPhoto(file);
       final currentPhotos = List<String>.from(state.profile.photos);
-      currentPhotos.add(uploadedUrl);
+
+      if (!currentPhotos.contains(uploadedUrl)) {
+        currentPhotos.add(uploadedUrl);
+      }
+
       final updatedProfile = state.profile.copyWith(photos: currentPhotos);
 
       state = state.copyWith(
         profile: updatedProfile,
         isPhotoUploading: false,
-        isDirty: true,
+        // Preserve any unrelated unsaved profile edits.
+        isDirty: state.isDirty,
         completionPercentage: updatedProfile.calculateCompletionPercentage(),
-        successMessage: 'Photo uploaded successfully',
+        successMessage: 'Photo uploaded successfully.',
       );
     } catch (e) {
       state = state.copyWith(
         isPhotoUploading: false,
-        errorMessage: 'Failed to upload photo. Please try again.',
+        errorMessage: 'Failed to upload photo: $e',
       );
     }
   }
 
-  void removePhoto(int index) {
+
+  Future<void> removePhoto(int index) async {
     final currentPhotos = List<String>.from(state.profile.photos);
-    if (index >= 0 && index < currentPhotos.length) {
-      currentPhotos.removeAt(index);
-      final updatedProfile = state.profile.copyWith(photos: currentPhotos);
+
+    if (index < 0 || index >= currentPhotos.length) {
+      return;
+    }
+
+    final photoUrl = currentPhotos[index];
+    currentPhotos.removeAt(index);
+
+    // Update the UI immediately.
+    final updatedProfile = state.profile.copyWith(photos: currentPhotos);
+
+    state = state.copyWith(
+      profile: updatedProfile,
+      errorMessage: null,
+      successMessage: null,
+      completionPercentage: updatedProfile.calculateCompletionPercentage(),
+    );
+
+    try {
+      // Confirm the deletion on the backend.
+      await _repository.deletePhoto(photoUrl);
+
       state = state.copyWith(
-        profile: updatedProfile,
-        isDirty: true,
-        completionPercentage: updatedProfile.calculateCompletionPercentage(),
+        successMessage: 'Photo deleted successfully.',
+      );
+    } catch (e) {
+      // Restore the photo if the backend deletion fails.
+      final latestPhotos = List<String>.from(state.profile.photos);
+
+      if (!latestPhotos.contains(photoUrl)) {
+        final restoreIndex = index.clamp(0, latestPhotos.length);
+        latestPhotos.insert(restoreIndex, photoUrl);
+      }
+
+      final restoredProfile = state.profile.copyWith(photos: latestPhotos);
+
+      state = state.copyWith(
+        profile: restoredProfile,
+        errorMessage: 'Unable to delete photo. It has been restored. Please try again.',
+        completionPercentage: restoredProfile.calculateCompletionPercentage(),
       );
     }
   }
+
 
   void reorderPhotos(int oldIndex, int newIndex) {
     final currentPhotos = List<String>.from(state.profile.photos);
+
+    if (oldIndex < 0 ||
+        oldIndex >= currentPhotos.length ||
+        newIndex < 0 ||
+        newIndex > currentPhotos.length) {
+      return;
+    }
+
     if (oldIndex < newIndex) {
       newIndex -= 1;
     }
+
     final item = currentPhotos.removeAt(oldIndex);
     currentPhotos.insert(newIndex, item);
+
     final updatedProfile = state.profile.copyWith(photos: currentPhotos);
     state = state.copyWith(profile: updatedProfile, isDirty: true);
   }
@@ -391,7 +454,7 @@ class ProfileController extends StateNotifier<ProfileState> {
 }
 
 final profileControllerProvider =
-    StateNotifierProvider<ProfileController, ProfileState>((ref) {
+StateNotifierProvider<ProfileController, ProfileState>((ref) {
   final repo = ref.watch(profileRepositoryProvider);
   return ProfileController(repo);
 });

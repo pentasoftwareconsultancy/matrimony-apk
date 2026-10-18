@@ -17,39 +17,67 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   late Animation<double> _scaleAnimation;
 
   @override
+
+  @override
   void initState() {
     super.initState();
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+      ),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack),
+      ),
     );
 
     _controller.forward();
-
-    // Navigate after animation completes
-    Future.delayed(const Duration(milliseconds: 2700), () {
-      if (mounted) {
-        _navigateNext();
-      }
-    });
+    _navigateNext();
   }
 
-  void _navigateNext() {
+  Future<void> _navigateNext() async {
+    final authController = ref.read(authControllerProvider.notifier);
+
+    // Wait for the initial backend authentication check.
+    await authController.initialization;
+
+    // Keep the splash screen visible until the animation finishes.
+    await _controller.forward().orCancel.catchError((_) {});
+
+    if (!mounted) return;
+
     final authState = ref.read(authControllerProvider);
-    if (authState.isAuthenticated) {
-      context.go('/home');
-    } else {
-      context.go('/onboarding');
+
+    if (authState.isAuthenticated && authState.user != null) {
+      if (authState.user!.profileCompleted) {
+        context.go('/home');
+      } else {
+        context.go('/register/step1');
+      }
+      return;
     }
+
+    // If the backend could not verify the session, don't force
+    // the user into onboarding or registration.
+    if (authState.isAuthenticated && authState.user == null) {
+      return;
+    }
+
+    context.go('/onboarding');
   }
+
+
+
 
   @override
   void dispose() {

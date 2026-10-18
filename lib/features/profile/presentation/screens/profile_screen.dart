@@ -235,18 +235,7 @@ class ProfileScreen extends ConsumerWidget {
                             size: 20,
                           ),
                         ),
-                        Positioned(
-                          top: 8,
-                          right: 10,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFC9003F),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
+
                       ],
                     ),
                   ),
@@ -328,7 +317,7 @@ class ProfileScreen extends ConsumerWidget {
                                   );
                                 },
                                 child: const Text(
-                                  'Upgrade now',
+                                  '',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Color(0xFFC9003F),
@@ -378,16 +367,7 @@ class ProfileScreen extends ConsumerWidget {
                     ref.read(profileControllerProvider.notifier).loadProfile();
                   },
                 ),
-                _buildMenuItem(
-                  icon: Icons.workspace_premium_outlined,
-                  title: 'Upgrade to premium',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const PremiumPlansScreen()),
-                    );
-                  },
-                ),
+
                 _buildMenuItem(
                   icon: Icons.notifications_none_outlined,
                   title: 'Notification preferences',

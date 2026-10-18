@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/dummy_profiles.dart';
+import '../../../../core/utils/profile_compatiblity.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/app_providers.dart';
 import '../../../../core/network/api_client.dart';
@@ -19,6 +21,52 @@ class ProfileDetailsScreen extends ConsumerStatefulWidget {
 class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
 
 
+  Future<void> _checkExistingInterest() async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.get('/connections');
+
+      if (!mounted) return;
+
+      final responseData = response.data;
+      dynamic connections;
+
+      if (responseData is Map) {
+        final data = responseData['data'];
+
+        if (data is Map) {
+          connections = data['connections'];
+        } else {
+          connections = data;
+        }
+      }
+
+      if (connections is List) {
+        final alreadySent = connections.any((item) {
+          if (item is! Map) return false;
+
+          final fromUser = item['fromUser']?.toString();
+          final toUser = item['toUser']?.toString();
+          final actionType = item['actionType']?.toString();
+
+          return fromUser != null &&
+              toUser == widget.profile.id &&
+              actionType == 'interest';
+        });
+
+        if (alreadySent) {
+          setState(() {
+            _interestExpressed = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('[Interest] Unable to check existing interest: $e');
+    }
+  }
+
+
+
 
 
 
@@ -31,6 +79,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    _checkExistingInterest();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -113,6 +162,11 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   Widget build(BuildContext context) {
     final profile = widget.profile;
     final homeState = ref.watch(homeControllerProvider);
+    final currentUser = ref.watch(authControllerProvider).user;
+    final ownProfile = currentUser == null ? null : profileFromUser(currentUser);
+    final compatibility = ownProfile == null
+        ? null
+        : calculateProfileCompatibility(ownProfile, profile);
     final isFav = homeState.favouriteIds.contains(profile.id);
 
     return Scaffold(
@@ -275,7 +329,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                '${profile.compatibilityScore}%',
+                                compatibility == null ||
+                                    !compatibility.hasComparableData
+                                    ? '—'
+                                    : '${compatibility.score}%',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -296,7 +353,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                       )
                     ],
                   ),
-                  
+
                   // Profile Fields Information Content
                   Padding(
                     padding: const EdgeInsets.all(20.0),
@@ -335,7 +392,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Tag chips list
                         Wrap(
                           spacing: 8,
@@ -349,7 +406,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // PERSONAL DETAILS Card
                         _buildSectionHeader('PERSONAL DETAILS'),
                         _buildDetailsCard([
@@ -397,7 +454,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               ),
             ),
           ),
-          
+
           // Sticky Bottom Bar Buttons Overlay
           Positioned(
             left: 0,
@@ -474,11 +531,11 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ChatDetailScreen(
-                              partnerId: profile.id,
-                              name: profile.fullName,
-                              avatarUrl: profile.photos.first,
-                            )
+                              builder: (context) => ChatDetailScreen(
+                                partnerId: profile.id,
+                                name: profile.fullName,
+                                avatarUrl: profile.photos.first,
+                              )
                           ),
                         );
                       },

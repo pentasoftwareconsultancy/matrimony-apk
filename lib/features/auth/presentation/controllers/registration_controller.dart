@@ -503,7 +503,15 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
     try {
       String aadharUrl = state.aadharCardUrl;
       String casteCertificateUrl = state.casteCertificateUrl;
-      List<String> uploadedPhotos = List.from(state.photos);
+// Keep persistent URLs only. Browser blob URLs and local paths
+// must never be stored as profile photo URLs.
+      List<String> uploadedPhotos = state.photos
+          .where(
+            (url) =>
+        url.startsWith('https://') ||
+            url.startsWith('http://'),
+      )
+          .toList();
 
       // If we have local documents/photos to upload, upload them to Cloudinary first
       if (state.aadharBytes != null || state.casteCertificateBytes != null || (state.pickedPhotosData != null && state.pickedPhotosData!.isNotEmpty)) {
@@ -520,9 +528,18 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         if (uploadResult['casteCertificateUrl'] != null && uploadResult['casteCertificateUrl'].toString().isNotEmpty) {
           casteCertificateUrl = uploadResult['casteCertificateUrl'];
         }
-        if (uploadResult['photoUrls'] != null) {
-          final List<dynamic> urls = uploadResult['photoUrls'];
-          uploadedPhotos.addAll(urls.map((u) => u.toString()));
+        final urls = (uploadResult['photoUrls'] as List? ?? [])
+            .map((url) => url.toString())
+            .where(
+              (url) =>
+          url.startsWith('https://') ||
+              url.startsWith('http://'),
+        );
+
+        for (final url in urls) {
+          if (!uploadedPhotos.contains(url)) {
+            uploadedPhotos.add(url);
+          }
         }
       }
 

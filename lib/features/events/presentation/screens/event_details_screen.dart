@@ -78,34 +78,38 @@ class EventDetailsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                   child: Row(
                     children: [
-                      GestureDetector(
-                        onTap: () {
+                      IconButton(
+                        tooltip: 'Back',
+                        onPressed: () {
                           if (Navigator.canPop(context)) {
                             Navigator.pop(context);
                           }
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.all(4.0),
-                          child: Icon(Icons.arrow_back, color: Colors.black87, size: 22),
-                        ),
+                        icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 22),
                       ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            item.subtitle,
-                            style: const TextStyle(color: Colors.grey, fontSize: 11),
-                          ),
-                        ],
+                            Text(
+                              item.subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.grey, fontSize: 11),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -326,6 +330,7 @@ class EventDetailsScreen extends ConsumerWidget {
     required String value,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 16, color: Colors.grey.shade700),
         const SizedBox(width: 6),
@@ -340,7 +345,7 @@ class EventDetailsScreen extends ConsumerWidget {
               const SizedBox(height: 1),
               Text(
                 value,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 11,

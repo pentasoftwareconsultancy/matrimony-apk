@@ -1328,28 +1328,55 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                       const SizedBox(height: 16),
                       const Divider(height: 1),
                       const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
                         children: [
                           TextButton.icon(
                             onPressed: () => _previewCasteCertificate(regState),
-                            icon: const Icon(Icons.visibility_outlined, size: 18, color: Colors.blue),
-                            label: const Text('Preview', style: TextStyle(color: Colors.blue)),
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 18,
+                              color: Colors.blue,
+                            ),
+                            label: const Text(
+                              '',
+                              style: TextStyle(color: Colors.blue),
+                            ),
                           ),
                           TextButton.icon(
                             onPressed: _pickCasteCertificate,
-                            icon: const Icon(Icons.refresh_outlined, size: 18, color: Colors.orange),
-                            label: const Text('Replace', style: TextStyle(color: Colors.orange)),
+                            icon: const Icon(
+                              Icons.refresh_outlined,
+                              size: 18,
+                              color: Colors.orange,
+                            ),
+                            label: const Text(
+                              '',
+                              style: TextStyle(color: Colors.orange),
+                            ),
                           ),
                           TextButton.icon(
                             onPressed: () {
-                              ref.read(registrationControllerProvider.notifier).removeCasteCertificate();
+                              ref
+                                  .read(registrationControllerProvider.notifier)
+                                  .removeCasteCertificate();
                             },
-                            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                            label: const Text('Remove', style: TextStyle(color: Colors.red)),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: Colors.red,
+                            ),
+                            label: const Text(
+                              '',
+                              style: TextStyle(color: Colors.red),
+                            ),
                           ),
                         ],
                       )
+
                     ],
                   )
                 : InkWell(
