@@ -133,26 +133,17 @@ class AuthService {
     const partner = doc.partnerDetail || {};
     const docs = doc.documentDetails || {};
 
-    // Collect all photo URLs (filter out any dummy unsplash placeholders)
+    // Collect all photo URLs
     const photosList = [];
-    if (docs.photoFulls && !docs.photoFulls.includes('unsplash.com')) {
-      photosList.push(docs.photoFulls);
-    }
-    if (docs.photoCloseup && !docs.photoCloseup.includes('unsplash.com') && !photosList.includes(docs.photoCloseup)) {
-      photosList.push(docs.photoCloseup);
-    }
-    if (docs.photoFull && !docs.photoFull.includes('unsplash.com') && !photosList.includes(docs.photoFull)) {
-      photosList.push(docs.photoFull);
-    }
-    if (docs.familyPhoto && !docs.familyPhoto.includes('unsplash.com') && !photosList.includes(docs.familyPhoto)) {
-      photosList.push(docs.familyPhoto);
-    }
+    if (docs.photoFulls) photosList.push(docs.photoFulls);
+    if (docs.photoCloseup) photosList.push(docs.photoCloseup);
+    if (docs.photoFull) photosList.push(docs.photoFull);
+    if (docs.familyPhoto) photosList.push(docs.familyPhoto);
     if (Array.isArray(docs.photos)) {
-      docs.photos.forEach((p) => {
-        if (p && !p.includes('unsplash.com') && !photosList.includes(p)) {
-          photosList.push(p);
-        }
-      });
+      docs.photos.forEach(p => { if (p && !photosList.includes(p)) photosList.push(p); });
+    }
+    if (photosList.length === 0) {
+      photosList.push('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500');
     }
 
     // Check active membership
@@ -1257,8 +1248,7 @@ async completeRegistration(userId, registrationData) {
 
     photoFulls:
       optionalDocument(
-        data.photoFulls ||
-        (Array.isArray(data.photos) && data.photos.length > 0 ? data.photos[0] : '')
+        data.photoFulls
       ),
 
     photoCloseup:

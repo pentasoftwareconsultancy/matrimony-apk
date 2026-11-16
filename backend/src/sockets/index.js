@@ -43,10 +43,10 @@ export const initializeSocket = (httpServer) => {
 
 
   // ==================================================
-  // CONNECTION HANDLER (Supports root "/" and "/api" namespace)
+  // CONNECTION
   // ==================================================
 
-  const onConnection = (socket) => {
+  io.on("connection", (socket) => {
 
     const userId = socket.userId;
 
@@ -189,11 +189,7 @@ export const initializeSocket = (httpServer) => {
 
     });
 
-  };
-
-  io.on("connection", onConnection);
-  io.of("/api").use(socketAuth);
-  io.of("/api").on("connection", onConnection);
+  });
 
 
   console.log(

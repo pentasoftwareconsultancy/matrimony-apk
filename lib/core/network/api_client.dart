@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
-import '../config/app_config.dart';
 import '../storage/secure_storage_service.dart';
 import 'jwt_interceptor.dart';
 import 'network_exceptions.dart';
@@ -10,7 +10,7 @@ class ApiClient {
   final Dio _dio;
 
   static String getBaseUrl() {
-    return AppConfig.apiBaseUrl;
+    return 'https://matrimony-apk-1.onrender.com/api';
   }
 
   ApiClient(this._dio, SecureStorageService secureStorage) {

@@ -17,54 +17,36 @@ class NotificationService {
       .sort({ createdAt: -1 })
       .lean();
 
-    return notifications.map((notification) => {
-      const resolvedProfileId = (
-        notification.profileId ||
-        notification.actorUserId ||
-        notification.fromUserId ||
-        ''
-      ).toString();
+    return notifications.map((notification) => ({
+      id: notification._id.toString(),
 
-      let resolvedTitle = notification.title?.trim();
-      if (!resolvedTitle) {
-        if (notification.type === 'match') {
-          resolvedTitle = 'New Match';
-        } else if (notification.type === 'interest') {
-          resolvedTitle = 'Interest Received';
-        } else if (notification.type === 'profileActivity') {
-          resolvedTitle = 'Profile viewed';
-        } else {
-          resolvedTitle = 'Notification';
-        }
-      }
+      profileId: notification.profileId
+        ? notification.profileId.toString()
+        : '',
 
-      return {
-        id: notification._id.toString(),
+      profileImage:
+        notification.senderImage ||
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
 
-        profileId: resolvedProfileId,
+      title:
+        notification.title || 'Notification',
 
-        profileImage:
-          notification.senderImage || '',
+      subtitle:
+        notification.message || '',
 
-        title: resolvedTitle,
+      time: notification.createdAt
+        ? new Date(notification.createdAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'Just now',
 
-        subtitle:
-          notification.message || '',
+      type:
+        notification.type || 'profileActivity',
 
-        time: notification.createdAt
-          ? new Date(notification.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          : 'Just now',
-
-        type:
-          notification.type || 'profileActivity',
-
-        isRead:
-          notification.isRead === true,
-      };
-    });
+      isRead:
+        notification.isRead === true,
+    }));
   }
 
   // ============================================================
@@ -72,26 +54,20 @@ class NotificationService {
   // ============================================================
 
   async markAsRead(userId, notificationId) {
-    const notification = await Notification.findOneAndUpdate(
-      {
-        _id: notificationId,
-        user: userId,
-      },
-      {
-        $set: {
-          isRead: true,
-        },
-      },
-      {
-        new: true,
-      }
-    );
+    const notification = await Notification.findOne({
+      _id: notificationId,
+      user: userId,
+    });
 
     if (!notification) {
       const error = new Error('Notification not found');
       error.statusCode = 404;
       throw error;
     }
+
+    notification.isRead = true;
+
+    await notification.save();
 
     return await this.getNotifications(userId);
   }

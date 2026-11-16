@@ -309,14 +309,12 @@ class ProfileService {
     const matrimony = await Matrimony.findById(userId);
     if (!matrimony) throw new Error('Profile not found');
     const docs = matrimony.documentDetails || {};
-    let photos = Array.isArray(docs.photos)
-      ? docs.photos.filter((p) => p && p !== photoUrl && !p.includes('unsplash.com'))
-      : [];
-    // Place newly uploaded photo at index 0 as primary photo
-    photos.unshift(photoUrl);
+    const photos = Array.isArray(docs.photos) ? docs.photos : [];
+    if (!photos.includes(photoUrl)) {
+      photos.push(photoUrl);
+    }
     docs.photos = photos;
-    // Unconditionally update photoFulls so the website primary photo matches
-    docs.photoFulls = photoUrl;
+    if (!docs.photoFulls) docs.photoFulls = photoUrl;
     matrimony.documentDetails = docs;
     matrimony.markModified('documentDetails');
     await matrimony.save();

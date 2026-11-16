@@ -112,15 +112,12 @@ class ProfileController extends StateNotifier<ProfileState> {
     try {
       final profileMap = await _repository.getProfileData();
       final loaded = ProfileModel.fromJson(profileMap);
-      // Clean out any legacy dummy placeholder URLs so only real photos are kept
-      final cleanPhotos = loaded.photos.where((url) => !url.contains('unsplash.com')).toList();
-      final loadedClean = loaded.copyWith(photos: cleanPhotos);
-      _syncUserWithProfile(profileMap, loadedClean);
+      _syncUserWithProfile(profileMap, loaded);
       state = ProfileState(
-        profile: loadedClean,
+        profile: loaded,
         isDirty: false,
         isLoading: false,
-        completionPercentage: loadedClean.calculateCompletionPercentage(),
+        completionPercentage: loaded.calculateCompletionPercentage(),
       );
     } catch (e) {
       state = state.copyWith(
@@ -465,11 +462,7 @@ class ProfileController extends StateNotifier<ProfileState> {
   }
 
   Future<void> uploadPhoto(XFile file) async {
-    final realPhotos = state.profile.photos
-        .where((url) => !url.contains('unsplash.com'))
-        .toList();
-
-    if (realPhotos.length >= 6) {
+    if (state.profile.photos.length >= 6) {
       state = state.copyWith(
         errorMessage: 'Maximum 6 profile photos are allowed.',
       );
@@ -484,14 +477,11 @@ class ProfileController extends StateNotifier<ProfileState> {
 
     try {
       final uploadedUrl = await _repository.uploadPhoto(file);
+      final currentPhotos = List<String>.from(state.profile.photos);
 
-      // Clean out any legacy placeholder URLs and any duplicate of the new photo
-      final currentPhotos = state.profile.photos
-          .where((url) => !url.contains('unsplash.com') && url != uploadedUrl)
-          .toList();
-
-      // Insert new photo at index 0 so it becomes the primary profile photo
-      currentPhotos.insert(0, uploadedUrl);
+      if (!currentPhotos.contains(uploadedUrl)) {
+        currentPhotos.add(uploadedUrl);
+      }
 
       final updatedProfile = state.profile.copyWith(photos: currentPhotos);
 

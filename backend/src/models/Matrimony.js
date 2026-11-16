@@ -219,14 +219,12 @@ matrimonySchema.methods.jwtToken = function () {
   return token;
 };
 
-// Method to compare password (supports bcrypt hashed passwords and legacy plain text)
+// Method to compare password (strictly bcrypt hashed passwords)
 matrimonySchema.methods.comparePassword = async function (plainTextPassword) {
   const storedPassword = this.userRegistration?.password;
   if (!storedPassword || typeof storedPassword !== "string") return false;
-  if (storedPassword.startsWith("$2")) {
-    return await bcrypt.compare(plainTextPassword, storedPassword);
-  }
-  return plainTextPassword === storedPassword;
+  if (!storedPassword.startsWith("$2")) return false;
+  return await bcrypt.compare(plainTextPassword, storedPassword);
 };
 
 // Pre-save hook to hash password if modified and ensure confirmPassword is never persisted

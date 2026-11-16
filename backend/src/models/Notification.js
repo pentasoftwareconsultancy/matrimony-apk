@@ -24,13 +24,6 @@ const notificationSchema = new mongoose.Schema(
       index: true,
     },
 
-    fromUserId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Matrimony",
-      required: false,
-      index: true,
-    },
-
     // ============================================================
     // PROFILE RELATED TO THE NOTIFICATION
     //
@@ -66,8 +59,7 @@ const notificationSchema = new mongoose.Schema(
 
     title: {
       type: String,
-      required: false,
-      default: 'Notification',
+      required: true,
       trim: true,
       maxlength: 100,
     },
@@ -78,8 +70,7 @@ const notificationSchema = new mongoose.Schema(
 
     message: {
       type: String,
-      required: false,
-      default: '',
+      required: true,
       trim: true,
       maxlength: 500,
     },

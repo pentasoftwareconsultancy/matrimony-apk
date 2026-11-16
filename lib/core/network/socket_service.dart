@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-import '../config/app_config.dart';
 import '../storage/secure_storage_service.dart';
 
 class SocketService {
@@ -32,7 +31,7 @@ class SocketService {
   // ==================================================
 
   String getSocketUrl() {
-    return AppConfig.socketUrl;
+    return 'https://matrimony-apk-1.onrender.com';
   }
   // ==================================================
   // CONNECT

@@ -60,49 +60,6 @@ void main() {
       expect(state.dob, isNotNull);
       expect(state.age, 26);
     });
-
-    test('RegistrationState reset clears all inputs back to Step 0', () {
-      final filledState = RegistrationState(
-        currentStep: 5,
-        fullName: 'Jane Doe',
-        email: 'jane@example.com',
-        phone: '9876543210',
-        photos: ['https://example.com/photo.jpg'],
-      );
-
-      expect(filledState.currentStep, 5);
-      expect(filledState.fullName, 'Jane Doe');
-
-      // Calling reset returns fresh initial state
-      final resetState = RegistrationState();
-      expect(resetState.currentStep, 0);
-      expect(resetState.fullName, '');
-      expect(resetState.email, '');
-      expect(resetState.phone, '');
-      expect(resetState.photos, isEmpty);
-    });
-
-    test('Annual income parsing handles varied input formats', () {
-      int? parseAnnualIncome(String raw) {
-        final cleaned = raw.replaceAll(',', '').trim();
-        final direct = int.tryParse(cleaned);
-        if (direct != null) return direct;
-        final lpaMatch = RegExp(r'(\d+(?:\.\d+)?)\s*(?:lpa|lakh|lakhs)', caseSensitive: false).firstMatch(cleaned);
-        if (lpaMatch != null) {
-          final val = double.tryParse(lpaMatch.group(1) ?? '');
-          if (val != null) return (val * 100000).round();
-        }
-        final numMatch = RegExp(r'\d+').firstMatch(cleaned);
-        return numMatch != null ? int.tryParse(numMatch.group(0)!) : null;
-      }
-
-      expect(parseAnnualIncome('1200000'), 1200000);
-      expect(parseAnnualIncome('12,00,000'), 1200000);
-      expect(parseAnnualIncome('12 LPA'), 1200000);
-      expect(parseAnnualIncome('10 Lakhs'), 1000000);
-      expect(parseAnnualIncome('₹10 Lakhs - ₹15 Lakhs'), 1000000);
-      expect(parseAnnualIncome('invalid'), isNull);
-    });
   });
 }
 

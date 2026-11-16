@@ -35,6 +35,3 @@ Thumbs.db
 # Local backend test scripts
 backend/testSocket.js
 backend/testpresence.js
-
-# Firebase
-firebase-debug.log*

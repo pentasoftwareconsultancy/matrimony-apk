@@ -173,10 +173,7 @@ async expressInterest(fromUserId, toUserId) {
 
     await Notification.create({
       user: action.fromUser,
-      actorUserId: userId,
-      profileId: userId,
       type: 'interest',
-      title: 'Interest Response',
       message: `${responderName} ${status === 'accepted' ? 'accepted' : 'declined'} your interest request.`,
       senderImage: responderMerged?.photos?.[0],
       isRead: false,

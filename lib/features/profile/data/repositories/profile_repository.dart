@@ -64,24 +64,12 @@ class ApiProfileRepository implements ProfileRepository {
     );
 
     final responseData = response.data['data'] as Map<String, dynamic>;
+    final profile = responseData['profile'] as Map<String, dynamic>;
 
-    // 1. Prioritize direct photoUrl returned by backend
-    final directUrl = responseData['photoUrl'] as String?;
-    if (directUrl != null && directUrl.trim().isNotEmpty) {
-      return directUrl.trim();
-    }
+    final photos = profile['photos'];
 
-    // 2. Fallback to photos list from profile payload
-    final profile = responseData['profile'] as Map<String, dynamic>?;
-    final photos = profile?['photos'];
-
-    if (photos is List && photos.isNotEmpty) {
-      if (photos.first is String && (photos.first as String).trim().isNotEmpty) {
-        return (photos.first as String).trim();
-      }
-      if (photos.last is String && (photos.last as String).trim().isNotEmpty) {
-        return (photos.last as String).trim();
-      }
+    if (photos is List && photos.isNotEmpty && photos.last is String) {
+      return photos.last as String;
     }
 
     throw Exception('Upload succeeded but the saved photo URL was not returned.');

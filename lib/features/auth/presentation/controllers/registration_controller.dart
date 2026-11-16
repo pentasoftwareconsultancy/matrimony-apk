@@ -592,7 +592,6 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         'casteCertificateUrl': casteCertificateUrl,
         'castecertificate': casteCertificateUrl,
         'casteCertificateName': state.casteCertificateName,
-        'photoFulls': uploadedPhotos.isNotEmpty ? uploadedPhotos.first : '',
         'photos': uploadedPhotos,
       };
 
@@ -605,18 +604,12 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
       }
 
       _ref.read(authControllerProvider.notifier).setAuthenticatedState(user);
-      
-      // Reset registration state so future registrations start fresh from Step 0
-      reset();
+      state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString().replaceAll('Exception: ', ''));
       return false;
     }
-  }
-
-  void reset() {
-    state = RegistrationState();
   }
 
   int? _parseAnnualIncome(String raw) {
