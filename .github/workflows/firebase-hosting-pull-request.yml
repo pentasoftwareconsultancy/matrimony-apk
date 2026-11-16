@@ -26,11 +26,27 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Create environment files
+        run: |
+          cat << 'EOF' > .env.development
+          APP_ENV=development
+          API_BASE_URL=http://localhost:8000
+          SOCKET_URL=http://localhost:8000/api
+          EOF
+          cat << 'EOF' > .env.production
+          APP_ENV=production
+          API_BASE_URL=https://matrimony-apk-1.onrender.com
+          SOCKET_URL=https://matrimony-apk-1.onrender.com/api
+          EOF
+
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate localizations
+        run: flutter gen-l10n
+
       - name: Build Flutter Web
-        run: flutter build web --release
+        run: flutter build web --release --no-wasm-dry-run
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
