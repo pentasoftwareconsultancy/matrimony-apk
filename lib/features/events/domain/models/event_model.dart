@@ -1,5 +1,3 @@
-import 'package:intl/intl.dart';
-
 class EventModel {
   final String id;
   final String title;
@@ -290,10 +288,45 @@ class EventModel {
     return a.compareTo(b);
   }
 
+  static const List<String> _shortMonths = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  static String _formatDay(DateTime dt) => dt.day.toString().padLeft(2, '0');
+
+  static String _formatMonthYear(DateTime dt) {
+    final month = (dt.month >= 1 && dt.month <= 12)
+        ? _shortMonths[dt.month - 1]
+        : dt.month.toString();
+    return '$month ${dt.year}';
+  }
+
+  static String _formatDayMonth(DateTime dt) {
+    final month = (dt.month >= 1 && dt.month <= 12)
+        ? _shortMonths[dt.month - 1]
+        : dt.month.toString();
+    return '${_formatDay(dt)} $month';
+  }
+
+  static String _formatDayMonthYear(DateTime dt) {
+    return '${_formatDayMonth(dt)} ${dt.year}';
+  }
+
   String get displayDay {
     final dt = parsedStartDate ?? parsedEndDate;
     if (dt != null) {
-      return DateFormat('dd').format(dt);
+      return _formatDay(dt);
     }
     final parts = date.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : '';
@@ -302,7 +335,7 @@ class EventModel {
   String get displayMonthYear {
     final dt = parsedStartDate ?? parsedEndDate;
     if (dt != null) {
-      return DateFormat('MMM yyyy').format(dt);
+      return _formatMonthYear(dt);
     }
     final parts = date.trim().split(RegExp(r'\s+'));
     return parts.length > 1 ? parts.sublist(1).join(' ') : '';
@@ -312,11 +345,11 @@ class EventModel {
     final start = parsedStartDate;
     final end = parsedEndDate;
     if (start != null && end != null && start != end) {
-      return '${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM yyyy').format(end)}';
+      return '${_formatDayMonth(start)} - ${_formatDayMonthYear(end)}';
     }
     final dt = start ?? end;
     if (dt != null) {
-      return DateFormat('dd MMM yyyy').format(dt);
+      return _formatDayMonthYear(dt);
     }
     return date;
   }

@@ -1,0 +1,523 @@
+PROJECT REPOSITORY DIAGNOSTIC
+Generated: 11/16/2026 10:31:13
+Project root: C:\Users\RAHUL\Downloads\Pratik Lagad\matromony apk\matrimony-apk
+
+
+========== GIT STATUS ==========
+## pratik...origin/pratik [ahead 1]
+?? repo_diagnostic/
+
+
+
+========== CURRENT BRANCH ==========
+pratik
+
+
+
+========== ALL LOCAL BRANCHES ==========
+* pratik 71bf57d [origin/pratik: ahead 1] feat: complete registration, profile photo sync, and release APK configuration
+
+
+
+========== REMOTE CONFIGURATION ==========
+origin	https://github.com/pentasoftwareconsultancy/matrimony-apk.git (fetch)
+origin	https://github.com/pentasoftwareconsultancy/matrimony-apk.git (push)
+
+
+
+========== RECENT COMMITS ==========
+71bf57d (HEAD -> pratik) feat: complete registration, profile photo sync, and release APK configuration
+553a430 (origin/pratik, origin/HEAD) Update production API and Socket URLs
+1af5703 Changes done
+444f53f Merge pull request #1 from pentasoftwareconsultancy/main
+51ed2f0 (origin/main) Added permissions in menifest file
+4063ed6 fix(backend): update backend CORS configuration to handle OPTIONS preflight and dynamic origins
+fe92bf0 Allow Firebase Hosting origin for API and Socket.IO
+df473c8 Configure Firebase Hosting and production web deployment
+8d966da Prepare production web deployment
+c10b09f Implement real-time messaging and presence
+
+
+
+========== UNSTAGED CHANGE SUMMARY ==========
+
+
+
+========== STAGED CHANGE SUMMARY ==========
+
+
+
+========== CHANGED FILE NAMES ==========
+?? repo_diagnostic/
+
+
+
+========== TRACKED FILES DIFFERENT FROM HEAD ==========
+
+
+
+========== TOP LEVEL PROJECT FILES ==========
+
+Mode   Name                         
+----   ----                         
+d----- .dart_tool                   
+d--h-- .git                         
+d----- .github                      
+d----- android                      
+d----- assets                       
+d----- backend                      
+d----- build                        
+d----- ios                          
+d----- lib                          
+d----- linux                        
+d----- macos                        
+d----- matrimony-backend-v3         
+d----- repo_diagnostic              
+d----- test                         
+d----- tools                        
+d----- web                          
+d----- windows                      
+-a---- .env.development             
+-a---- .env.production              
+-a---- .firebaserc                  
+-a---- .flutter-plugins             
+-a---- .flutter-plugins-dependencies
+-a---- .gitignore                   
+-a---- .metadata                    
+-a---- analysis_options.yaml        
+-a---- firebase.json                
+-a---- l10n.yaml                    
+-a---- netlify.toml                 
+-a---- pubspec.lock                 
+-a---- pubspec.yaml                 
+-a---- README.md                    
+
+
+
+
+
+========== BACKEND SOURCE FILES ==========
+.\backend\src\app.js
+.\backend\src\seed.js
+.\backend\src\server.js
+.\backend\src\config\db.js
+.\backend\src\config\env.js
+.\backend\src\config\jwt.js
+.\backend\src\controllers\AuthController.js
+.\backend\src\controllers\BlockedController.js
+.\backend\src\controllers\ConnectionController.js
+.\backend\src\controllers\eventController.js
+.\backend\src\controllers\FAQController.js
+.\backend\src\controllers\FavoriteController.js
+.\backend\src\controllers\MessageController.js
+.\backend\src\controllers\NotificationController.js
+.\backend\src\controllers\PaymentController.js
+.\backend\src\controllers\ProfileController.js
+.\backend\src\controllers\serviceController.js
+.\backend\src\controllers\SettingsController.js
+.\backend\src\controllers\TestimonialController.js
+.\backend\src\controllers\UploadController.js
+.\backend\src\middlewares\authMiddleware.js
+.\backend\src\middlewares\errorMiddleware.js
+.\backend\src\middlewares\uploadMiddleware.js
+.\backend\src\middlewares\validationMiddleware.js
+.\backend\src\models\BlockedUser.js
+.\backend\src\models\Connection.js
+.\backend\src\models\Event.js
+.\backend\src\models\FAQ.js
+.\backend\src\models\Favorite.js
+.\backend\src\models\Matrimony.js
+.\backend\src\models\Membership.js
+.\backend\src\models\Message.js
+.\backend\src\models\Notification.js
+.\backend\src\models\Person.js
+.\backend\src\models\Profile.js
+.\backend\src\models\ProfileView.js
+.\backend\src\models\ServiceVendor.js
+.\backend\src\models\Sponsor.js
+.\backend\src\models\Testimonial.js
+.\backend\src\models\User.js
+.\backend\src\models\UserAction.js
+.\backend\src\models\UserSettings.js
+.\backend\src\models\Vendors.js
+.\backend\src\repositories\ProfileRepository.js
+.\backend\src\repositories\UserRepository.js
+.\backend\src\routes\authRoutes.js
+.\backend\src\routes\blockedRoutes.js
+.\backend\src\routes\connectionRoutes.js
+.\backend\src\routes\eventRoutes.js
+.\backend\src\routes\faqRoutes.js
+.\backend\src\routes\favoriteRoutes.js
+.\backend\src\routes\messageRoutes.js
+.\backend\src\routes\notificationRoutes.js
+.\backend\src\routes\paymentRoutes.js
+.\backend\src\routes\profileRoutes.js
+.\backend\src\routes\serviceRoutes.js
+.\backend\src\routes\settingsRoutes.js
+.\backend\src\routes\testimonialRoutes.js
+.\backend\src\services\AuthService.js
+.\backend\src\services\BlockedService.js
+.\backend\src\services\ConnectionService.js
+.\backend\src\services\FavoriteService.js
+.\backend\src\services\MessageService.js
+.\backend\src\services\NotificationService.js
+.\backend\src\services\PaymentService.js
+.\backend\src\services\ProfileService.js
+.\backend\src\services\SettingsService.js
+.\backend\src\sockets\index.js
+.\backend\src\sockets\messageSocket.js
+.\backend\src\sockets\presence.js
+.\backend\src\sockets\socketAuth.js
+.\backend\src\utils\apiResponse.js
+.\backend\src\utils\cloudinary.js
+.\backend\src\utils\eventDateFilter.js
+.\backend\src\utils\mailer.js
+.\backend\src\utils\sms.js
+
+
+========== FLUTTER LIBRARY FILES ==========
+.\lib\firebase_options.dart
+.\lib\main.dart
+.\lib\core\config\app_config.dart
+.\lib\core\data\dummy_profiles.dart
+.\lib\core\network\api_client.dart
+.\lib\core\network\jwt_interceptor.dart
+.\lib\core\network\network_exceptions.dart
+.\lib\core\network\socket_service.dart
+.\lib\core\router\app_router.dart
+.\lib\core\storage\secure_storage_service.dart
+.\lib\core\theme\app_colors.dart
+.\lib\core\theme\app_spacing.dart
+.\lib\core\theme\app_text_styles.dart
+.\lib\core\theme\app_theme.dart
+.\lib\core\utils\date_formatter.dart
+.\lib\core\utils\profile_compatiblity.dart
+.\lib\features\auth\data\repositories\auth_repository.dart
+.\lib\features\auth\data\repositories\password_repository.dart
+.\lib\features\auth\domain\models\user.dart
+.\lib\features\auth\domain\models\user.freezed.dart
+.\lib\features\auth\domain\models\user.g.dart
+.\lib\features\auth\presentation\controllers\auth_controller.dart
+.\lib\features\auth\presentation\controllers\password_controller.dart
+.\lib\features\auth\presentation\controllers\registration_controller.dart
+.\lib\features\auth\presentation\screens\create_new_password_screen.dart
+.\lib\features\auth\presentation\screens\forgot_password_otp_screen.dart
+.\lib\features\auth\presentation\screens\forgot_password_screen.dart
+.\lib\features\auth\presentation\screens\login_screen.dart
+.\lib\features\auth\presentation\screens\onboarding_screen.dart
+.\lib\features\auth\presentation\screens\otp_screen.dart
+.\lib\features\auth\presentation\screens\registration_stepper_screen.dart
+.\lib\features\auth\presentation\screens\splash_screen.dart
+.\lib\features\auth\presentation\widgets\four_digit_otp_widget.dart
+.\lib\features\auth\presentation\widgets\otp_input_widget.dart
+.\lib\features\auth\presentation\widgets\password_checklist_widget.dart
+.\lib\features\auth\presentation\widgets\password_segment_switch.dart
+.\lib\features\auth\presentation\widgets\password_strength_meter.dart
+.\lib\features\auth\presentation\widgets\password_success_dialog.dart
+.\lib\features\auth\presentation\widgets\password_text_field.dart
+.\lib\features\events\data\repositories\event_repository.dart
+.\lib\features\events\domain\models\event_model.dart
+.\lib\features\events\presentation\screens\events_screen.dart
+.\lib\features\events\presentation\screens\event_details_screen.dart
+.\lib\features\home\data\models\faq_model.dart
+.\lib\features\home\data\repositories\faq_repository.dart
+.\lib\features\home\data\services\faq_service.dart
+.\lib\features\home\domain\models\faq_model.dart
+.\lib\features\home\presentation\controllers\app_providers.dart
+.\lib\features\home\presentation\controllers\faq_controller.dart
+.\lib\features\home\presentation\controllers\home_controller.dart
+.\lib\features\home\presentation\controllers\presence_provider.dart
+.\lib\features\home\presentation\screens\blocked_profiles_screen.dart
+.\lib\features\home\presentation\screens\change_password_screen.dart
+.\lib\features\home\presentation\screens\chat_screen.dart
+.\lib\features\home\presentation\screens\events_screen.dart
+.\lib\features\home\presentation\screens\help_support_screen.dart
+.\lib\features\home\presentation\screens\home_screen.dart
+.\lib\features\home\presentation\screens\language_screen.dart
+.\lib\features\home\presentation\screens\notifications_screen.dart
+.\lib\features\home\presentation\screens\notification_preferences_screen.dart
+.\lib\features\home\presentation\screens\partner_preference_screen.dart
+.\lib\features\home\presentation\screens\premium_plans_screen.dart
+.\lib\features\home\presentation\screens\privacy_screen.dart
+.\lib\features\home\presentation\screens\privacy_settings_screen.dart
+.\lib\features\home\presentation\screens\profile_details_screen.dart
+.\lib\features\home\presentation\screens\profile_views_screen.dart
+.\lib\features\home\presentation\screens\services_screen.dart
+.\lib\features\home\presentation\screens\terms_screen.dart
+.\lib\features\home\presentation\screens\testimonials_screen.dart
+.\lib\features\home\presentation\widgets\custom_bottom_nav_bar.dart
+.\lib\features\home\presentation\widgets\faq_card.dart
+.\lib\features\home\presentation\widgets\faq_shimmer_widget.dart
+.\lib\features\home\presentation\widgets\ios_search_bar.dart
+.\lib\features\profile\data\repositories\profile_repository.dart
+.\lib\features\profile\domain\models\document_model.dart
+.\lib\features\profile\domain\models\profile_model.dart
+.\lib\features\profile\presentation\controllers\profile_controller.dart
+.\lib\features\profile\presentation\screens\edit_profile_screen.dart
+.\lib\features\profile\presentation\screens\profile_screen.dart
+.\lib\features\profile\presentation\widgets\document_action_sheet.dart
+.\lib\features\profile\presentation\widgets\document_row.dart
+.\lib\features\profile\presentation\widgets\dynamic_family_dialog.dart
+.\lib\features\profile\presentation\widgets\edit_field_dialog.dart
+.\lib\features\profile\presentation\widgets\photo_management_dialog.dart
+.\lib\features\profile\presentation\widgets\profile_field_row.dart
+.\lib\features\profile\presentation\widgets\profile_header.dart
+.\lib\features\profile\presentation\widgets\profile_section_card.dart
+.\lib\features\profile\presentation\widgets\profile_summary_card.dart
+.\lib\features\services\data\repositories\service_repository.dart
+.\lib\features\services\domain\models\service_vendor_model.dart
+.\lib\features\services\presentation\screens\services_screen.dart
+.\lib\features\services\presentation\screens\service_details_screen.dart
+.\lib\features\services\presentation\screens\vendor_list_screen.dart
+.\lib\l10n\app_en.arb
+.\lib\l10n\app_localizations.dart
+.\lib\l10n\app_localizations_en.dart
+
+
+========== ANTIGRAVITY AND AI AGENT CONFIGURATION FILES ==========
+
+Found: .github
+.\.github\workflows\firebase-hosting-merge.yml
+.\.github\workflows\firebase-hosting-pull-request.yml
+
+
+========== BACKEND PACKAGE CONFIGURATION ==========
+{
+  "name": "matrimony-backend",
+  "version": "1.0.0",
+  "description": "Backend for Matrimony App",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "joi": "^17.13.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.1",
+    "multer": "^2.2.0",
+    "nodemailer": "^6.9.13",
+    "razorpay": "^2.9.8",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+
+
+========== FLUTTER PUBSPEC ==========
+name: matrimony_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.2.0
+  dio: ^5.5.0+1
+  flutter_secure_storage: ^9.2.2
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  cached_network_image: ^3.4.1
+  image_picker: ^1.1.2
+  firebase_core: ^3.2.0
+  shared_preferences: ^2.5.3
+  pinput: ^5.0.0
+  file_picker: ^8.0.0
+  url_launcher: ^6.3.2
+  share_plus: ^12.0.2
+  socket_io_client: ^3.1.6
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+  flutter_dotenv: ^6.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.11
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+
+  # App Icon Generator
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - .env.development
+    - .env.production
+
+
+========== ENVIRONMENT VARIABLE NAMES ONLY ==========
+
+File: .env.development
+  API_BASE_URL=<REDACTED>
+
+File: .env.production
+  API_BASE_URL=<REDACTED>
+
+File: backend/.env
+  PORT=<REDACTED>
+  MONGO_URI=<REDACTED>
+  CLOUDINARY_CLOUD_NAME=<REDACTED>
+  CLOUDINARY_API_KEY=<REDACTED>
+  CLOUDINARY_API_SECRET=<REDACTED>
+  JWT_SECRET=<REDACTED>
+  EMAIL_ADDRESS=<REDACTED>
+  EMAIL_PASSWORD=<REDACTED>
+  NODE_ENV=<REDACTED>
+  SENDER_EMAIL=<REDACTED>
+  BREVO_SMS_API_KEY=<REDACTED>
+  GOOGLE_MAPS_API_KEY=<REDACTED>
+  RAZORPAY_KEY_ID=<REDACTED>
+  RAZORPAY_SECRET=<REDACTED>
+  ALLOWED_ADMIN_EMAILS=<REDACTED>
+
+
+========== ANDROID BUILD CONFIGURATION ==========
+
+--- android/app/build.gradle.kts ---
+plugins {
+    id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
+    id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
+android {
+    namespace = "com.example.matrimony_app"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+    defaultConfig {
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        applicationId = "com.example.matrimony_app"
+        // You can update the following values to match your application needs.
+        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+--- android/build.gradle.kts ---
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+val newBuildDir: Directory =
+    rootProject.layout.buildDirectory
+        .dir("../../build")
+        .get()
+rootProject.layout.buildDirectory.value(newBuildDir)
+
+subprojects {
+    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+    project.layout.buildDirectory.value(newSubprojectBuildDir)
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register<Delete>("clean") {
+    delete(rootProject.layout.buildDirectory)
+}
+
+--- android/gradle.properties ---
+org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G -XX:ReservedCodeCacheSize=512m -XX:+HeapDumpOnOutOfMemoryError
+android.useAndroidX=true
+
+
+========== UNTRACKED FILES ==========
+repo_diagnostic/repository_audit.txt
+
+
+
+========== IGNORED FILES SUMMARY ==========
+?? repo_diagnostic/
+!! .dart_tool/
+!! .env.development
+!! .env.production
+!! .flutter-plugins
+!! .flutter-plugins-dependencies
+!! android/.gradle/
+!! android/app/.cxx/
+!! android/app/src/main/java/
+!! android/gradle/wrapper/gradle-wrapper.jar
+!! android/gradlew
+!! android/gradlew.bat
+!! android/local.properties
+!! backend/.env
+!! backend/node_modules/
+!! build/
+!! ios/Flutter/Generated.xcconfig
+!! ios/Flutter/flutter_export_environment.sh
+!! ios/Runner/GeneratedPluginRegistrant.h
+!! ios/Runner/GeneratedPluginRegistrant.m
+!! macos/Flutter/ephemeral/
+
+
+
+========== NESTED GIT REPOSITORIES ==========
+
+
+========== DIAGNOSTIC COMPLETE ==========
+Read-only diagnostic. No Git or project changes performed.
+Report: C:\Users\RAHUL\Downloads\Pratik Lagad\matromony apk\matrimony-apk\repo_diagnostic\repository_audit.txt

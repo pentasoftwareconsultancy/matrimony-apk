@@ -610,13 +610,19 @@ class _NotificationsScreenState
       // 1. MARK NOTIFICATION AS READ
       // ==========================================================
 
-      await ref
-          .read(notificationProvider.notifier)
-          .markAsRead(notification.id);
+      try {
+        await ref
+            .read(notificationProvider.notifier)
+            .markAsRead(notification.id);
 
-      debugPrint(
-        '[Notification] Marked as read: ${notification.id}',
-      );
+        debugPrint(
+          '[Notification] Marked as read: ${notification.id}',
+        );
+      } catch (readError) {
+        debugPrint(
+          '[Notification] Notice: markAsRead non-fatal error: $readError',
+        );
+      }
 
       // ==========================================================
       // 2. VALIDATE PROFILE ID
@@ -722,15 +728,9 @@ class _NotificationsScreenState
       // ==========================================================
 
       final profileObject =
-      rawData['profile'];
+          rawData['profile'] is Map ? rawData['profile'] : rawData;
 
-      if (profileObject == null) {
-        throw Exception(
-          'Profile object not found in response',
-        );
-      }
-
-      if (profileObject is! Map<String, dynamic>) {
+      if (profileObject is! Map) {
         throw Exception(
           'Profile object has invalid format',
         );
