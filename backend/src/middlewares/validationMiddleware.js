@@ -166,6 +166,14 @@ export const registerSchema = Joi.object({
       'string.empty': 'Password is required',
     }),
 
+  confirmPassword: Joi.string()
+    .valid(Joi.ref('password'))
+    .optional()
+    .allow('', null)
+    .messages({
+      'any.only': 'Password and confirm password do not match',
+    }),
+
   // ----------------------------------------------------------
   // PERSONAL DETAILS
   // ----------------------------------------------------------
@@ -283,16 +291,19 @@ export const registerSchema = Joi.object({
         'Occupation position is required',
     }),
 
-  annualIncome: Joi.number()
-    .min(0)
+  annualIncome: Joi.alternatives()
+    .try(
+      Joi.number().min(0),
+      Joi.string()
+        .trim()
+        .pattern(/\d+/)
+        .messages({
+          'string.pattern.base': 'Annual income must include a numeric value',
+        })
+    )
     .required()
     .messages({
-      'number.base':
-        'Annual income is required',
-      'number.min':
-        'Annual income cannot be negative',
-      'any.required':
-        'Annual income is required',
+      'any.required': 'Annual income is required',
     }),
 
   // ----------------------------------------------------------

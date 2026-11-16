@@ -5,6 +5,7 @@ import { protect } from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
 router.get('/', protect, BlockedController.getBlockedUsers);
+router.get('/profiles', protect, BlockedController.getBlockedProfiles);
 router.post('/:profileId', protect, BlockedController.blockUser);
 router.delete('/:profileId', protect, BlockedController.unblockUser);
 

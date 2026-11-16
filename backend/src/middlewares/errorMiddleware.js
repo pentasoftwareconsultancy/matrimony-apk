@@ -39,6 +39,18 @@ export const errorHandler = (err, req, res, next) => {
     statusCode = 400;
   }
 
+  // Handle Multer File Upload Errors
+  if (err.name === 'MulterError') {
+    statusCode = 400;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'Uploaded file exceeds the 5MB size limit';
+    } else if (err.code === 'LIMIT_FILE_COUNT') {
+      message = 'Too many files uploaded';
+    } else {
+      message = err.message || 'Invalid file upload';
+    }
+  }
+
   return ApiResponse.error(res, message, statusCode, errors);
 };
 

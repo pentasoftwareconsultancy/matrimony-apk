@@ -102,6 +102,17 @@ class AuthController extends StateNotifier<AuthState> {
     state = AuthState(user: user, isAuthenticated: true);
   }
 
+  void updateUser(User updatedUser) {
+    state = state.copyWith(user: updatedUser, isAuthenticated: true);
+  }
+
+  Future<void> refreshCurrentUser() async {
+    try {
+      final user = await _authRepository.getMe();
+      updateUser(user);
+    } catch (_) {}
+  }
+
   Future<bool> login({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {

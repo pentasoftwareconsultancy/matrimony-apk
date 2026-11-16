@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/repositories/service_repository.dart';
 import 'vendor_list_screen.dart';
 
 class ServicesScreen extends ConsumerWidget {
@@ -45,42 +46,58 @@ class ServicesScreen extends ConsumerWidget {
 
             // Services Categories List
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                children: [
-                  _buildCategoryCard(
-                    context: context,
-                    title: 'Photography',
-                    subtitle: 'Photographers, Cinematographers & Pre-wedding studios',
-                    vendorCount: '6 vendors',
-                    icon: Icons.camera_alt_outlined,
-                    bgColor: const Color(0xFFF3E8FF),
-                    textColor: const Color(0xFF8B5CF6),
-                    categoryKey: 'photography',
-                  ),
-                  const SizedBox(height: 14),
-                  _buildCategoryCard(
-                    context: context,
-                    title: 'Mehendi',
-                    subtitle: 'Bridal Henna, Arabic & Traditional Mehendi Artists',
-                    vendorCount: '4 vendors',
-                    icon: Icons.back_hand_outlined,
-                    bgColor: const Color(0xFFDCFCE7),
-                    textColor: const Color(0xFF166534),
-                    categoryKey: 'mehendi',
-                  ),
-                  const SizedBox(height: 14),
-                  _buildCategoryCard(
-                    context: context,
-                    title: 'Decoration',
-                    subtitle: 'Stage Setup, Mandap Decor, Floral & Theme Lighting',
-                    vendorCount: '6 vendors',
-                    icon: Icons.celebration_outlined,
-                    bgColor: const Color(0xFFFCE7F3),
-                    textColor: const Color(0xFFC9003F),
-                    categoryKey: 'decoration',
-                  ),
-                ],
+              child: RefreshIndicator(
+                color: const Color(0xFFC9003F),
+                onRefresh: () async {
+                  try {
+                    ref.invalidate(servicesByCategoryProvider('photography'));
+                    ref.invalidate(servicesByCategoryProvider('mehendi'));
+                    ref.invalidate(servicesByCategoryProvider('decoration'));
+                    await Future.wait([
+                      ref.read(servicesByCategoryProvider('photography').future),
+                      ref.read(servicesByCategoryProvider('mehendi').future),
+                      ref.read(servicesByCategoryProvider('decoration').future),
+                    ]);
+                  } catch (_) {}
+                },
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  children: [
+                    _buildCategoryCard(
+                      context: context,
+                      title: 'Photography',
+                      subtitle: 'Photographers, Cinematographers & Pre-wedding studios',
+                      vendorCount: '6 vendors',
+                      icon: Icons.camera_alt_outlined,
+                      bgColor: const Color(0xFFF3E8FF),
+                      textColor: const Color(0xFF8B5CF6),
+                      categoryKey: 'photography',
+                    ),
+                    const SizedBox(height: 14),
+                    _buildCategoryCard(
+                      context: context,
+                      title: 'Mehendi',
+                      subtitle: 'Bridal Henna, Arabic & Traditional Mehendi Artists',
+                      vendorCount: '4 vendors',
+                      icon: Icons.back_hand_outlined,
+                      bgColor: const Color(0xFFDCFCE7),
+                      textColor: const Color(0xFF166534),
+                      categoryKey: 'mehendi',
+                    ),
+                    const SizedBox(height: 14),
+                    _buildCategoryCard(
+                      context: context,
+                      title: 'Decoration',
+                      subtitle: 'Stage Setup, Mandap Decor, Floral & Theme Lighting',
+                      vendorCount: '6 vendors',
+                      icon: Icons.celebration_outlined,
+                      bgColor: const Color(0xFFFCE7F3),
+                      textColor: const Color(0xFFC9003F),
+                      categoryKey: 'decoration',
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

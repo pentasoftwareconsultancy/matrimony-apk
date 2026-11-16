@@ -11,6 +11,15 @@ class BlockedController {
     }
   }
 
+  async getBlockedProfiles(req, res, next) {
+    try {
+      const profiles = await BlockedService.getBlockedProfiles(req.user._id);
+      return ApiResponse.success(res, 'Blocked profiles retrieved', profiles, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async blockUser(req, res, next) {
     try {
       const { profileId } = req.params;

@@ -1,3 +1,4 @@
+import '../../../../core/utils/date_formatter.dart';
 import 'document_model.dart';
 
 String _asStr(dynamic val, [String fallback = '']) {
@@ -15,17 +16,116 @@ int _asInt(dynamic val, [int fallback = 0]) {
 }
 
 String _parseDob(dynamic dobVal, dynamic birthDateVal) {
-  if (dobVal != null) {
-    final str = dobVal.toString();
-    if (str.contains('T')) {
-      final dt = DateTime.tryParse(str);
-      if (dt != null) {
-        return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-      }
-    }
-    if (str.isNotEmpty) return str;
-  }
+  final candidate = (birthDateVal != null && birthDateVal.toString().trim().isNotEmpty)
+      ? birthDateVal
+      : dobVal;
+  final formatted = formatDobString(candidate);
+  if (formatted.isNotEmpty) return formatted;
   return _asStr(birthDateVal);
+}
+
+class BrotherDetail {
+  final String name;
+  final String occupation;
+
+  const BrotherDetail({
+    this.name = '',
+    this.occupation = '',
+  });
+
+  BrotherDetail copyWith({String? name, String? occupation}) {
+    return BrotherDetail(
+      name: name ?? this.name,
+      occupation: occupation ?? this.occupation,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'occupation': occupation,
+  };
+
+  factory BrotherDetail.fromJson(Map<String, dynamic> json) => BrotherDetail(
+    name: _asStr(json['name']),
+    occupation: _asStr(json['occupation']),
+  );
+}
+
+class SisterDetail {
+  final String name;
+  final String occupation;
+  final bool isMarried;
+  final String husbandName;
+  final String husbandProfession;
+
+  const SisterDetail({
+    this.name = '',
+    this.occupation = '',
+    this.isMarried = false,
+    this.husbandName = '',
+    this.husbandProfession = '',
+  });
+
+  SisterDetail copyWith({
+    String? name,
+    String? occupation,
+    bool? isMarried,
+    String? husbandName,
+    String? husbandProfession,
+  }) {
+    return SisterDetail(
+      name: name ?? this.name,
+      occupation: occupation ?? this.occupation,
+      isMarried: isMarried ?? this.isMarried,
+      husbandName: husbandName ?? this.husbandName,
+      husbandProfession: husbandProfession ?? this.husbandProfession,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'occupation': occupation,
+    'isMarried': isMarried,
+    'husbandName': husbandName,
+    'husbandProfession': husbandProfession,
+  };
+
+  factory SisterDetail.fromJson(Map<String, dynamic> json) => SisterDetail(
+    name: _asStr(json['name']),
+    occupation: _asStr(json['occupation']),
+    isMarried: json['isMarried'] == true ||
+        json['married'] == true ||
+        json['isMarried']?.toString().toLowerCase() == 'yes',
+    husbandName: _asStr(json['husbandName']),
+    husbandProfession: _asStr(json['husbandProfession']),
+  );
+}
+
+class UncleDetail {
+  final String name;
+  final String occupation;
+
+  const UncleDetail({
+    this.name = '',
+    this.occupation = '',
+  });
+
+  UncleDetail copyWith({String? name, String? occupation}) {
+    return UncleDetail(
+      name: name ?? this.name,
+      occupation: occupation ?? this.occupation,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'occupation': occupation,
+  };
+
+  factory UncleDetail.fromJson(Map<String, dynamic> json) => UncleDetail(
+    name: _asStr(json['name']),
+    occupation: _asStr(json['occupation']),
+  );
 }
 
 class ProfileModel {
@@ -97,6 +197,10 @@ class ProfileModel {
   final String familyValues;
   final String marriedSister;
   final String uncleName;
+  final List<BrotherDetail> brothersDetails;
+  final List<SisterDetail> sistersDetails;
+  final List<UncleDetail> maternalUnclesDetails;
+  final List<UncleDetail> unclesDetails;
 
   // Documents
   final List<DocumentModel> documents;
@@ -161,11 +265,81 @@ class ProfileModel {
     required this.familyValues,
     required this.marriedSister,
     required this.uncleName,
+    this.brothersDetails = const [],
+    this.sistersDetails = const [],
+    this.maternalUnclesDetails = const [],
+    this.unclesDetails = const [],
     required this.documents,
   });
 
   factory ProfileModel.referenceInitial() {
     return ProfileModel.empty();
+  }
+
+  String get brothersSummary {
+    if (brothersDetails.isNotEmpty) {
+      final names = brothersDetails
+          .map((b) => b.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) {
+        return '${brothersDetails.length} (${names.join(', ')})';
+      }
+      return '${brothersDetails.length} ${brothersDetails.length == 1 ? 'Brother' : 'Brothers'}';
+    }
+    if (brothers.isNotEmpty && brothers != '0' && brothers.toLowerCase() != 'no') {
+      return '$brothers ${brothers == '1' ? 'Brother' : 'Brothers'}';
+    }
+    return '0';
+  }
+
+  String get sistersSummary {
+    if (sistersDetails.isNotEmpty) {
+      final marriedCount = sistersDetails.where((s) => s.isMarried).length;
+      final names = sistersDetails
+          .map((s) => s.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      final suffix = marriedCount > 0 ? ' ($marriedCount Married)' : '';
+      if (names.isNotEmpty) {
+        return '${sistersDetails.length} (${names.join(', ')})$suffix';
+      }
+      return '${sistersDetails.length} ${sistersDetails.length == 1 ? 'Sister' : 'Sisters'}$suffix';
+    }
+    if (sisters.isNotEmpty && sisters != '0' && sisters.toLowerCase() != 'no') {
+      return '$sisters ${sisters == '1' ? 'Sister' : 'Sisters'}';
+    }
+    return '0';
+  }
+
+  String get maternalUnclesSummary {
+    if (maternalUnclesDetails.isNotEmpty) {
+      final names = maternalUnclesDetails
+          .map((u) => u.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) {
+        return '${maternalUnclesDetails.length} (${names.join(', ')})';
+      }
+      return '${maternalUnclesDetails.length}';
+    }
+    if (maternalUncle.isNotEmpty && maternalUncle != '0') return maternalUncle;
+    return '0';
+  }
+
+  String get unclesSummary {
+    if (unclesDetails.isNotEmpty) {
+      final names = unclesDetails
+          .map((u) => u.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) {
+        return '${unclesDetails.length} (${names.join(', ')})';
+      }
+      return '${unclesDetails.length}';
+    }
+    if (uncleName.isNotEmpty && uncleName != '0') return uncleName;
+    return '0';
   }
 
   ProfileModel copyWith({
@@ -228,6 +402,10 @@ class ProfileModel {
     String? familyValues,
     String? marriedSister,
     String? uncleName,
+    List<BrotherDetail>? brothersDetails,
+    List<SisterDetail>? sistersDetails,
+    List<UncleDetail>? maternalUnclesDetails,
+    List<UncleDetail>? unclesDetails,
     List<DocumentModel>? documents,
   }) {
     return ProfileModel(
@@ -290,6 +468,10 @@ class ProfileModel {
       familyValues: familyValues ?? this.familyValues,
       marriedSister: marriedSister ?? this.marriedSister,
       uncleName: uncleName ?? this.uncleName,
+      brothersDetails: brothersDetails ?? this.brothersDetails,
+      sistersDetails: sistersDetails ?? this.sistersDetails,
+      maternalUnclesDetails: maternalUnclesDetails ?? this.maternalUnclesDetails,
+      unclesDetails: unclesDetails ?? this.unclesDetails,
       documents: documents ?? this.documents,
     );
   }
@@ -373,6 +555,10 @@ class ProfileModel {
       familyValues: '',
       marriedSister: '',
       uncleName: '',
+      brothersDetails: [],
+      sistersDetails: [],
+      maternalUnclesDetails: [],
+      unclesDetails: [],
       documents: [],
     );
   }
@@ -434,22 +620,100 @@ class ProfileModel {
       'gan': gan,
       'partnerPriority': partnerPriority,
       'fatherName': fatherName,
-      'motherName': motherName,
-      'brothers': brothers,
-      'maternalUncle': maternalUncle,
-      'unclePhone': unclePhone,
       'fatherEdu': fatherEdu,
+      'fatherOccupation': fatherEdu,
+      'motherName': motherName,
       'motherOcc': motherOcc,
-      'sisters': sisters,
+      'motherOccupation': motherOcc,
+      'brothers': brothersDetails.isNotEmpty ? brothersDetails.length.toString() : brothers,
+      'brothersDetails': brothersDetails.map((d) => d.toJson()).toList(),
+      'maternalUncle': maternalUnclesDetails.isNotEmpty ? maternalUnclesDetails.first.name : maternalUncle,
+      'maternalUncleName': maternalUnclesDetails.isNotEmpty ? maternalUnclesDetails.first.name : maternalUncle,
+      'maternalUnclesDetails': maternalUnclesDetails.map((d) => d.toJson()).toList(),
+      'unclePhone': unclePhone,
+      'sisters': sistersDetails.isNotEmpty ? sistersDetails.length.toString() : sisters,
+      'sistersDetails': sistersDetails.map((d) => d.toJson()).toList(),
       'familyType': familyType,
       'familyValues': familyValues,
-      'marriedSister': marriedSister,
-      'uncleName': uncleName,
+      'marriedSister': sistersDetails.isNotEmpty
+          ? sistersDetails.where((s) => s.isMarried).length.toString()
+          : marriedSister,
+      'marriedSisters': sistersDetails.isNotEmpty
+          ? sistersDetails.where((s) => s.isMarried).length.toString()
+          : marriedSister,
+      'uncleName': unclesDetails.isNotEmpty ? unclesDetails.first.name : uncleName,
+      'unclesDetails': unclesDetails.map((d) => d.toJson()).toList(),
       'documents': documents.map((d) => d.toJson()).toList(),
     };
   }
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    final familyMap = json['familyDetails'] is Map ? json['familyDetails'] as Map<String, dynamic> : null;
+
+    // Parse brothersDetails
+    List<BrotherDetail> bDetails = [];
+    final rawBDetails = json['brothersDetails'] ?? familyMap?['brothersDetails'];
+    if (rawBDetails is List) {
+      bDetails = rawBDetails
+          .whereType<Map>()
+          .map((b) => BrotherDetail.fromJson(Map<String, dynamic>.from(b)))
+          .toList();
+    }
+    final rawBrothersStr = _asStr(json['brothers'] ?? familyMap?['brothers']);
+    if (bDetails.isEmpty && rawBrothersStr.isNotEmpty && rawBrothersStr != '0' && rawBrothersStr.toLowerCase() != 'no') {
+      final count = int.tryParse(rawBrothersStr) ?? 0;
+      if (count > 0) {
+        bDetails = List.generate(count, (_) => const BrotherDetail());
+      }
+    }
+
+    // Parse sistersDetails
+    List<SisterDetail> sDetails = [];
+    final rawSDetails = json['sistersDetails'] ?? familyMap?['sistersDetails'];
+    if (rawSDetails is List) {
+      sDetails = rawSDetails
+          .whereType<Map>()
+          .map((s) => SisterDetail.fromJson(Map<String, dynamic>.from(s)))
+          .toList();
+    }
+    final rawSistersStr = _asStr(json['sisters'] ?? familyMap?['sisters']);
+    if (sDetails.isEmpty && rawSistersStr.isNotEmpty && rawSistersStr != '0' && rawSistersStr.toLowerCase() != 'no') {
+      final count = int.tryParse(rawSistersStr) ?? 0;
+      final rawMarried = _asStr(json['marriedSister'] ?? json['marriedSisters'] ?? familyMap?['marriedSisters']);
+      final marriedCount = int.tryParse(rawMarried) ?? 0;
+      if (count > 0) {
+        sDetails = List.generate(count, (idx) => SisterDetail(isMarried: idx < marriedCount));
+      }
+    }
+
+    // Parse maternalUnclesDetails
+    List<UncleDetail> muDetails = [];
+    final rawMuDetails = json['maternalUnclesDetails'] ?? familyMap?['maternalUnclesDetails'];
+    if (rawMuDetails is List) {
+      muDetails = rawMuDetails
+          .whereType<Map>()
+          .map((u) => UncleDetail.fromJson(Map<String, dynamic>.from(u)))
+          .toList();
+    }
+    final rawMuName = _asStr(json['maternalUncle'] ?? json['maternalUncleName'] ?? familyMap?['maternalUncleName']);
+    if (muDetails.isEmpty && rawMuName.isNotEmpty && rawMuName != '0' && rawMuName.toLowerCase() != 'no') {
+      muDetails = [UncleDetail(name: rawMuName)];
+    }
+
+    // Parse unclesDetails
+    List<UncleDetail> uDetails = [];
+    final rawUDetails = json['unclesDetails'] ?? familyMap?['unclesDetails'];
+    if (rawUDetails is List) {
+      uDetails = rawUDetails
+          .whereType<Map>()
+          .map((u) => UncleDetail.fromJson(Map<String, dynamic>.from(u)))
+          .toList();
+    }
+    final rawUName = _asStr(json['uncleName'] ?? familyMap?['uncleName']);
+    if (uDetails.isEmpty && rawUName.isNotEmpty && rawUName != '0' && rawUName.toLowerCase() != 'no') {
+      uDetails = [UncleDetail(name: rawUName)];
+    }
+
     return ProfileModel(
       profileId: _asStr(json['profileId'] ?? json['id'] ?? json['_id']),
       fullName: _asStr(json['fullName'] ?? json['name']),
@@ -498,18 +762,22 @@ class ProfileModel {
       manglik: _asStr(json['manglik']),
       gan: _asStr(json['gan']),
       partnerPriority: _asStr(json['partnerPriority'], 'High'),
-      fatherName: _asStr(json['fatherName']),
-      motherName: _asStr(json['motherName']),
-      brothers: _asStr(json['brothers']),
-      maternalUncle: _asStr(json['maternalUncle']),
-      unclePhone: _asStr(json['unclePhone']),
-      fatherEdu: _asStr(json['fatherEdu']),
-      motherOcc: _asStr(json['motherOcc']),
-      sisters: _asStr(json['sisters']),
-      familyType: _asStr(json['familyType']),
-      familyValues: _asStr(json['familyValues']),
-      marriedSister: _asStr(json['marriedSister']),
-      uncleName: _asStr(json['uncleName']),
+      fatherName: _asStr(json['fatherName'] ?? familyMap?['fatherName']),
+      motherName: _asStr(json['motherName'] ?? familyMap?['motherName']),
+      brothers: _asStr(json['brothers'] ?? familyMap?['brothers']),
+      maternalUncle: _asStr(json['maternalUncle'] ?? json['maternalUncleName'] ?? familyMap?['maternalUncleName']),
+      unclePhone: _asStr(json['unclePhone'] ?? familyMap?['unclePhone']),
+      fatherEdu: _asStr(json['fatherEdu'] ?? json['fatherOccupation'] ?? familyMap?['fatherOccupation'] ?? familyMap?['fatherEdu']),
+      motherOcc: _asStr(json['motherOcc'] ?? json['motherOccupation'] ?? familyMap?['motherOccupation'] ?? familyMap?['motherOcc']),
+      sisters: _asStr(json['sisters'] ?? familyMap?['sisters']),
+      familyType: _asStr(json['familyType'] ?? familyMap?['familyType']),
+      familyValues: _asStr(json['familyValues'] ?? familyMap?['familyValues']),
+      marriedSister: _asStr(json['marriedSister'] ?? json['marriedSisters'] ?? familyMap?['marriedSisters']),
+      uncleName: _asStr(json['uncleName'] ?? familyMap?['uncleName']),
+      brothersDetails: bDetails,
+      sistersDetails: sDetails,
+      maternalUnclesDetails: muDetails,
+      unclesDetails: uDetails,
       documents: (json['documents'] as List<dynamic>?)
               ?.map((d) => DocumentModel.fromJson(d as Map<String, dynamic>))
               .toList() ??

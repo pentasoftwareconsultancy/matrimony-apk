@@ -26,8 +26,17 @@ class EventRepository {
   Future<List<EventModel>> getAllEvents() async {
     try {
       final response = await _apiClient.get('/events');
-      final list = response.data['data'] as List<dynamic>;
-      return list.map((item) => EventModel.fromJson(item as Map<String, dynamic>)).toList();
+      final raw = response.data;
+      final list = raw is Map<String, dynamic>
+          ? (raw['data'] as List<dynamic>? ?? const [])
+          : (raw is List<dynamic> ? raw : const []);
+      final upcoming = list
+          .whereType<Map<String, dynamic>>()
+          .map(EventModel.fromJson)
+          .where((event) => event.isUpcoming)
+          .toList()
+        ..sort((a, b) => a.compareByDate(b));
+      return upcoming;
     } catch (_) {
       return [];
     }

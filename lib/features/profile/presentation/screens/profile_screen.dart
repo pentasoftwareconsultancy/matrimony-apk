@@ -143,9 +143,11 @@ class ProfileScreen extends ConsumerWidget {
     final user = authState.user;
     final profile = profileState.profile;
 
-    final displayName = (user?.fullName != null && user!.fullName!.trim().isNotEmpty)
-        ? user.fullName!
-        : (profile.fullName.trim().isNotEmpty ? profile.fullName : 'User Name');
+    final displayName = profile.fullName.trim().isNotEmpty
+        ? profile.fullName.trim()
+        : ((user?.fullName != null && user!.fullName!.trim().isNotEmpty)
+            ? user.fullName!.trim()
+            : 'User Name');
 
     final displayProfileId = profile.profileId.isNotEmpty
         ? profile.profileId
@@ -156,10 +158,10 @@ class ProfileScreen extends ConsumerWidget {
     final displayMembership = user?.isPremium == true ? 'Premium' : 'free';
 
     final userPhotos = user?.photos;
-    final primaryPhoto = (userPhotos != null && userPhotos.isNotEmpty)
-        ? userPhotos.first
-        : (profile.photos.isNotEmpty
-            ? profile.photos.first
+    final primaryPhoto = profile.photos.isNotEmpty
+        ? profile.photos.first
+        : ((userPhotos != null && userPhotos.isNotEmpty)
+            ? userPhotos.first
             : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500');
 
     final scoreFraction = (profileState.completionPercentage / 100.0).clamp(0.0, 1.0);
@@ -168,9 +170,20 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFDF9), // Warm off-white background matching reference
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
+        child: RefreshIndicator(
+          color: const Color(0xFFC9003F),
+          onRefresh: () async {
+            try {
+              await Future.wait([
+                ref.read(profileControllerProvider.notifier).loadProfile(),
+                ref.read(authControllerProvider.notifier).refreshCurrentUser(),
+              ]);
+            } catch (_) {}
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // HEADER matching screenshot (< Profile + Bell with Red Dot)
@@ -528,6 +541,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 24),
             ],
           ),
+        ),
         ),
       ),
     );

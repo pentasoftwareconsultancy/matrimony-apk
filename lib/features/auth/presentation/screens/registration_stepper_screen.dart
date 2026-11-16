@@ -11,7 +11,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../controllers/registration_controller.dart';
-import '../controllers/auth_controller.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 
 class RegistrationStepperScreen extends ConsumerStatefulWidget {
@@ -55,6 +54,10 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
 
   late TextEditingController _aadharNumberController;
 
+  // Password visibility state
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+
   // Inline editing state on Review Screen
   String? _editingFieldKey;
 
@@ -66,11 +69,8 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
   String _tempReligion = '';
   String _tempBloodGroup = '';
   String _tempRashi = '';
-  String _tempNakshatra = '';
   bool _tempManglik = false;
   String _tempFamilyType = '';
-  List<String> _tempHobbies = [];
-  List<String> _tempLanguages = [];
 
   String _tempAadharCardName = '';
   List<int>? _tempAadharBytes;
@@ -151,11 +151,8 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
       _tempReligion = regState.religion;
       _tempBloodGroup = regState.bloodGroup;
       _tempRashi = regState.rashi;
-      _tempNakshatra = regState.nakshatra;
       _tempManglik = regState.manglik;
       _tempFamilyType = regState.familyType;
-      _tempHobbies = List<String>.from(regState.hobbies);
-      _tempLanguages = List<String>.from(regState.languages);
 
       _tempAadharCardName = regState.aadharCardName;
       _tempAadharBytes = regState.aadharBytes;
@@ -201,24 +198,26 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
       }
     } else if (currentStep == 1) {
       if (_step2Key.currentState!.validate()) {
+        final regState = ref.read(registrationControllerProvider);
         ref.read(registrationControllerProvider.notifier).updateStep2(
               caste: _casteController.text,
               religion: _religionController.text,
               bloodGroup: _bloodGroupController.text,
               address: _addressController.text,
               rashi: _rashiController.text,
-              nakshatra: _nakshatraController.text,
+              nakshatra: _nakshatraController.text.isNotEmpty ? _nakshatraController.text : regState.nakshatra,
             );
         ref.read(registrationControllerProvider.notifier).nextStep();
       }
     } else if (currentStep == 2) {
       if (_step3Key.currentState!.validate()) {
+        final regState = ref.read(registrationControllerProvider);
         ref.read(registrationControllerProvider.notifier).updateStep3(
               qualification: _qualificationController.text,
               occupation: _occupationController.text,
               annualIncome: _incomeController.text,
-              stateVal: _stateController.text,
-              city: _cityController.text,
+              stateVal: _stateController.text.isNotEmpty ? _stateController.text : regState.state,
+              city: _cityController.text.isNotEmpty ? _cityController.text : regState.city,
             );
         ref.read(registrationControllerProvider.notifier).nextStep();
       }
@@ -246,7 +245,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           );
           return;
         }
-        if (regState.photos.isEmpty && (regState.pickedPhotosData == null || regState.pickedPhotosData!.length < 3)) {
+        if (regState.photos.length < 3 && (regState.pickedPhotosData == null || regState.pickedPhotosData!.length < 3)) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please upload at least 3 profile photos (minimum 3, maximum 6)')),
           );
@@ -507,61 +506,6 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  // Multi select dialog helper
-  void _showMultiSelectSelection({
-    required String title,
-    required List<String> options,
-    required List<String> selectedItems,
-    required Function(List<String>) onConfirm,
-  }) {
-    final tempSelected = List<String>.from(selectedItems);
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(title, style: AppTextStyles.titleMedium),
-              content: SingleChildScrollView(
-                child: ListBody(
-                  children: options.map((option) {
-                    final isChecked = tempSelected.contains(option);
-                    return CheckboxListTile(
-                      title: Text(option),
-                      value: isChecked,
-                      onChanged: (checked) {
-                        setDialogState(() {
-                          if (checked == true) {
-                            tempSelected.add(option);
-                          } else {
-                            tempSelected.remove(option);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    onConfirm(tempSelected);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            );
-          },
         );
       },
     );
@@ -891,8 +835,17 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           _buildLabel('New password'),
           TextFormField(
             controller: _passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(hintText: 'Enter password'),
+            obscureText: !_isPasswordVisible,
+            decoration: InputDecoration(
+              hintText: 'Enter password',
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+              ),
+            ),
             validator: (val) {
               if (val == null || val.isEmpty) return 'Password is required';
               if (val.length < 8) return 'Password must be at least 8 characters';
@@ -906,8 +859,17 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           _buildLabel('Confirm password'),
           TextFormField(
             controller: _confirmPasswordController,
-            obscureText: true,
-            decoration: const InputDecoration(hintText: 'Confirm password'),
+            obscureText: !_isConfirmPasswordVisible,
+            decoration: InputDecoration(
+              hintText: 'Confirm password',
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+              ),
+            ),
             validator: (val) {
               if (val == null || val.isEmpty) return 'Confirm password is required';
               if (val != _passwordController.text) return 'Passwords do not match';
@@ -975,21 +937,6 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           ),
           AppSpacing.verticalMd,
 
-          _buildLabel('Age'),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              regState.age == null ? 'Age automatically calculated' : '${regState.age} years',
-              style: TextStyle(color: regState.age == null ? Colors.grey : Colors.black, fontSize: 15),
-            ),
-          ),
-          AppSpacing.verticalMd,
-
           _buildLabel('Religion'),
           TextFormField(
             controller: _religionController,
@@ -1024,9 +971,22 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           AppSpacing.verticalMd,
 
           _buildLabel('Blood group'),
-          TextFormField(
-            controller: _bloodGroupController,
-            decoration: const InputDecoration(hintText: 'Enter blood group'),
+          DropdownButtonFormField<String>(
+            value: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(_bloodGroupController.text)
+                ? _bloodGroupController.text
+                : (const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(regState.bloodGroup)
+                    ? regState.bloodGroup
+                    : null),
+            decoration: const InputDecoration(hintText: 'Select blood group'),
+            items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                .map((bg) => DropdownMenuItem(value: bg, child: Text(bg)))
+                .toList(),
+            onChanged: (val) {
+              if (val != null) {
+                _bloodGroupController.text = val;
+                ref.read(registrationControllerProvider.notifier).updateStep2(bloodGroup: val);
+              }
+            },
             validator: (val) => val == null || val.trim().isEmpty ? 'Blood group is required' : null,
           ),
           AppSpacing.verticalMd,
@@ -1039,36 +999,11 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           ),
           AppSpacing.verticalMd,
 
-          _buildLabel('Hobbies', isRequired: false),
-          InkWell(
-            onTap: () => _showMultiSelectSelection(
-              title: 'Select Hobbies',
-              options: const ['Travelling', 'Music', 'Reading', 'Cooking', 'Photography', 'Fitness', 'Movies', 'Gaming', 'Sports', 'Art'],
-              selectedItems: regState.hobbies,
-              onConfirm: (selected) {
-                ref.read(registrationControllerProvider.notifier).updateStep2(hobbies: selected);
-              },
-            ),
-            child: InputDecorator(
-              decoration: const InputDecoration(hintText: 'Select hobbies'),
-              child: Text(regState.hobbies.isEmpty ? 'Select hobbies' : regState.hobbies.join(', ')),
-            ),
-          ),
-          AppSpacing.verticalMd,
-
           _buildLabel('Rashi'),
           TextFormField(
             controller: _rashiController,
             decoration: const InputDecoration(hintText: 'Enter rashi'),
             validator: (val) => val == null || val.trim().isEmpty ? 'Rashi is required' : null,
-          ),
-          AppSpacing.verticalMd,
-
-          _buildLabel('Nakshatra'),
-          TextFormField(
-            controller: _nakshatraController,
-            decoration: const InputDecoration(hintText: 'Enter nakshatra'),
-            validator: (val) => val == null || val.trim().isEmpty ? 'Nakshatra is required' : null,
           ),
           AppSpacing.verticalMd,
 
@@ -1079,7 +1014,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
               Switch(
                 value: regState.manglik,
                 activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
-                activeThumbColor: AppColors.primary,
+                activeColor: AppColors.primary,
                 onChanged: (val) {
                   ref.read(registrationControllerProvider.notifier).updateStep2(manglik: val);
                 },
@@ -1119,41 +1054,12 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           _buildLabel('Annual income'),
           TextFormField(
             controller: _incomeController,
-            decoration: const InputDecoration(hintText: 'Enter annual income'),
-            validator: (val) => val == null || val.trim().isEmpty ? 'Annual income is required' : null,
-          ),
-          AppSpacing.verticalMd,
-
-          _buildLabel('State'),
-          TextFormField(
-            controller: _stateController,
-            decoration: const InputDecoration(hintText: 'Enter state'),
-            validator: (val) => val == null || val.trim().isEmpty ? 'State is required' : null,
-          ),
-          AppSpacing.verticalMd,
-
-          _buildLabel('City'),
-          TextFormField(
-            controller: _cityController,
-            decoration: const InputDecoration(hintText: 'Enter city'),
-            validator: (val) => val == null || val.trim().isEmpty ? 'City is required' : null,
-          ),
-          AppSpacing.verticalMd,
-
-          _buildLabel('Languages Known'),
-          InkWell(
-            onTap: () => _showMultiSelectSelection(
-              title: 'Select Languages',
-              options: const ['English', 'Hindi', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Kannada', 'Punjabi', 'Urdu'],
-              selectedItems: regState.languages,
-              onConfirm: (selected) {
-                ref.read(registrationControllerProvider.notifier).updateStep3(languages: selected);
-              },
-            ),
-            child: InputDecorator(
-              decoration: const InputDecoration(hintText: 'Select languages'),
-              child: Text(regState.languages.isEmpty ? 'Select languages' : regState.languages.join(', ')),
-            ),
+            decoration: const InputDecoration(hintText: 'Enter annual income (e.g. 800000 or 8 LPA)'),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) return 'Annual income is required';
+              if (!RegExp(r'\d').hasMatch(val)) return 'Enter a numeric annual income (e.g. 800000 or 8 LPA)';
+              return null;
+            },
           ),
         ],
       ),
@@ -1403,6 +1309,10 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             runSpacing: 12,
             children: [
               ...List.generate(regState.photos.length, (index) {
+                final Uint8List? bytes =
+                    (regState.pickedPhotosData != null && index < regState.pickedPhotosData!.length)
+                        ? regState.pickedPhotosData![index]['bytes'] as Uint8List?
+                        : null;
                 return Stack(
                   children: [
                     Container(
@@ -1412,7 +1322,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8),
                         image: DecorationImage(
-                          image: NetworkImage(regState.photos[index]),
+                          image: _resolvePhotoProvider(regState.photos[index], bytes: bytes),
                           fit: BoxFit.cover,
                           onError: (e, s) {},
                         ),
@@ -1499,8 +1409,6 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
     if (regState.qualification.trim().isEmpty) return false;
     if (regState.occupation.trim().isEmpty) return false;
     if (regState.annualIncome.trim().isEmpty) return false;
-    if (regState.city.trim().isEmpty) return false;
-    if (regState.state.trim().isEmpty) return false;
     // Step 4
     if (regState.fatherName.trim().isEmpty) return false;
     if (regState.motherName.trim().isEmpty) return false;
@@ -1583,8 +1491,18 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             onSave: () => ref.read(registrationControllerProvider.notifier).updateStep1(password: _passwordController.text, confirmPassword: _passwordController.text),
             editorWidget: TextFormField(
               controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Enter new password'),
+              obscureText: !_isPasswordVisible,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: 'Enter new password',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                ),
+              ),
             ),
           ),
           _buildInlineEditableRow(
@@ -1612,17 +1530,6 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                   ],
                 );
               }).toList(),
-            ),
-          ),
-          _buildInlineEditableRow(
-            label: 'AGE',
-            value: regState.age == null ? '-' : regState.age.toString(),
-            fieldKey: 'age',
-            onSave: () => ref.read(registrationControllerProvider.notifier).updateStep2(age: int.tryParse(_ageController.text)),
-            editorWidget: TextFormField(
-              controller: _ageController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Enter age'),
             ),
           ),
           _buildInlineEditableRow(
@@ -1746,33 +1653,17 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             value: regState.bloodGroup,
             fieldKey: 'bloodGroup',
             onSave: () => ref.read(registrationControllerProvider.notifier).updateStep2(bloodGroup: _tempBloodGroup),
-            editorWidget: GestureDetector(
-              onTap: () {
-                _showBottomSheetSelector(
-                  title: 'Select Blood Group',
-                  options: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-                  selectedValue: _tempBloodGroup,
-                  onSelected: (val) {
-                    setState(() {
-                      _tempBloodGroup = val;
-                    });
-                  },
-                );
+            editorWidget: DropdownButtonFormField<String>(
+              value: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(_tempBloodGroup)
+                  ? _tempBloodGroup
+                  : null,
+              items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                  .map((bg) => DropdownMenuItem(value: bg, child: Text(bg)))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _tempBloodGroup = val);
               },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_tempBloodGroup.isEmpty ? 'Select Blood Group' : _tempBloodGroup),
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                  ],
-                ),
-              ),
+              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Select blood group'),
             ),
           ),
           _buildInlineEditableRow(
@@ -1784,32 +1675,6 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
               controller: _addressController,
               maxLines: 2,
               decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Enter address'),
-            ),
-          ),
-          _buildInlineEditableRow(
-            label: 'HOBBIES',
-            value: regState.hobbies.join(', '),
-            fieldKey: 'hobbies',
-            onSave: () => ref.read(registrationControllerProvider.notifier).updateStep2(hobbies: _tempHobbies),
-            editorWidget: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: const ['Travelling', 'Music', 'Reading', 'Cooking', 'Photography', 'Fitness', 'Movies', 'Gaming', 'Sports', 'Art'].map((h) {
-                final isSelected = _tempHobbies.contains(h);
-                return FilterChip(
-                  label: Text(h),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _tempHobbies.add(h);
-                      } else {
-                        _tempHobbies.remove(h);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
             ),
           ),
           _buildInlineEditableRow(
@@ -1851,40 +1716,6 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                   ),
                 );
               },
-            ),
-          ),
-          _buildInlineEditableRow(
-            label: 'NAKSHATRA',
-            value: regState.nakshatra,
-            fieldKey: 'nakshatra',
-            onSave: () => ref.read(registrationControllerProvider.notifier).updateStep2(nakshatra: _tempNakshatra),
-            editorWidget: GestureDetector(
-              onTap: () {
-                _showSearchableBottomSheet(
-                  title: 'Select Nakshatra',
-                  options: const ['Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha', 'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'],
-                  selectedValue: _tempNakshatra,
-                  onSelected: (val) {
-                    setState(() {
-                      _tempNakshatra = val;
-                    });
-                  },
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_tempNakshatra.isEmpty ? 'Select Nakshatra' : _tempNakshatra),
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                  ],
-                ),
-              ),
             ),
           ),
           _buildInlineEditableRow(
@@ -1951,62 +1782,6 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             editorWidget: TextFormField(
               controller: _incomeController,
               decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Enter annual income'),
-            ),
-          ),
-          _buildInlineEditableRow(
-            label: 'WORK LOCATION / CITY',
-            value: regState.city,
-            fieldKey: 'city',
-            onSave: () => ref.read(registrationControllerProvider.notifier).updateStep3(
-                  city: _cityController.text,
-                ),
-            editorWidget: TextFormField(
-              controller: _cityController,
-              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Enter city'),
-            ),
-          ),
-          _buildInlineEditableRow(
-            label: 'STATE',
-            value: regState.state,
-            fieldKey: 'state',
-            onSave: () => ref.read(registrationControllerProvider.notifier).updateStep3(
-                  stateVal: _stateController.text,
-                ),
-            editorWidget: TextFormField(
-              controller: _stateController,
-              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Enter state'),
-            ),
-          ),
-          _buildInlineEditableRow(
-            label: 'LANGUAGES KNOWN',
-            value: regState.languages.join(', '),
-            fieldKey: 'languages',
-            onSave: () => ref.read(registrationControllerProvider.notifier).updateStep3(languages: _tempLanguages),
-            editorWidget: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: const ['English', 'Hindi', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Kannada', 'Punjabi', 'Urdu'].map((l) {
-                final isSelected = _tempLanguages.contains(l);
-                return FilterChip(
-                  label: Text(l),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _tempLanguages.add(l);
-                      } else {
-                        _tempLanguages.remove(l);
-                      }
-                    });
-                  },
-                  selectedColor: const Color(0xFFFFECEF),
-                  checkmarkColor: AppColors.primary,
-                  labelStyle: TextStyle(
-                    color: isSelected ? AppColors.primary : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                );
-              }).toList(),
             ),
           ),
         ]),
@@ -2649,63 +2424,26 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
     );
   }
 
-  // Simple Bottom Sheet selector helper
-  void _showBottomSheetSelector({
-    required String title,
-    required List<String> options,
-    required String selectedValue,
-    required Function(String) onSelected,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
-              const Divider(height: 1),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: options.length,
-                itemBuilder: (context, index) {
-                  final option = options[index];
-                  final isSelected = option == selectedValue;
-                  return ListTile(
-                    title: Text(
-                      option,
-                      style: TextStyle(
-                        color: isSelected ? AppColors.primary : Colors.black,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    trailing: isSelected ? const Icon(Icons.check, color: AppColors.primary) : null,
-                    onTap: () {
-                      onSelected(option);
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  ImageProvider _resolvePhotoProvider(String path, {Uint8List? bytes}) {
+    if (bytes != null) {
+      return MemoryImage(bytes);
+    }
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return NetworkImage(path);
+    }
+    if (!kIsWeb && path.isNotEmpty) {
+      return FileImage(File(path));
+    }
+    return NetworkImage(path);
   }
 
   // Photo Thumbnail Widget Builder for Inline Editing
   Widget _buildPhotoThumbnail(String path, {int? deleteIndex}) {
+    final Uint8List? bytes = (deleteIndex != null &&
+            _tempPickedPhotosData != null &&
+            deleteIndex < _tempPickedPhotosData!.length)
+        ? _tempPickedPhotosData![deleteIndex]['bytes'] as Uint8List?
+        : null;
     return Stack(
       children: [
         Container(
@@ -2715,7 +2453,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade200),
             image: DecorationImage(
-              image: NetworkImage(path),
+              image: _resolvePhotoProvider(path, bytes: bytes),
               fit: BoxFit.cover,
               onError: (e, s) {},
             ),
@@ -2758,14 +2496,14 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
         decoration: BoxDecoration(
           color: const Color(0xFFFFECEF),
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             style: BorderStyle.solid,
           ),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Column(
+        child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.add, color: AppColors.primary, size: 24),
             SizedBox(height: 4),
             Text(

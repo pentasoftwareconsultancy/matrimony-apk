@@ -1,3 +1,4 @@
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -95,7 +96,14 @@ app.use(
 // Body parsers
 // --------------------------------------------------
 
-app.use(express.json({ limit: '50mb' }));
+app.use(
+  express.json({
+    limit: '50mb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 
 app.use(
   express.urlencoded({

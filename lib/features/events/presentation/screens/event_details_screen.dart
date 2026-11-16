@@ -46,7 +46,7 @@ class EventDetailsScreen extends ConsumerWidget {
 
   void _shareEvent(EventModel item) {
     Share.share(
-      'Join us at ${item.title}!\nDate: ${item.date} at ${item.time}\nLocation: ${item.location}\nOrganizer: ${item.organizer}\n\n${item.description}',
+      'Join us at ${item.title}!\nDate: ${item.formattedDate} at ${item.time}\nLocation: ${item.location}\nOrganizer: ${item.organizer}\n\n${item.description}',
       subject: item.title,
     );
   }
@@ -117,9 +117,18 @@ class EventDetailsScreen extends ConsumerWidget {
 
                 // Scrollable Content
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
+                  child: RefreshIndicator(
+                    color: const Color(0xFFC9003F),
+                    onRefresh: () async {
+                      try {
+                        ref.invalidate(eventByIdProvider(eventId));
+                        await ref.read(eventByIdProvider(eventId).future);
+                      } catch (_) {}
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // 2 Top Images
@@ -178,7 +187,7 @@ class EventDetailsScreen extends ConsumerWidget {
                                     child: _buildInfoItem(
                                       icon: Icons.calendar_today_outlined,
                                       label: 'DATE',
-                                      value: item.date,
+                                      value: item.formattedDate,
                                     ),
                                   ),
                                   Expanded(
@@ -309,6 +318,7 @@ class EventDetailsScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                ),
                 ),
               ],
             );

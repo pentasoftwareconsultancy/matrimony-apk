@@ -11,7 +11,7 @@ class DocumentModel {
     required this.id,
     required this.title,
     required this.type,
-    this.status = 'verified',
+    this.status = 'pending',
     this.fileUrl,
     this.fileName,
     this.updatedAt,
@@ -51,13 +51,13 @@ class DocumentModel {
 
   factory DocumentModel.fromJson(Map<String, dynamic> json) {
     return DocumentModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      type: json['type'] as String,
-      status: json['status'] as String? ?? 'verified',
-      fileUrl: json['fileUrl'] as String?,
-      fileName: json['fileName'] as String?,
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : null,
+      id: (json['id'] ?? json['type'] ?? '').toString(),
+      title: (json['title'] ?? 'Document').toString(),
+      type: (json['type'] ?? json['id'] ?? 'document').toString(),
+      status: json['status']?.toString() ?? 'pending',
+      fileUrl: json['fileUrl']?.toString(),
+      fileName: json['fileName']?.toString(),
+      updatedAt: json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt'].toString()) : null,
     );
   }
 }

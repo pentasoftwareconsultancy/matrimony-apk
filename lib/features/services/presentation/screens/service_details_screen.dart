@@ -138,9 +138,18 @@ class ServiceDetailsScreen extends ConsumerWidget {
 
                 // SCROLLABLE CONTENT
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
+                  child: RefreshIndicator(
+                    color: const Color(0xFFC9003F),
+                    onRefresh: () async {
+                      try {
+                        ref.invalidate(vendorByIdProvider(vendorId));
+                        await ref.read(vendorByIdProvider(vendorId).future);
+                      } catch (_) {}
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Gallery (2 Images)
@@ -550,8 +559,9 @@ class ServiceDetailsScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ],
-            );
+              ),
+            ],
+          );
           },
           loading: () => const Center(
             child: CircularProgressIndicator(color: Color(0xFFC9003F)),
