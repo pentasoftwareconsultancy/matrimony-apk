@@ -31,7 +31,7 @@ class SocketService {
   // ==================================================
 
   String getSocketUrl() {
-    return 'https://matrimony-apk-1.onrender.com\';
+    return 'https://matrimony-apk-1.onrender.com';
   }
   // ==================================================
   // CONNECT
