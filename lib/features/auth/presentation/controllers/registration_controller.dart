@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/secure_storage_service.dart';
+import '../../../profile/domain/models/profile_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../domain/models/user.dart';
 import 'auth_controller.dart';
@@ -51,6 +52,8 @@ class RegistrationState {
   final String familyStatus;
   final String nativePlace;
   final String aboutFamily;
+  final List<UncleDetail> maternalUnclesDetails;
+  final List<UncleDetail> paternalUnclesDetails;
 
   // Step 5: Documents & Photos
   final String aadharNumber;
@@ -105,6 +108,8 @@ class RegistrationState {
     this.familyStatus = 'Middle Class',
     this.nativePlace = '',
     this.aboutFamily = '',
+    this.maternalUnclesDetails = const [],
+    this.paternalUnclesDetails = const [],
     this.aadharNumber = '',
     this.aadharCardUrl = '',
     this.aadharCardName = '',
@@ -155,6 +160,8 @@ class RegistrationState {
     String? familyStatus,
     String? nativePlace,
     String? aboutFamily,
+    List<UncleDetail>? maternalUnclesDetails,
+    List<UncleDetail>? paternalUnclesDetails,
     String? aadharNumber,
     String? aadharCardUrl,
     String? aadharCardName,
@@ -204,6 +211,8 @@ class RegistrationState {
       familyStatus: familyStatus ?? this.familyStatus,
       nativePlace: nativePlace ?? this.nativePlace,
       aboutFamily: aboutFamily ?? this.aboutFamily,
+      maternalUnclesDetails: maternalUnclesDetails ?? this.maternalUnclesDetails,
+      paternalUnclesDetails: paternalUnclesDetails ?? this.paternalUnclesDetails,
       aadharNumber: aadharNumber ?? this.aadharNumber,
       aadharCardUrl: aadharCardUrl ?? this.aadharCardUrl,
       aadharCardName: aadharCardName ?? this.aadharCardName,
@@ -442,6 +451,8 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
     String? familyStatus,
     String? nativePlace,
     String? aboutFamily,
+    List<UncleDetail>? maternalUnclesDetails,
+    List<UncleDetail>? paternalUnclesDetails,
   }) {
     state = state.copyWith(
       fatherName: fatherName,
@@ -451,6 +462,8 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
       familyStatus: familyStatus,
       nativePlace: nativePlace,
       aboutFamily: aboutFamily,
+      maternalUnclesDetails: maternalUnclesDetails,
+      paternalUnclesDetails: paternalUnclesDetails,
     );
   }
 
@@ -586,6 +599,16 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         'familyValues': state.familyStatus,
         'nativePlace': state.nativePlace,
         'aboutFamily': state.aboutFamily,
+        'maternalUnclesDetails': state.maternalUnclesDetails
+            .where((u) => u.name.trim().isNotEmpty || u.occupation.trim().isNotEmpty)
+            .map((u) => u.toJson())
+            .toList(),
+        'unclesDetails': state.paternalUnclesDetails
+            .where((u) => u.name.trim().isNotEmpty || u.occupation.trim().isNotEmpty)
+            .map((u) => u.toJson())
+            .toList(),
+        'maternalUncleName': state.maternalUnclesDetails.map((u) => u.name).where((n) => n.trim().isNotEmpty).join(', '),
+        'uncleName': state.paternalUnclesDetails.map((u) => u.name).where((n) => n.trim().isNotEmpty).join(', '),
         'aadharNumber': state.aadharNumber,
         'aadharCardUrl': aadharUrl,
         'aadhaarFrontphoto': aadharUrl,

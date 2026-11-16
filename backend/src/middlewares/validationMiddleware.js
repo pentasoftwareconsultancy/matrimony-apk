@@ -625,6 +625,26 @@ expectedAgeRange: Joi.object({
     .allow('', null)
     .optional(),
 
+  maternalUnclesDetails: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().trim().allow('', null).optional(),
+        occupation: Joi.string().trim().allow('', null).optional(),
+        profession: Joi.string().trim().allow('', null).optional(),
+      }).unknown(true)
+    )
+    .optional(),
+
+  unclesDetails: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().trim().allow('', null).optional(),
+        occupation: Joi.string().trim().allow('', null).optional(),
+        profession: Joi.string().trim().allow('', null).optional(),
+      }).unknown(true)
+    )
+    .optional(),
+
   // ----------------------------------------------------------
   // OPTIONAL ASTROLOGY DETAILS
   // ----------------------------------------------------------

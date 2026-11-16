@@ -142,9 +142,6 @@ class AuthService {
     if (Array.isArray(docs.photos)) {
       docs.photos.forEach(p => { if (p && !photosList.includes(p)) photosList.push(p); });
     }
-    if (photosList.length === 0) {
-      photosList.push('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500');
-    }
 
     // Check active membership
     let isPremium = false;
@@ -161,7 +158,7 @@ class AuthService {
     let mappedGender = personal.gender;
     if (mappedGender === 'Bride') mappedGender = 'Female';
     if (mappedGender === 'Groom') mappedGender = 'Male';
-    if (!mappedGender) mappedGender = 'Female';
+    if (!mappedGender) mappedGender = '';
 
     // Extract user date of birth from registration, document, or personal details
     const rawDob = reg.dateOfBirth || doc.dateOfBirth || personal.dateOfBirth || doc.dob || reg.dob || null;
@@ -179,7 +176,7 @@ class AuthService {
         }
       }
     }
-    if (!age || age <= 0) age = 25;
+    if (!age || age <= 0) age = 0;
 
     const incomeLPA = parseIncomeLPA(edu.annualIncome);
 
@@ -206,14 +203,18 @@ class AuthService {
       }));
     }
 
-    let maternalUnclesDetails = Array.isArray(family.maternalUnclesDetails) ? family.maternalUnclesDetails : [];
-    if (maternalUnclesDetails.length === 0 && family.maternalUncleName) {
-      maternalUnclesDetails = [{ name: family.maternalUncleName, occupation: '' }];
+    let maternalUnclesDetails = Array.isArray(family.maternalUnclesDetails)
+      ? family.maternalUnclesDetails.filter((u) => (u?.name || '').trim().length > 0 || (u?.occupation || '').trim().length > 0)
+      : [];
+    if (maternalUnclesDetails.length === 0 && family.maternalUncleName && family.maternalUncleName.trim()) {
+      maternalUnclesDetails = [{ name: family.maternalUncleName.trim(), occupation: '' }];
     }
 
-    let unclesDetails = Array.isArray(family.unclesDetails) ? family.unclesDetails : [];
-    if (unclesDetails.length === 0 && family.uncleName) {
-      unclesDetails = [{ name: family.uncleName, occupation: '' }];
+    let unclesDetails = Array.isArray(family.unclesDetails)
+      ? family.unclesDetails.filter((u) => (u?.name || '').trim().length > 0 || (u?.occupation || '').trim().length > 0)
+      : [];
+    if (unclesDetails.length === 0 && family.uncleName && family.uncleName.trim()) {
+      unclesDetails = [{ name: family.uncleName.trim(), occupation: '' }];
     }
 
     const publicFamilyDetails = {
@@ -235,42 +236,49 @@ class AuthService {
       email: includePrivate ? (reg.email || '') : '',
       phone: includePrivate ? (reg.phoneNumber ? reg.phoneNumber.toString() : '') : '',
       accountType: reg.profileCreatedFor || 'Yourself',
-      fullName: reg.fullName || 'Matrimony Member',
-      name: reg.fullName || 'Matrimony Member',
+      fullName: reg.fullName || '',
+      name: reg.fullName || '',
       gender: mappedGender,
       age,
       dob: dobIso,
       dateOfBirth: dobIso,
       birthDate: formattedBirthDate,
-      religion: astro.religion || 'Hindu',
-      caste: astro.caste || 'Kunbi',
-      maritalStatus: personal.maritalStatus || 'Single',
-      bloodGroup: personal.bloodGroup || 'B+',
+      religion: astro.religion || '',
+      caste: astro.caste || '',
+      subCast: astro.subCast || '',
+      subCaste: astro.subCast || '',
+      placeOfBirth: astro.placeOfBirth || '',
+      nadi: astro.nadi || '',
+      taluka: reg.taluka || '',
+      maritalStatus: personal.maritalStatus || '',
+      bloodGroup: personal.bloodGroup || '',
       address: includePrivate ? (reg.address || '') : '',
       hobbies: Array.isArray(personal.hobbies) ? personal.hobbies : (personal.hobbies ? [personal.hobbies] : []),
-      rashi: astro.rashi || 'Mesh',
-      nakshatra: astro.nakshatra || 'Ashwini',
+      rashi: astro.rashi || '',
+      nakshatra: astro.nakshatra || '',
       manglik: astro.isManglik ?? false,
-      qualification: edu.highestEducation || 'Graduate',
-      education: edu.highestEducation || 'Graduate',
-      occupation: edu.profession || 'Professional',
-      profession: edu.profession || 'Professional',
-      annualIncome: edu.annualIncome ? edu.annualIncome.toString() : '₹10 Lakhs - ₹15 Lakhs',
-      income: edu.annualIncome ? edu.annualIncome.toString() : '₹10 Lakhs - ₹15 Lakhs',
+      highestEdu: edu.highestEducation || '',
+      highestEducation: edu.highestEducation || '',
+      qualification: edu.highestEducation || '',
+      education: edu.highestEducation || '',
+      occupation: edu.profession || '',
+      profession: edu.profession || '',
+      annualIncome: edu.annualIncome ? edu.annualIncome.toString() : '',
+      income: edu.annualIncome ? edu.annualIncome.toString() : '',
       incomeValue: incomeLPA,
-      country: reg.country || 'India',
-      state: reg.state || 'Maharashtra',
-      city: reg.district || reg.village || reg.city || 'Pune',
-      district: reg.district || 'Pune',
+      country: reg.country || '',
+      state: reg.state || '',
+      city: reg.district || reg.village || reg.city || '',
+      district: reg.district || '',
       village: reg.village || '',
       pincode: includePrivate ? (reg.pincode || '') : '',
       altPhone: includePrivate ? (reg.alternativePhoneNumber || '') : '',
-      workLocation: edu.companyAddress || reg.district || 'Pune',
-      workPlace: edu.companyAddress || reg.district || 'Pune',
-      homePlace: includePrivate ? (reg.address || reg.district || 'Pune') : (reg.district || 'Pune'),
-      nativePlace: family.nativePlace || reg.district || 'Pune',
-      motherTongue: astro.motherTongue || 'Marathi',
-      languages: [astro.motherTongue || 'Marathi'],
+      workLocation: edu.companyAddress || reg.district || '',
+      workPlace: edu.companyAddress || reg.district || '',
+      homePlace: includePrivate ? (reg.address || reg.district || '') : (reg.district || ''),
+      nativePlace: family.nativePlace || reg.district || '',
+      motherTongue: astro.motherTongue || '',
+      languages: astro.motherTongue ? [astro.motherTongue] : [],
       fatherName: family.fatherName || '',
       fatherEdu: family.fatherOccupation || '',
       fatherOccupation: family.fatherOccupation || '',
@@ -289,10 +297,11 @@ class AuthService {
       uncleName: family.uncleName || '',
       unclesDetails,
       aboutFamily: family.aboutFamily || '',
-      familyType: family.familyType || 'Nuclear',
-      familyStatus: family.familyValues || 'Middle Class',
-      about: personal.descriptionAboutSelf || 'Family-oriented person with modern values.',
-      aboutMe: personal.descriptionAboutSelf || 'Family-oriented person with modern values.',
+      familyType: family.familyType || '',
+      familyStatus: family.familyValues || family.familyStatus || '',
+      familyValues: family.familyValues || family.familyStatus || '',
+      about: personal.descriptionAboutSelf || '',
+      aboutMe: personal.descriptionAboutSelf || '',
       complexion: personal.complexionType || '',
       bodyType: personal.bodyType || '',
       specialCase: personal.specialCase || '',
@@ -308,12 +317,27 @@ class AuthService {
       charan: astro.charan || '',
       gotra: astro.gotra || '',
       gan: astro.gan || '',
-      partnerPriority: astro.importanceOfPatrika ? String(astro.importanceOfPatrika) : 'High',
-      height: personal.height ? `${personal.height} cm` : "5'6\"",
-      weight: personal.weight ? `${personal.weight} kg` : "60 kg",
-      diet: personal.diet || 'Vegetarian',
-      smoking: personal.smoking || 'No',
-      drinking: personal.drinking || 'No',
+      partnerPriority: astro.importanceOfPatrika ? String(astro.importanceOfPatrika) : '',
+      height: personal.height ? `${personal.height} cm` : '',
+      weight: personal.weight ? `${personal.weight} kg` : '',
+      diet: personal.diet || '',
+      smoking: personal.smoking || '',
+      drinking: personal.drinking || '',
+      partnerMaritalStatus: partner.partnerMaritalStatus || '',
+      partnerAgeRange: partner.expectedAgeRange
+        ? `${partner.expectedAgeRange.from || ''}${partner.expectedAgeRange.to ? ` - ${partner.expectedAgeRange.to}` : ''}`
+        : '',
+      partnerComplexion: partner.partnerComplexionType || '',
+      partnerHeight: partner.partnerHeight ? `${partner.partnerHeight} cm` : '',
+      partnerWeight: partner.partnerWeight ? `${partner.partnerWeight} kg` : '',
+      partnerDiet: partner.partnerDiet || '',
+      partnerSmoking: partner.partnerSmoking || '',
+      partnerDrinking: partner.partnerDrinking || '',
+      partnerWorkingLocation: partner.partnerWorkingLocation || '',
+      partnerIncome: partner.partnerIncome ? String(partner.partnerIncome) : '',
+      partnerEducation: partner.partnerEducation || '',
+      partnerProfession: partner.partnerProfession || '',
+      wantsWorkingPartner: partner.wantsWorkingPartner ?? false,
       aadharNumber: includePrivate ? (docs.aadharCardNumber || '') : '',
       aadharCardUrl: includePrivate ? (docs.aadhaarFrontphoto || '') : '',
       casteCertificateUrl: includePrivate ? (docs.castecertificate || '') : '',
@@ -324,8 +348,8 @@ class AuthService {
       isVerified,
       isPremium,
       role: 'user',
-      compatibilityScore: 92,
-      compatibilityTags: ['Same religion', 'Nearby city', 'Same caste'],
+      compatibilityScore: doc.compatibilityScore || 0,
+      compatibilityTags: Array.isArray(doc.compatibilityTags) ? doc.compatibilityTags : [],
       ...(includePrivate
         ? {
             userRegistration: {
@@ -1019,7 +1043,10 @@ async completeRegistration(userId, registrationData) {
 
     maternalUncleName:
       optionalString(
-        data.maternalUncleName
+        data.maternalUncleName ||
+        (Array.isArray(data.maternalUnclesDetails)
+          ? data.maternalUnclesDetails.map((u) => u?.name).filter(Boolean).join(', ')
+          : '')
       ),
 
     maternalUnclePhone:
@@ -1029,7 +1056,10 @@ async completeRegistration(userId, registrationData) {
 
     uncleName:
       optionalString(
-        data.uncleName
+        data.uncleName ||
+        (Array.isArray(data.unclesDetails)
+          ? data.unclesDetails.map((u) => u?.name).filter(Boolean).join(', ')
+          : '')
       ),
 
     unclePhone:
@@ -1041,6 +1071,28 @@ async completeRegistration(userId, registrationData) {
       optionalString(
         data.aboutFamily
       ),
+
+    maternalUnclesDetails: Array.isArray(data.maternalUnclesDetails)
+      ? data.maternalUnclesDetails
+          .map((u) => ({
+            name: (u?.name || '').toString().trim(),
+            occupation: (u?.occupation || u?.profession || '').toString().trim(),
+          }))
+          .filter((u) => u.name.length > 0 || u.occupation.length > 0)
+      : (data.maternalUncleName && data.maternalUncleName.trim()
+          ? [{ name: data.maternalUncleName.toString().trim(), occupation: '' }]
+          : []),
+
+    unclesDetails: Array.isArray(data.unclesDetails)
+      ? data.unclesDetails
+          .map((u) => ({
+            name: (u?.name || '').toString().trim(),
+            occupation: (u?.occupation || u?.profession || '').toString().trim(),
+          }))
+          .filter((u) => u.name.length > 0 || u.occupation.length > 0)
+      : (data.uncleName && data.uncleName.trim()
+          ? [{ name: data.uncleName.toString().trim(), occupation: '' }]
+          : []),
   };
 
   // ============================================================

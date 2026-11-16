@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../profile/domain/models/profile_model.dart';
 import '../controllers/registration_controller.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 
@@ -51,6 +52,12 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
   late TextEditingController _fatherNameController;
   late TextEditingController _motherNameController;
   late TextEditingController _siblingsController;
+
+  // Maternal and Paternal Uncles dynamic state
+  int _maternalUncleCount = 0;
+  int _paternalUncleCount = 0;
+  final List<Map<String, TextEditingController>> _maternalUncleControllers = [];
+  final List<Map<String, TextEditingController>> _paternalUncleControllers = [];
 
   late TextEditingController _aadharNumberController;
 
@@ -111,6 +118,22 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
     _motherNameController = TextEditingController(text: regState.motherName);
     _siblingsController = TextEditingController(text: regState.siblings.toString());
 
+    _maternalUncleCount = regState.maternalUnclesDetails.length;
+    for (final u in regState.maternalUnclesDetails) {
+      _maternalUncleControllers.add({
+        'name': TextEditingController(text: u.name),
+        'profession': TextEditingController(text: u.occupation),
+      });
+    }
+
+    _paternalUncleCount = regState.paternalUnclesDetails.length;
+    for (final u in regState.paternalUnclesDetails) {
+      _paternalUncleControllers.add({
+        'name': TextEditingController(text: u.name),
+        'profession': TextEditingController(text: u.occupation),
+      });
+    }
+
     _aadharNumberController = TextEditingController(text: regState.aadharNumber);
   }
 
@@ -136,11 +159,59 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
     _fatherNameController.dispose();
     _motherNameController.dispose();
     _siblingsController.dispose();
+    for (final map in _maternalUncleControllers) {
+      map['name']?.dispose();
+      map['profession']?.dispose();
+    }
+    for (final map in _paternalUncleControllers) {
+      map['name']?.dispose();
+      map['profession']?.dispose();
+    }
     _aadharNumberController.dispose();
     super.dispose();
   }
 
+  void _updateMaternalUncleCount(int newCount) {
+    if (newCount < 0) newCount = 0;
+    setState(() {
+      _maternalUncleCount = newCount;
+      while (_maternalUncleControllers.length < newCount) {
+        _maternalUncleControllers.add({
+          'name': TextEditingController(),
+          'profession': TextEditingController(),
+        });
+      }
+      while (_maternalUncleControllers.length > newCount) {
+        final removed = _maternalUncleControllers.removeLast();
+        removed['name']?.dispose();
+        removed['profession']?.dispose();
+      }
+    });
+  }
+
+  void _updatePaternalUncleCount(int newCount) {
+    if (newCount < 0) newCount = 0;
+    setState(() {
+      _paternalUncleCount = newCount;
+      while (_paternalUncleControllers.length < newCount) {
+        _paternalUncleControllers.add({
+          'name': TextEditingController(),
+          'profession': TextEditingController(),
+        });
+      }
+      while (_paternalUncleControllers.length > newCount) {
+        final removed = _paternalUncleControllers.removeLast();
+        removed['name']?.dispose();
+        removed['profession']?.dispose();
+      }
+    });
+  }
+
   void _startEditingField(String fieldKey, RegistrationState regState) {
+    if (fieldKey == 'maternalUnclesCount' || fieldKey == 'paternalUnclesCount') {
+      ref.read(registrationControllerProvider.notifier).setStep(3);
+      return;
+    }
     setState(() {
       _editingFieldKey = fieldKey;
 
@@ -223,10 +294,35 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
       }
     } else if (currentStep == 3) {
       if (_step4Key.currentState!.validate()) {
+        final maternalUncles = <UncleDetail>[];
+        for (int i = 0; i < _maternalUncleCount; i++) {
+          final name = _maternalUncleControllers[i]['name']!.text.trim();
+          final profession = _maternalUncleControllers[i]['profession']!.text.trim();
+          if (name.isNotEmpty || profession.isNotEmpty) {
+            maternalUncles.add(UncleDetail(
+              name: name,
+              occupation: profession,
+            ));
+          }
+        }
+        final paternalUncles = <UncleDetail>[];
+        for (int i = 0; i < _paternalUncleCount; i++) {
+          final name = _paternalUncleControllers[i]['name']!.text.trim();
+          final profession = _paternalUncleControllers[i]['profession']!.text.trim();
+          if (name.isNotEmpty || profession.isNotEmpty) {
+            paternalUncles.add(UncleDetail(
+              name: name,
+              occupation: profession,
+            ));
+          }
+        }
+
         ref.read(registrationControllerProvider.notifier).updateStep4(
               fatherName: _fatherNameController.text,
               motherName: _motherNameController.text,
               siblings: int.tryParse(_siblingsController.text) ?? 0,
+              maternalUnclesDetails: maternalUncles,
+              paternalUnclesDetails: paternalUncles,
             );
         ref.read(registrationControllerProvider.notifier).nextStep();
       }
@@ -1119,6 +1215,84 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
               child: Text(regState.familyType.isEmpty ? 'Select family type' : regState.familyType),
             ),
           ),
+          AppSpacing.verticalMd,
+
+          _buildLabel('Number of Maternal Uncles', isRequired: false),
+          DropdownButtonFormField<int>(
+            key: const Key('maternal_uncles_count_field'),
+            value: _maternalUncleCount,
+            decoration: const InputDecoration(hintText: 'Select number of maternal uncles'),
+            items: List.generate(
+              _maternalUncleCount > 10 ? _maternalUncleCount + 1 : 11,
+              (i) => DropdownMenuItem<int>(
+                value: i,
+                child: Text('$i'),
+              ),
+            ),
+            onChanged: (val) {
+              if (val != null) {
+                _updateMaternalUncleCount(val);
+              }
+            },
+          ),
+          if (_maternalUncleCount > 0) ...[
+            for (int i = 0; i < _maternalUncleCount; i++) ...[
+              AppSpacing.verticalMd,
+              _buildLabel('Maternal Uncle ${i + 1} Name'),
+              TextFormField(
+                key: Key('maternal_uncle_name_$i'),
+                controller: _maternalUncleControllers[i]['name'],
+                decoration: InputDecoration(hintText: 'Enter Maternal Uncle ${i + 1} name'),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Maternal Uncle ${i + 1} Name is required' : null,
+              ),
+              AppSpacing.verticalMd,
+              _buildLabel('Maternal Uncle ${i + 1} Profession', isRequired: false),
+              TextFormField(
+                key: Key('maternal_uncle_profession_$i'),
+                controller: _maternalUncleControllers[i]['profession'],
+                decoration: InputDecoration(hintText: 'Enter Maternal Uncle ${i + 1} profession'),
+              ),
+            ],
+          ],
+          AppSpacing.verticalMd,
+
+          _buildLabel('Number of Paternal Uncles', isRequired: false),
+          DropdownButtonFormField<int>(
+            key: const Key('paternal_uncles_count_field'),
+            value: _paternalUncleCount,
+            decoration: const InputDecoration(hintText: 'Select number of paternal uncles'),
+            items: List.generate(
+              _paternalUncleCount > 10 ? _paternalUncleCount + 1 : 11,
+              (i) => DropdownMenuItem<int>(
+                value: i,
+                child: Text('$i'),
+              ),
+            ),
+            onChanged: (val) {
+              if (val != null) {
+                _updatePaternalUncleCount(val);
+              }
+            },
+          ),
+          if (_paternalUncleCount > 0) ...[
+            for (int i = 0; i < _paternalUncleCount; i++) ...[
+              AppSpacing.verticalMd,
+              _buildLabel('Paternal Uncle ${i + 1} Name'),
+              TextFormField(
+                key: Key('paternal_uncle_name_$i'),
+                controller: _paternalUncleControllers[i]['name'],
+                decoration: InputDecoration(hintText: 'Enter Paternal Uncle ${i + 1} name'),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Paternal Uncle ${i + 1} Name is required' : null,
+              ),
+              AppSpacing.verticalMd,
+              _buildLabel('Paternal Uncle ${i + 1} Profession', isRequired: false),
+              TextFormField(
+                key: Key('paternal_uncle_profession_$i'),
+                controller: _paternalUncleControllers[i]['profession'],
+                decoration: InputDecoration(hintText: 'Enter Paternal Uncle ${i + 1} profession'),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -1848,6 +2022,60 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
               }).toList(),
             ),
           ),
+          _buildInlineEditableRow(
+            label: 'NUMBER OF MATERNAL UNCLES',
+            value: regState.maternalUnclesDetails.length.toString(),
+            fieldKey: 'maternalUnclesCount',
+            editText: 'Edit in Form',
+            onSave: () {},
+            editorWidget: InkWell(
+              onTap: () {
+                ref.read(registrationControllerProvider.notifier).setStep(3);
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Tap to edit Maternal Uncles in Family Details form', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ),
+          ...List.generate(regState.maternalUnclesDetails.length, (i) {
+            final u = regState.maternalUnclesDetails[i];
+            return _buildInlineEditableRow(
+              label: 'MATERNAL UNCLE ${i + 1}',
+              value: u.occupation.isNotEmpty ? '${u.name} (${u.occupation})' : u.name,
+              fieldKey: 'maternalUncle_$i',
+              editText: '',
+              onSave: () {},
+              editorWidget: const SizedBox.shrink(),
+            );
+          }),
+          _buildInlineEditableRow(
+            label: 'NUMBER OF PATERNAL UNCLES',
+            value: regState.paternalUnclesDetails.length.toString(),
+            fieldKey: 'paternalUnclesCount',
+            editText: 'Edit in Form',
+            onSave: () {},
+            editorWidget: InkWell(
+              onTap: () {
+                ref.read(registrationControllerProvider.notifier).setStep(3);
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Tap to edit Paternal Uncles in Family Details form', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ),
+          ...List.generate(regState.paternalUnclesDetails.length, (i) {
+            final u = regState.paternalUnclesDetails[i];
+            return _buildInlineEditableRow(
+              label: 'PATERNAL UNCLE ${i + 1}',
+              value: u.occupation.isNotEmpty ? '${u.name} (${u.occupation})' : u.name,
+              fieldKey: 'paternalUncle_$i',
+              editText: '',
+              onSave: () {},
+              editorWidget: const SizedBox.shrink(),
+            );
+          }),
         ]),
         AppSpacing.verticalMd,
 

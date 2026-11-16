@@ -62,8 +62,10 @@ class NotificationItem {
     return NotificationItem(
       id: json['id'] ?? json['_id'] ?? 'n_${DateTime.now().millisecondsSinceEpoch}',
       profileId: json['profileId'] ?? '',
-      profileImage: json['profileImage'] ??
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      profileImage: (json['profileImage'] != null &&
+              !json['profileImage'].toString().contains('unsplash.com'))
+          ? json['profileImage'].toString()
+          : '',
       title: json['title'] ?? '',
       subtitle: json['subtitle'] ?? '',
       time: json['time'] ?? 'Just now',
@@ -216,8 +218,10 @@ class ConversationItem {
     return ConversationItem(
       partnerId: json['partnerId'] ?? '',
       partnerName: json['partnerName'] ?? 'Member',
-      partnerAvatar: json['partnerAvatar'] ??
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      partnerAvatar: (json['partnerAvatar'] != null &&
+              !json['partnerAvatar'].toString().contains('unsplash.com'))
+          ? json['partnerAvatar'].toString()
+          : '',
       messages: msgsJson
           .map((m) => MessageItem.fromJson(
         m as Map<String, dynamic>,
@@ -704,8 +708,7 @@ class MessageNotifier
           ConversationItem(
             partnerId: senderId,
             partnerName: 'Member',
-            partnerAvatar:
-            'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+            partnerAvatar: '',
             messages: [
               message,
             ],
@@ -1149,8 +1152,7 @@ class MessageNotifier
         ConversationItem(
           partnerId: partnerId,
           partnerName: 'Member',
-          partnerAvatar:
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+          partnerAvatar: '',
           messages: [
             message,
           ],

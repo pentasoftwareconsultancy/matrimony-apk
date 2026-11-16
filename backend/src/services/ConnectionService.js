@@ -42,7 +42,7 @@ async expressInterest(fromUserId, toUserId) {
   const senderImage =
     senderMerged?.photos?.length > 0
       ? senderMerged.photos[0]
-      : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100';
+      : '';
 
   // ============================================================
   // CHECK EXISTING INTEREST

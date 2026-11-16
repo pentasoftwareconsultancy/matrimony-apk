@@ -66,10 +66,12 @@ class EventDetailsScreen extends ConsumerWidget {
               return const Center(child: Text('Event details not found'));
             }
 
-            final img1 = item.images.isNotEmpty
-                ? item.images[0]
-                : 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
-            final img2 = item.images.length > 1 ? item.images[1] : img1;
+            final validImages = item.images
+                .where((img) => img.trim().isNotEmpty && !img.contains('unsplash.com'))
+                .toList();
+            final hasImages = validImages.isNotEmpty;
+            final img1 = hasImages ? validImages[0] : '';
+            final img2 = validImages.length > 1 ? validImages[1] : img1;
 
             return Column(
               children: [
@@ -134,33 +136,60 @@ class EventDetailsScreen extends ConsumerWidget {
                         // 2 Top Images
                         SizedBox(
                           height: 160,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: CachedNetworkImage(
-                                    imageUrl: img1,
-                                    fit: BoxFit.cover,
-                                    height: double.infinity,
+                          child: hasImages
+                              ? Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: CachedNetworkImage(
+                                          imageUrl: img1,
+                                          fit: BoxFit.cover,
+                                          height: double.infinity,
+                                          errorWidget: (context, url, error) => Container(
+                                            color: const Color(0xFFFDECEF),
+                                            child: const Center(
+                                              child: Icon(Icons.event, color: Color(0xFFC9003F), size: 40),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 2,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: CachedNetworkImage(
+                                          imageUrl: img2,
+                                          fit: BoxFit.cover,
+                                          height: double.infinity,
+                                          errorWidget: (context, url, error) => Container(
+                                            color: const Color(0xFFFDECEF),
+                                            child: const Center(
+                                              child: Icon(Icons.event, color: Color(0xFFC9003F), size: 40),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFDECEF),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Center(
+                                    child: Image.asset(
+                                      'assets/images/heart.png',
+                                      height: 90,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 2,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: CachedNetworkImage(
-                                    imageUrl: img2,
-                                    fit: BoxFit.cover,
-                                    height: double.infinity,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         const SizedBox(height: 14),
 
@@ -269,7 +298,9 @@ class EventDetailsScreen extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () => _launchWhatsApp(context, item.whatsappNumber),
+                                onPressed: item.whatsappNumber.isNotEmpty
+                                    ? () => _launchWhatsApp(context, item.whatsappNumber)
+                                    : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFC9003F),
                                   foregroundColor: Colors.white,

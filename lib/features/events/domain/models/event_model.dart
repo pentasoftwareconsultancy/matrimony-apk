@@ -1,5 +1,3 @@
-import 'package:intl/intl.dart';
-
 class EventModel {
   final String id;
   final String title;
@@ -38,7 +36,7 @@ class EventModel {
     this.isActive = true,
     this.badgeText = 'SOON',
     required this.images,
-    this.whatsappNumber = '919856543232',
+    this.whatsappNumber = '',
   });
 
   static const Set<String> _excludedStatuses = {
@@ -290,10 +288,26 @@ class EventModel {
     return a.compareTo(b);
   }
 
+  static const List<String> _shortMonthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  static String _formatDay(DateTime dt) => dt.day.toString().padLeft(2, '0');
+
+  static String _formatMonthYear(DateTime dt) =>
+      '${_shortMonthNames[dt.month - 1]} ${dt.year}';
+
+  static String _formatDayMonth(DateTime dt) =>
+      '${_formatDay(dt)} ${_shortMonthNames[dt.month - 1]}';
+
+  static String _formatDayMonthYear(DateTime dt) =>
+      '${_formatDayMonth(dt)} ${dt.year}';
+
   String get displayDay {
     final dt = parsedStartDate ?? parsedEndDate;
     if (dt != null) {
-      return DateFormat('dd').format(dt);
+      return _formatDay(dt);
     }
     final parts = date.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : '';
@@ -302,7 +316,7 @@ class EventModel {
   String get displayMonthYear {
     final dt = parsedStartDate ?? parsedEndDate;
     if (dt != null) {
-      return DateFormat('MMM yyyy').format(dt);
+      return _formatMonthYear(dt);
     }
     final parts = date.trim().split(RegExp(r'\s+'));
     return parts.length > 1 ? parts.sublist(1).join(' ') : '';
@@ -312,11 +326,11 @@ class EventModel {
     final start = parsedStartDate;
     final end = parsedEndDate;
     if (start != null && end != null && start != end) {
-      return '${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM yyyy').format(end)}';
+      return '${_formatDayMonth(start)} - ${_formatDayMonthYear(end)}';
     }
     final dt = start ?? end;
     if (dt != null) {
-      return DateFormat('dd MMM yyyy').format(dt);
+      return _formatDayMonthYear(dt);
     }
     return date;
   }
@@ -389,7 +403,7 @@ class EventModel {
       isActive: json['isActive'] != false && json['active'] != false,
       badgeText: _firstNonEmptyString([json['badgeText']]) ?? 'SOON',
       images: _extractImages(json),
-      whatsappNumber: _firstNonEmptyString([json['whatsappNumber']]) ?? '919856543232',
+      whatsappNumber: _firstNonEmptyString([json['whatsappNumber']]) ?? '',
     );
   }
 }

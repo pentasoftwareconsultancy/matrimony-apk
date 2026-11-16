@@ -125,17 +125,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final profileState = ref.watch(profileControllerProvider);
     final profile = profileState.profile;
 
-    final userPhoto = profile.photos.isNotEmpty
-        ? profile.photos.first
-        : ((user?.photos != null && (user.photos as List).isNotEmpty)
-            ? user.photos.first.toString()
-            : null);
+    final profilePhotos = profile.photos
+        .where((p) => p.trim().isNotEmpty && !p.toLowerCase().contains('unsplash.com'))
+        .toList();
+    final userPhotos = ((user?.photos != null && user.photos is List)
+            ? (user.photos as List).map((e) => e.toString()).toList()
+            : <String>[])
+        .where((p) => p.trim().isNotEmpty && !p.toLowerCase().contains('unsplash.com'))
+        .toList();
+
+    final userPhoto = profilePhotos.isNotEmpty
+        ? profilePhotos.first
+        : (userPhotos.isNotEmpty ? userPhotos.first : null);
 
     final userName = (profile.fullName.trim().isNotEmpty)
         ? profile.fullName.trim()
-        : ((user?.fullName != null && user.fullName.toString().isNotEmpty)
-            ? user.fullName.toString()
-            : (user?.name != null && user.name.toString().isNotEmpty ? user.name.toString() : 'User'));
+        : ((user?.fullName != null && user.fullName.toString().trim().isNotEmpty)
+            ? user.fullName.toString().trim()
+            : (user?.name != null && user.name.toString().trim().isNotEmpty ? user.name.toString().trim() : ''));
+
+    final hasUserPhoto = userPhoto != null && userPhoto.isNotEmpty && !userPhoto.contains('unsplash.com');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
@@ -153,10 +162,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   CircleAvatar(
                     radius: 22,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
-                    backgroundImage: userPhoto != null
-                        ? NetworkImage(userPhoto)
-                        : const NetworkImage('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'),
+                    backgroundColor: const Color(0xFFFDECEF),
+                    backgroundImage: hasUserPhoto ? NetworkImage(userPhoto) : null,
+                    child: !hasUserPhoto ? const Icon(Icons.person, color: Color(0xFFC9003F)) : null,
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -170,7 +178,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                       Text(
-                        userName,
+                        userName.isNotEmpty ? userName : 'Member',
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -443,15 +451,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (count == 0 || viewerProfiles.isEmpty) {
       subtitle = 'No one has viewed your profile yet';
     } else if (viewerProfiles.length == 1) {
-      final firstName = viewerProfiles.first.fullName.trim().split(' ').first;
+      final name = viewerProfiles.first.fullName.trim();
+      final firstName = name.isNotEmpty ? name.split(' ').first : 'Someone';
       subtitle = '$firstName checked your profile';
     } else if (viewerProfiles.length == 2) {
-      final firstName = viewerProfiles[0].fullName.trim().split(' ').first;
-      final secondName = viewerProfiles[1].fullName.trim().split(' ').first;
+      final name1 = viewerProfiles[0].fullName.trim();
+      final firstName = name1.isNotEmpty ? name1.split(' ').first : 'Someone';
+      final name2 = viewerProfiles[1].fullName.trim();
+      final secondName = name2.isNotEmpty ? name2.split(' ').first : 'Someone';
       subtitle = '$firstName & $secondName checked your profile';
     } else {
-      final firstName = viewerProfiles[0].fullName.trim().split(' ').first;
-      final secondName = viewerProfiles[1].fullName.trim().split(' ').first;
+      final name1 = viewerProfiles[0].fullName.trim();
+      final firstName = name1.isNotEmpty ? name1.split(' ').first : 'Someone';
+      final name2 = viewerProfiles[1].fullName.trim();
+      final secondName = name2.isNotEmpty ? name2.split(' ').first : 'Someone';
       final remaining = count > 2 ? count - 2 : viewerProfiles.length - 2;
       subtitle = '$firstName, $secondName & $remaining others checked your profile';
     }
@@ -515,16 +528,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             height: 32,
                             child: Stack(
                               children: [
-                                for (int i = 0; i < viewerProfiles.take(3).length; i++)
+                                for (int i = 0; i < viewerProfiles.take(3).length; i++) ...[
                                   Positioned(
                                     left: i * 18.0,
                                     child: CircleAvatar(
                                       radius: 16,
-                                      backgroundImage: NetworkImage(
-                                        viewerProfiles[i].photos.first,
-                                      ),
+                                      backgroundColor: const Color(0xFFFDECEF),
+                                      backgroundImage: (viewerProfiles[i].photos.isNotEmpty &&
+                                              viewerProfiles[i].photos.first.trim().isNotEmpty &&
+                                              !viewerProfiles[i].photos.first.contains('unsplash.com'))
+                                          ? NetworkImage(viewerProfiles[i].photos.first)
+                                          : null,
+                                      child: (viewerProfiles[i].photos.isEmpty ||
+                                              viewerProfiles[i].photos.first.trim().isEmpty ||
+                                              viewerProfiles[i].photos.first.contains('unsplash.com'))
+                                          ? const Icon(Icons.person, size: 16, color: Color(0xFFC9003F))
+                                          : null,
                                     ),
                                   ),
+                                ],
                                 if (count > 3)
                                   Positioned(
                                     left: 54,
@@ -1162,11 +1184,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
                       ),
-                      image: DecorationImage(
-                        image: NetworkImage(profile.photos.first),
-                        fit: BoxFit.cover,
-                      ),
+                      color: const Color(0xFFFDECEF),
+                      image: (profile.photos.isNotEmpty &&
+                              profile.photos.first.trim().isNotEmpty &&
+                              !profile.photos.first.contains('unsplash.com'))
+                          ? DecorationImage(
+                              image: NetworkImage(profile.photos.first),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
+                    child: (profile.photos.isEmpty ||
+                            profile.photos.first.trim().isEmpty ||
+                            profile.photos.first.contains('unsplash.com'))
+                        ? const Center(
+                            child: Icon(Icons.person, size: 48, color: Color(0xFFC9003F)),
+                          )
+                        : null,
                   ),
                   // Compatibility Tag or Premium Tier top left overlay
                   if (homeState.categoryTab == 'Recommendation' && compatibility != null && compatibility.hasComparableData) ...[

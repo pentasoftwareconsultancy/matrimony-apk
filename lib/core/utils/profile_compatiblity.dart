@@ -21,10 +21,18 @@ MatrimonialProfile profileFromUser(dynamic user) {
   // so expressions such as user.incomeValue can throw NoSuchMethodError.
   Map<String, dynamic> data = <String, dynamic>{};
   try {
-    final raw = user.toJson();
-    if (raw is Map) data = Map<String, dynamic>.from(raw);
+    if (user is Map<String, dynamic>) {
+      data = user;
+    } else {
+      final raw = user.toJson();
+      if (raw is Map) data = Map<String, dynamic>.from(raw);
+    }
   } catch (_) {
     // Keep an empty map; missing fields will be represented as unavailable.
+  }
+
+  if (data.isNotEmpty) {
+    return MatrimonialProfile.fromJson(data);
   }
 
   dynamic value(List<String> keys) {

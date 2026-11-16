@@ -1,6 +1,6 @@
 import express from 'express';
 import ProfileController from '../controllers/ProfileController.js';
-import { protect } from '../middlewares/authMiddleware.js';
+import { protect, optionalProtect } from '../middlewares/authMiddleware.js';
 import { createUploadFields } from '../middlewares/uploadMiddleware.js';
 
 const router = express.Router();

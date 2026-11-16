@@ -20,6 +20,9 @@ import '../../../home/presentation/screens/privacy_settings_screen.dart';
 import '../../../home/presentation/screens/help_support_screen.dart';
 import '../../../home/presentation/screens/terms_screen.dart';
 import '../../../home/presentation/screens/privacy_screen.dart';
+import '../../../home/presentation/screens/profile_details_screen.dart';
+import '../../../../core/data/dummy_profiles.dart';
+import '../../../../core/utils/profile_compatiblity.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -79,6 +82,84 @@ class ProfileScreen extends ConsumerWidget {
           color: Color(0xFF888888),
           fontSize: 13,
           fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar(String primaryPhoto, String displayName) {
+    final hasValidPhoto = primaryPhoto.trim().isNotEmpty &&
+        !primaryPhoto.toLowerCase().contains('unsplash.com') &&
+        (primaryPhoto.startsWith('http://') ||
+            primaryPhoto.startsWith('https://') ||
+            primaryPhoto.startsWith('blob:'));
+
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFD4DC), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0C000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.8),
+        child: hasValidPhoto
+            ? CachedNetworkImage(
+                imageUrl: primaryPhoto.trim(),
+                width: 58,
+                height: 58,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => _buildAvatarPlaceholder(displayName),
+                errorWidget: (context, url, error) => _buildAvatarPlaceholder(displayName),
+              )
+            : _buildAvatarPlaceholder(displayName),
+      ),
+    );
+  }
+
+  Widget _buildAvatarPlaceholder(String displayName) {
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF0F3),
+            Color(0xFFFFD6E0),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: Color(0xEBFFFFFF),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x14C9003F),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.person_rounded,
+              color: Color(0xFFC9003F),
+              size: 24,
+            ),
+          ),
         ),
       ),
     );
@@ -147,22 +228,20 @@ class ProfileScreen extends ConsumerWidget {
         ? profile.fullName.trim()
         : ((user?.fullName != null && user!.fullName!.trim().isNotEmpty)
             ? user.fullName!.trim()
-            : 'User Name');
-
-    final displayProfileId = profile.profileId.isNotEmpty
-        ? profile.profileId
-        : (user != null && user.id.isNotEmpty
-            ? 'MEM${user.id.substring(0, user.id.length > 6 ? 6 : user.id.length).toUpperCase()}'
-            : 'MEM001');
+            : '');
 
     final displayMembership = user?.isPremium == true ? 'Premium' : 'free';
 
-    final userPhotos = user?.photos;
-    final primaryPhoto = profile.photos.isNotEmpty
-        ? profile.photos.first
-        : ((userPhotos != null && userPhotos.isNotEmpty)
-            ? userPhotos.first
-            : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500');
+    final profilePhotos = profile.photos
+        .where((p) => p.trim().isNotEmpty && !p.toLowerCase().contains('unsplash.com'))
+        .toList();
+    final userPhotos = (user?.photos ?? [])
+        .where((p) => p.trim().isNotEmpty && !p.toLowerCase().contains('unsplash.com'))
+        .toList();
+
+    final primaryPhoto = profilePhotos.isNotEmpty
+        ? profilePhotos.first
+        : (userPhotos.isNotEmpty ? userPhotos.first : '');
 
     final scoreFraction = (profileState.completionPercentage / 100.0).clamp(0.0, 1.0);
     final scorePercentageText = 'Your profile score is ${profileState.completionPercentage.toInt()}%';
@@ -257,111 +336,132 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // PROFILE SUMMARY CARD matching screenshot
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFEBEBEB)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x06000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 3),
-                    )
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Profile Avatar Image
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        image: DecorationImage(
-                          image: CachedNetworkImageProvider(primaryPhoto),
-                          fit: BoxFit.cover,
+              GestureDetector(
+                onTap: () async {
+                  final profileToView = profile.fullName.isNotEmpty
+                      ? MatrimonialProfile.fromProfileModel(profile)
+                      : (user != null ? profileFromUser(user) : MatrimonialProfile.empty());
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfileDetailsScreen(profile: profileToView),
+                    ),
+                  );
+                  ref.read(profileControllerProvider.notifier).loadProfile();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFEBEBEB)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Profile Avatar Image with refined styling and safe loading
+                      _buildProfileAvatar(primaryPhoto, displayName),
+                      const SizedBox(width: 14),
+
+                      // Name, ID, Membership & Score
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName.isNotEmpty ? displayName : 'Not Specified',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Membership– ',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const PremiumPlansScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      displayMembership,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFFC9003F),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const Text(
+                                    ' | ',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const EditProfileScreen(),
+                                        ),
+                                      );
+                                      ref.read(profileControllerProvider.notifier).loadProfile();
+                                    },
+                                    child: Text(
+                                      '${profileState.completionPercentage.toInt()}% Complete',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFFC9003F),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Progress Bar matching reference
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: scoreFraction,
+                                backgroundColor: const Color(0xFFF0F0F0),
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC9003F)),
+                                minHeight: 4,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              scorePercentageText,
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Name, ID, Membership & Score
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$displayName',
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              const Text(
-                                'Membership– ',
-                                style: TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                              Text(
-                                displayMembership,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFFC9003F),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                ' | ',
-                                style: TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const PremiumPlansScreen(),
-                                    ),
-                                  );
-                                },
-                                child: const Text(
-                                  '',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFFC9003F),
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Progress Bar matching reference
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: scoreFraction,
-                              backgroundColor: const Color(0xFFF0F0F0),
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC9003F)),
-                              minHeight: 4,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            scorePercentageText,
-                            style: const TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -369,6 +469,22 @@ class ProfileScreen extends ConsumerWidget {
               // ACCOUNT SECTION
               _buildSectionHeader('Account'),
               _buildMenuCard([
+                _buildMenuItem(
+                  icon: Icons.person_outline,
+                  title: 'View Profile',
+                  onTap: () async {
+                    final profileToView = profile.fullName.isNotEmpty
+                        ? MatrimonialProfile.fromProfileModel(profile)
+                        : (user != null ? profileFromUser(user) : MatrimonialProfile.empty());
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileDetailsScreen(profile: profileToView),
+                      ),
+                    );
+                    ref.read(profileControllerProvider.notifier).loadProfile();
+                  },
+                ),
                 _buildMenuItem(
                   icon: Icons.edit_outlined,
                   title: 'Edit Profile',

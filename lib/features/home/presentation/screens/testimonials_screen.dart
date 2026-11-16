@@ -24,7 +24,9 @@ class TestimonialItem {
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       coupleNames: (json['coupleNames'] ?? '').toString(),
       weddingDate: (json['weddingDate'] ?? '').toString(),
-      image: (json['image'] ?? 'https://images.unsplash.com/photo-1607190074257-dd4b7af0309f?w=300').toString(),
+      image: (json['image'] != null && !json['image'].toString().contains('unsplash.com'))
+          ? json['image'].toString()
+          : '',
       story: (json['story'] ?? '').toString(),
       rating: (json['rating'] is num) ? (json['rating'] as num).toDouble() : 5.0,
     );
@@ -141,7 +143,11 @@ class TestimonialsScreen extends ConsumerWidget {
                               children: [
                                 CircleAvatar(
                                   radius: 28,
-                                  backgroundImage: NetworkImage(item.image),
+                                  backgroundColor: const Color(0xFFFDECEF),
+                                  backgroundImage: item.image.isNotEmpty ? NetworkImage(item.image) : null,
+                                  child: item.image.isEmpty
+                                      ? const Icon(Icons.favorite, color: Color(0xFFC9003F), size: 24)
+                                      : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(

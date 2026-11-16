@@ -25,8 +25,7 @@ class NotificationService {
         : '',
 
       profileImage:
-        notification.senderImage ||
-        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+        notification.senderImage || '',
 
       title:
         notification.title || 'Notification',

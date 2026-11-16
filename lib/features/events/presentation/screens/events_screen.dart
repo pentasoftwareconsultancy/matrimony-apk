@@ -158,18 +158,27 @@ class EventsScreen extends ConsumerWidget {
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child: Image.network(
-                                          'https://images.unsplash.com/photo-1519741497674-611481863552?w=500',
-                                          height: 110,
-                                          width: 125,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) => Image.asset(
-                                            'assets/images/heart.png',
-                                            height: 90,
-                                            width: 100,
-                                            fit: BoxFit.contain,
-                                          ),
-                                        ),
+                                        child: (upcoming.isNotEmpty &&
+                                                upcoming.first.images.isNotEmpty &&
+                                                !upcoming.first.images.first.contains('unsplash.com'))
+                                            ? Image.network(
+                                                upcoming.first.images.first,
+                                                height: 110,
+                                                width: 125,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) => Image.asset(
+                                                  'assets/images/heart.png',
+                                                  height: 90,
+                                                  width: 100,
+                                                  fit: BoxFit.contain,
+                                                ),
+                                              )
+                                            : Image.asset(
+                                                'assets/images/heart.png',
+                                                height: 90,
+                                                width: 100,
+                                                fit: BoxFit.contain,
+                                              ),
                                       ),
                                       Positioned(
                                         top: 0,
@@ -309,9 +318,9 @@ class EventsScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 10),
                                 ElevatedButton(
-                                  onPressed: upcoming.isNotEmpty
+                                  onPressed: (upcoming.isNotEmpty && upcoming.first.whatsappNumber.isNotEmpty)
                                       ? () => _launchWhatsApp(context, upcoming.first.whatsappNumber)
-                                      : () => _launchWhatsApp(context, '919856543232'),
+                                      : null,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFC0003E),
                                     foregroundColor: Colors.white,

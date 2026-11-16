@@ -105,6 +105,8 @@ class UncleDetail {
   final String name;
   final String occupation;
 
+  String get profession => occupation;
+
   const UncleDetail({
     this.name = '',
     this.occupation = '',
@@ -120,12 +122,27 @@ class UncleDetail {
   Map<String, dynamic> toJson() => {
     'name': name,
     'occupation': occupation,
+    'profession': occupation,
   };
 
   factory UncleDetail.fromJson(Map<String, dynamic> json) => UncleDetail(
     name: _asStr(json['name']),
-    occupation: _asStr(json['occupation']),
+    occupation: _asStr(json['occupation'] ?? json['profession']),
   );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UncleDetail &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          occupation == other.occupation;
+
+  @override
+  int get hashCode => name.hashCode ^ occupation.hashCode;
+
+  @override
+  String toString() => 'UncleDetail(name: $name, occupation: $occupation)';
 }
 
 class ProfileModel {
@@ -476,22 +493,164 @@ class ProfileModel {
     );
   }
 
-  double calculateCompletionPercentage() {
-    int total = 10;
-    int filled = 0;
-    if (fullName.trim().isNotEmpty) filled++;
-    if (age > 0) filled++;
-    if (photos.isNotEmpty) filled++;
-    if (maritalStatus.trim().isNotEmpty) filled++;
-    if (occupation.trim().isNotEmpty || profession.trim().isNotEmpty) filled++;
-    if (religion.trim().isNotEmpty) filled++;
-    if (caste.trim().isNotEmpty) filled++;
-    if (workPlace.trim().isNotEmpty || homePlace.trim().isNotEmpty || state.trim().isNotEmpty) filled++;
-    if (highestEdu.trim().isNotEmpty) filled++;
-    if (aboutMe.trim().isNotEmpty) filled++;
+  static bool isValidFieldString(String? val, {List<String>? excludedDefaults}) {
+    if (val == null) return false;
+    final trimmed = val.trim();
+    if (trimmed.isEmpty) return false;
+    final lower = trimmed.toLowerCase();
 
-    final pct = (filled / total) * 100;
-    return pct < 10.0 && fullName.isNotEmpty ? 40.0 : (pct == 0 ? 0.0 : pct);
+    // Incomplete indicators: Not Specified, N/A, None, etc.
+    if (lower == 'not specified' ||
+        lower == 'not-specified' ||
+        lower == 'not_specified' ||
+        lower == 'n/a' ||
+        lower == 'na' ||
+        lower == 'none' ||
+        lower == 'null' ||
+        lower == 'undefined') {
+      return false;
+    }
+
+    if (excludedDefaults != null) {
+      for (final def in excludedDefaults) {
+        final defLower = def.toLowerCase().trim();
+        if (lower == defLower || lower.startsWith(defLower)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  double calculateCompletionPercentage() {
+    int totalApplicable = 0;
+    int completedFields = 0;
+
+    void evaluateField(bool isCompleted, {bool isApplicable = true}) {
+      if (!isApplicable) return;
+      totalApplicable++;
+      if (isCompleted) {
+        completedFields++;
+      }
+    }
+
+    // Profile Summary Section
+    final hasValidPhoto = photos.isNotEmpty &&
+        photos.any((p) =>
+            isValidFieldString(p) && !p.toLowerCase().contains('unsplash.com'));
+    evaluateField(hasValidPhoto);
+
+    evaluateField(
+      isValidFieldString(
+        aboutMe,
+        excludedDefaults: const [
+          'tap to add about me description',
+          'family-oriented person with modern values',
+        ],
+      ),
+    );
+
+    // 1. Personal Details Section
+    evaluateField(isValidFieldString(fullName));
+    evaluateField(age > 0);
+    evaluateField(isValidFieldString(birthDate));
+    evaluateField(isValidFieldString(workPlace));
+    evaluateField(isValidFieldString(homePlace));
+    evaluateField(isValidFieldString(maritalStatus));
+    evaluateField(isValidFieldString(income));
+    evaluateField(isValidFieldString(village));
+    evaluateField(isValidFieldString(state));
+    evaluateField(isValidFieldString(pincode));
+    evaluateField(isValidFieldString(occupation));
+
+    final isNeverMarried = maritalStatus.trim().isEmpty ||
+        !isValidFieldString(maritalStatus) ||
+        maritalStatus.trim().toLowerCase().contains('never');
+    final isChildrenApplicable = !isNeverMarried;
+    evaluateField(children >= 0, isApplicable: isChildrenApplicable);
+
+    evaluateField(isValidFieldString(complexion));
+    evaluateField(isValidFieldString(bodyType));
+    evaluateField(isValidFieldString(diet));
+    evaluateField(isValidFieldString(specialCase));
+    evaluateField(isValidFieldString(drinkingSmoking));
+    evaluateField(isValidFieldString(motherTongue));
+    evaluateField(isValidFieldString(phone));
+
+    // altPhone: optional field, contributes to score if validly entered
+    if (isValidFieldString(altPhone)) {
+      evaluateField(true, isApplicable: true);
+    }
+
+    evaluateField(isValidFieldString(email));
+    evaluateField(
+      hobbies.isNotEmpty && hobbies.any((h) => isValidFieldString(h)),
+    );
+    evaluateField(isValidFieldString(religion));
+    evaluateField(isValidFieldString(agriLand));
+
+    final weightNumStr = weight.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+    final weightNum = double.tryParse(weightNumStr) ?? 0;
+    evaluateField(isValidFieldString(weight) && weightNum > 0);
+
+    evaluateField(isValidFieldString(height));
+    evaluateField(isValidFieldString(caste));
+
+    // 2. Educational Details Section
+    evaluateField(isValidFieldString(highestEdu));
+    evaluateField(isValidFieldString(profession));
+    evaluateField(isValidFieldString(university));
+    evaluateField(isValidFieldString(organization));
+    evaluateField(isValidFieldString(companyAddress));
+    evaluateField(isValidFieldString(eduField));
+    evaluateField(isValidFieldString(designation));
+
+    // 3. Horoscope Section
+    evaluateField(isValidFieldString(birthTime));
+    evaluateField(isValidFieldString(rashi));
+    evaluateField(isValidFieldString(charan));
+    evaluateField(isValidFieldString(nakshatra));
+    evaluateField(isValidFieldString(placeOfBirth));
+    evaluateField(isValidFieldString(gotra));
+    evaluateField(isValidFieldString(manglik));
+    evaluateField(isValidFieldString(gan));
+    evaluateField(isValidFieldString(partnerPriority));
+
+    // 4. Family Details Section
+    evaluateField(isValidFieldString(fatherName));
+    evaluateField(isValidFieldString(motherName));
+    evaluateField(isValidFieldString(fatherEdu));
+    evaluateField(isValidFieldString(motherOcc));
+    evaluateField(isValidFieldString(familyType));
+    evaluateField(isValidFieldString(familyValues));
+    evaluateField(isValidFieldString(unclePhone));
+
+    final hasBrothers = brothersDetails.any((b) => isValidFieldString(b.name)) ||
+        (isValidFieldString(brothers) && brothers.trim() != '0');
+    evaluateField(hasBrothers);
+
+    final hasSisters = sistersDetails.any((s) => isValidFieldString(s.name)) ||
+        (isValidFieldString(sisters) && sisters.trim() != '0');
+    evaluateField(hasSisters);
+
+    // marriedSister is conditionally applicable only if user has sisters
+    final isMarriedSisterApplicable = hasSisters;
+    final hasMarriedSisterInfo = sistersDetails.isNotEmpty ||
+        (isValidFieldString(marriedSister) && marriedSister.trim() != '0');
+    evaluateField(hasMarriedSisterInfo, isApplicable: isMarriedSisterApplicable);
+
+    final hasMaternalUncle =
+        maternalUnclesDetails.any((u) => isValidFieldString(u.name)) ||
+            (isValidFieldString(maternalUncle) && maternalUncle.trim() != '0');
+    evaluateField(hasMaternalUncle);
+
+    final hasUncle = unclesDetails.any((u) => isValidFieldString(u.name)) ||
+        (isValidFieldString(uncleName) && uncleName.trim() != '0');
+    evaluateField(hasUncle);
+
+    if (totalApplicable == 0) return 0.0;
+    final pct = ((completedFields / totalApplicable) * 100).round().toDouble();
+    return pct.clamp(0.0, 100.0);
   }
 
   factory ProfileModel.empty() {
@@ -719,8 +878,12 @@ class ProfileModel {
       fullName: _asStr(json['fullName'] ?? json['name']),
       age: _asInt(json['age']),
       aboutMe: _asStr(json['aboutMe'] ?? json['about']),
-      tag: _asStr(json['tag'], 'MODIFYING'),
-      photos: (json['photos'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      tag: _asStr(json['tag']),
+      photos: (json['photos'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty && !e.toLowerCase().contains('unsplash.com'))
+              .toList() ??
+          [],
       birthDate: _parseDob(json['dob'], json['birthDate']),
       workPlace: _asStr(json['workPlace'] ?? json['workLocation'] ?? json['city']),
       homePlace: _asStr(json['homePlace'] ?? json['nativePlace'] ?? json['address']),
@@ -761,7 +924,7 @@ class ProfileModel {
       gotra: _asStr(json['gotra']),
       manglik: _asStr(json['manglik']),
       gan: _asStr(json['gan']),
-      partnerPriority: _asStr(json['partnerPriority'], 'High'),
+      partnerPriority: _asStr(json['partnerPriority']),
       fatherName: _asStr(json['fatherName'] ?? familyMap?['fatherName']),
       motherName: _asStr(json['motherName'] ?? familyMap?['motherName']),
       brothers: _asStr(json['brothers'] ?? familyMap?['brothers']),

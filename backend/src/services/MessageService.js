@@ -87,13 +87,12 @@ class MessageService {
         partnerId,
 
         partnerName:
-          partner?.fullName ||
-          "Matrimony Member",
+          partner?.fullName || "",
 
         partnerAvatar:
           partner?.photos?.length > 0
             ? partner.photos[0]
-            : "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100",
+            : "",
 
         lastMessage: lastMessage?.text || "",
 

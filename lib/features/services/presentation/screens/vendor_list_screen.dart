@@ -188,12 +188,12 @@ class VendorListScreen extends ConsumerWidget {
   }
 
   Widget _buildVendorCard(BuildContext context, ServiceVendorModel vendor) {
-    final img1 = vendor.images.isNotEmpty
-        ? vendor.images[0]
-        : 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
-    final img2 = vendor.images.length > 1
-        ? vendor.images[1]
-        : img1;
+    final validImages = vendor.images
+        .where((img) => img.trim().isNotEmpty && !img.contains('unsplash.com'))
+        .toList();
+    final hasImages = validImages.isNotEmpty;
+    final img1 = hasImages ? validImages[0] : '';
+    final img2 = validImages.length > 1 ? validImages[1] : img1;
 
     return GestureDetector(
       onTap: () {
@@ -314,33 +314,55 @@ class VendorListScreen extends ConsumerWidget {
 
               // 2 Showcase Images Side by Side
               Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: CachedNetworkImage(
-                          imageUrl: img1,
-                          fit: BoxFit.cover,
-                          height: double.infinity,
-                          placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                child: hasImages
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: CachedNetworkImage(
+                                imageUrl: img1,
+                                fit: BoxFit.cover,
+                                height: double.infinity,
+                                placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                                errorWidget: (context, url, error) => Container(
+                                  color: const Color(0xFFFDECEF),
+                                  child: const Center(
+                                    child: Icon(Icons.business, color: Color(0xFFC9003F), size: 24),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: CachedNetworkImage(
+                                imageUrl: img2,
+                                fit: BoxFit.cover,
+                                height: double.infinity,
+                                placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                                errorWidget: (context, url, error) => Container(
+                                  color: const Color(0xFFFDECEF),
+                                  child: const Center(
+                                    child: Icon(Icons.business, color: Color(0xFFC9003F), size: 24),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFDECEF),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.business, color: Color(0xFFC9003F), size: 28),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: CachedNetworkImage(
-                          imageUrl: img2,
-                          fit: BoxFit.cover,
-                          height: double.infinity,
-                          placeholder: (context, url) => Container(color: Colors.grey.shade200),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
