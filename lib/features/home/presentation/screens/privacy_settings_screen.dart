@@ -63,8 +63,28 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
 
           // Settings List Card
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                try {
+                  await ref.read(privacySettingsProvider.notifier).refresh();
+                  final updated = ref.read(privacySettingsProvider);
+                  if (mounted) {
+                    setState(() {
+                      _hidePhone = updated.hidePhone;
+                      _hideEmail = updated.hideEmail;
+                      _hidePhotos = updated.hidePhotos;
+                      _hideIncome = updated.hideIncome;
+                      _hideLastSeen = updated.hideLastSeen;
+                      _hideOnlineStatus = updated.hideOnlineStatus;
+                      _hideProfile = updated.hideProfile;
+                    });
+                  }
+                } catch (_) {}
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 Container(
                   decoration: BoxDecoration(
@@ -136,6 +156,7 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
               ],
             ),
           ),
+        ),
 
           // Save Button
           Padding(

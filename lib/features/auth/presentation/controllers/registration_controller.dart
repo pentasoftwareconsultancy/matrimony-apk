@@ -543,8 +543,10 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         }
       }
 
+      final int? parsedIncome = _parseAnnualIncome(state.annualIncome);
       final data = {
         'accountType': state.accountType,
+        'profileCreatedFor': state.accountType,
         'fullName': state.fullName,
         'phone': state.phone,
         'email': state.email,
@@ -552,48 +554,82 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         'confirmPassword': state.confirmPassword,
         'gender': state.gender,
         'dob': state.dob?.toIso8601String(),
+        if (state.age != null) 'age': state.age,
         'religion': state.religion,
         'caste': state.caste,
         'maritalStatus': state.maritalStatus,
         'bloodGroup': state.bloodGroup,
-        'address': state.address,
-        'hobbies': state.hobbies,
+        if (state.address.isNotEmpty) 'address': state.address,
+        if (state.hobbies.isNotEmpty) 'hobbies': state.hobbies,
         'rashi': state.rashi,
-        'nakshatra': state.nakshatra,
+        if (state.nakshatra.isNotEmpty) 'nakshatra': state.nakshatra,
         'manglik': state.manglik,
         'qualification': state.qualification,
+        'highestEducation': state.qualification,
         'occupation': state.occupation,
-        'annualIncome': state.annualIncome,
+        'profession': state.occupation,
+        'annualIncome': parsedIncome ?? state.annualIncome,
         'country': state.country,
-        'state': state.state,
-        'city': state.city,
-        'languages': state.languages,
+        if (state.state.isNotEmpty) 'state': state.state,
+        if (state.city.isNotEmpty) ...{
+          'city': state.city,
+          'district': state.city,
+        },
+        if (state.languages.isNotEmpty) 'languages': state.languages,
+        'motherTongue': state.languages.isNotEmpty ? state.languages.first : 'Marathi',
         'fatherName': state.fatherName,
         'motherName': state.motherName,
         'siblings': state.siblings,
+        'brothers': state.siblings,
         'familyType': state.familyType,
         'familyStatus': state.familyStatus,
+        'familyValues': state.familyStatus,
         'nativePlace': state.nativePlace,
         'aboutFamily': state.aboutFamily,
         'aadharNumber': state.aadharNumber,
         'aadharCardUrl': aadharUrl,
+        'aadhaarFrontphoto': aadharUrl,
         'casteCertificateUrl': casteCertificateUrl,
+        'castecertificate': casteCertificateUrl,
         'casteCertificateName': state.casteCertificateName,
+        'photoFulls': uploadedPhotos.isNotEmpty ? uploadedPhotos.first : '',
         'photos': uploadedPhotos,
       };
 
       final result = await _authRepository.registerProfile(data);
       await _clearCasteCertificateFromStorage();
       final user = result['user'] as User;
-      final token = result['token'] as String;
+      final token = result['token'] as String?;
+      if (token != null && token.isNotEmpty) {
+        await _secureStorage.saveToken(token);
+      }
 
       _ref.read(authControllerProvider.notifier).setAuthenticatedState(user);
-      state = state.copyWith(isLoading: false);
+      
+      // Reset registration state so future registrations start fresh from Step 0
+      reset();
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString().replaceAll('Exception: ', ''));
       return false;
     }
+  }
+
+  void reset() {
+    state = RegistrationState();
+  }
+
+  int? _parseAnnualIncome(String raw) {
+    final cleaned = raw.replaceAll(',', '').trim();
+    final direct = int.tryParse(cleaned);
+    if (direct != null) return direct;
+    final lpaMatch = RegExp(r'(\d+(?:\.\d+)?)\s*(?:lpa|lakh|lakhs)', caseSensitive: false).firstMatch(cleaned);
+    if (lpaMatch != null) {
+      final val = double.tryParse(lpaMatch.group(1) ?? '');
+      if (val != null) return (val * 100000).round();
+    }
+    final numMatch = RegExp(r'\d+').firstMatch(cleaned);
+    return numMatch != null ? int.tryParse(numMatch.group(0)!) : null;
   }
 
   void clearError() {

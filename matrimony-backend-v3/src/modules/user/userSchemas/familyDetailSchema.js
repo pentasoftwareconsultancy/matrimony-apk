@@ -1,5 +1,23 @@
 import mongoose from "mongoose";
 
+const brotherDetailSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  occupation: { type: String, default: '' },
+}, { _id: false });
+
+const sisterDetailSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  occupation: { type: String, default: '' },
+  isMarried: { type: Boolean, default: false },
+  husbandName: { type: String, default: '' },
+  husbandProfession: { type: String, default: '' },
+}, { _id: false });
+
+const uncleDetailSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  occupation: { type: String, default: '' },
+}, { _id: false });
+
 const familydetailsSchema = new mongoose.Schema({
     fatherName: { type: String, required: true },
   // fatherEducation: { type: String, required: false },
@@ -24,7 +42,11 @@ const familydetailsSchema = new mongoose.Schema({
     type: String,
     required: false,
     match: [/^\d{10}$/, "Phone number must be exactly 10 digits and contain only numbers"],
-  }
+  },
+  brothersDetails: { type: [brotherDetailSchema], default: [] },
+  sistersDetails: { type: [sisterDetailSchema], default: [] },
+  maternalUnclesDetails: { type: [uncleDetailSchema], default: [] },
+  unclesDetails: { type: [uncleDetailSchema], default: [] },
 })
 
 

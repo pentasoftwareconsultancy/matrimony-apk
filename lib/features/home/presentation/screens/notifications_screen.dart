@@ -98,30 +98,40 @@ class _NotificationsScreenState
         ],
       ),
 
-      body: notifications.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
+      body: RefreshIndicator(
+        color: AppColors.primary,
         onRefresh: () async {
-          await ref
-              .read(notificationProvider.notifier)
-              .refresh();
+          try {
+            await ref.read(notificationProvider.notifier).refresh();
+          } catch (_) {}
         },
-
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            32,
-          ),
-          children: [
-            _buildNotificationList(
-              context,
-              ref,
-              notifications,
-            ),
-          ],
-        ),
+        child: notifications.isEmpty
+            ? LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
+                    child: _buildEmptyState(),
+                  ),
+                ),
+              )
+            : ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  32,
+                ),
+                children: [
+                  _buildNotificationList(
+                    context,
+                    ref,
+                    notifications,
+                  ),
+                ],
+              ),
       ),
     );
   }

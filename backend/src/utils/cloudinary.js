@@ -1,26 +1,29 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'mock',
-  api_key: process.env.CLOUDINARY_API_KEY || 'mock',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'mock',
-});
-
-export const uploadBuffer = (buffer, folder = 'matrimony') => {
+export const uploadBuffer = (buffer, folder = 'matrimony', options = {}) => {
   return new Promise((resolve, reject) => {
-    // If no credentials configured, simulate a successful upload for development convenience
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.log(`[CLOUDINARY MOCK] Simulating file upload to folder: ${folder}`);
-      const randomId = Math.random().toString(36).substring(7);
-      return resolve({
-        secure_url: `https://res.cloudinary.com/demo/image/upload/v12345678/${folder}/${randomId}.png`,
-        public_id: `${folder}/${randomId}`
-      });
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+    const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+    const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      const error = new Error('Media storage is not configured on the server');
+      error.statusCode = 503;
+      return reject(error);
     }
 
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+    });
+
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder },
+      {
+        folder,
+        resource_type: options.resourceType || 'auto',
+      },
       (error, result) => {
         if (error) {
           console.error('[CLOUDINARY ERROR]', error);
@@ -29,6 +32,10 @@ export const uploadBuffer = (buffer, folder = 'matrimony') => {
         resolve(result);
       }
     );
-    Readable.from(buffer).pipe(uploadStream);
+
+    const readStream = Readable.from(buffer);
+    readStream.on('error', reject);
+    uploadStream.on('error', reject);
+    readStream.pipe(uploadStream);
   });
 };

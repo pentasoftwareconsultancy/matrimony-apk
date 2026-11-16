@@ -171,23 +171,34 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             TextFormField(
               controller: _textController,
               keyboardType: widget.fieldType == FieldType.number
-                  ? TextInputType.number
+                  ? (widget.fieldKey == 'weight'
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : TextInputType.number)
                   : TextInputType.text,
               autofocus: true,
               inputFormatters: widget.fieldType == FieldType.number
                   ? [
-                      FilteringTextInputFormatter.digitsOnly,
+                      if (widget.fieldKey == 'weight')
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+                      else
+                        FilteringTextInputFormatter.digitsOnly,
                       if (widget.fieldKey == 'phone' || widget.fieldKey == 'altPhone')
                         LengthLimitingTextInputFormatter(10),
                       if (widget.fieldKey == 'pincode')
                         LengthLimitingTextInputFormatter(6),
                       if (widget.fieldKey == 'age')
                         LengthLimitingTextInputFormatter(3),
+                      if (widget.fieldKey == 'children')
+                        LengthLimitingTextInputFormatter(2),
                     ]
                   : null,
               decoration: InputDecoration(
                 labelText: widget.title,
-                hintText: 'Enter ${widget.title}',
+                hintText: widget.fieldKey == 'weight'
+                    ? 'Enter weight in kg (e.g. 65)'
+                    : (widget.fieldKey == 'children'
+                        ? 'Enter number of children (e.g. 0, 1)'
+                        : 'Enter ${widget.title}'),
                 errorText: _errorMessage,
               ),
             ),

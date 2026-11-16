@@ -357,17 +357,13 @@ class HomeControllerNotifier
       final Map<String, dynamic> currentProfile =
       jsonDecode(profileJsonStr);
 
-      // Merge updated data
+      // Merge updated data without overriding server-controlled verification/premium flags
       currentProfile.addAll(updatedData);
 
-      // Keep static required parameters
-      currentProfile['profileCompleted'] = true;
-      currentProfile['isVerified'] = true;
-      currentProfile['isPremium'] = true;
-      currentProfile['role'] = 'user';
-      currentProfile['_id'] =
-          currentProfile['_id'] ??
-              'dummy_user_id';
+      currentProfile['profileCompleted'] =
+          currentProfile['profileCompleted'] ?? true;
+      currentProfile['role'] =
+          currentProfile['role'] ?? 'user';
 
       await prefs.setString(
         'profile',

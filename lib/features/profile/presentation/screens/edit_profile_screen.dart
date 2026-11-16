@@ -6,11 +6,51 @@ import '../widgets/profile_header.dart';
 import '../widgets/profile_summary_card.dart';
 import '../widgets/profile_section_card.dart';
 import '../widgets/profile_field_row.dart';
-import '../widgets/document_row.dart';
 import '../widgets/edit_field_dialog.dart';
 import '../widgets/photo_management_dialog.dart';
-import '../widgets/document_action_sheet.dart';
+import '../widgets/dynamic_family_dialog.dart';
+import '../../domain/models/profile_model.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
+import '../../../home/presentation/widgets/custom_bottom_nav_bar.dart';
+
+const List<String> _indianStatesAndUTs = [
+  'Andaman and Nicobar Islands',
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chandigarh',
+  'Chhattisgarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jammu and Kashmir',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Ladakh',
+  'Lakshadweep',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Puducherry',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+];
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -51,6 +91,45 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
+  void _openDynamicFamilyDialog(DynamicFamilyType type) async {
+    final state = ref.read(profileControllerProvider);
+    final notifier = ref.read(profileControllerProvider.notifier);
+
+    final result = await DynamicFamilyDialog.show(
+      context: context,
+      type: type,
+      initialBrothers: state.profile.brothersDetails,
+      initialSisters: state.profile.sistersDetails,
+      initialMaternalUncles: state.profile.maternalUnclesDetails,
+      initialUncles: state.profile.unclesDetails,
+    );
+
+    if (result != null) {
+      switch (type) {
+        case DynamicFamilyType.brothers:
+          if (result is List<BrotherDetail>) {
+            notifier.updateBrothers(result);
+          }
+          break;
+        case DynamicFamilyType.sisters:
+          if (result is List<SisterDetail>) {
+            notifier.updateSisters(result);
+          }
+          break;
+        case DynamicFamilyType.maternalUncles:
+          if (result is List<UncleDetail>) {
+            notifier.updateMaternalUncles(result);
+          }
+          break;
+        case DynamicFamilyType.uncles:
+          if (result is List<UncleDetail>) {
+            notifier.updateUncles(result);
+          }
+          break;
+      }
+    }
+  }
+
   void _showPhotoOptions() {
     final state = ref.read(profileControllerProvider);
     PhotoManagementDialog.showOptions(
@@ -64,20 +143,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       },
       onReorderPhotos: (oldIdx, newIdx) {
         ref.read(profileControllerProvider.notifier).reorderPhotos(oldIdx, newIdx);
-      },
-    );
-  }
-
-  void _showDocumentOptions(dynamic doc) {
-    DocumentActionSheet.show(
-      context: context,
-      document: doc,
-      onUpdateStatus: (docId, newStatus, {fileUrl}) {
-        ref.read(profileControllerProvider.notifier).updateDocumentStatus(
-              docId,
-              newStatus,
-              fileUrl: fileUrl,
-            );
       },
     );
   }
@@ -123,21 +188,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             context.go('/profile');
           }
         },
-        onEditIconTap: () {
-          _scrollController.animateTo(
-            0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        },
       ),
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 3),
       body: Stack(
         children: [
           // Scrollable Profile Details Content
           Positioned.fill(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(bottom: 120), // Spacing for floating bottom bar
+            child: RefreshIndicator(
+              color: const Color(0xFFC9003F),
+              onRefresh: () async {
+                try {
+                  await controller.loadProfile();
+                } catch (_) {}
+              },
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 80), // Spacing for floating bottom bar
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -234,15 +301,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           title: 'Annual Income',
                           fieldKey: 'income',
                           initialValue: profile.income,
-                          fieldType: FieldType.singleSelect,
-                          options: [
-                            '03,00,000 LPA',
-                            '05,00,000 LPA',
-                            '07,50,000 LPA',
-                            '10,00,000 LPA',
-                            '15,00,000 LPA',
-                            '25,00,000+ LPA'
-                          ],
+                          fieldType: FieldType.text,
                         ),
                       ),
                       ProfileFieldRow(
@@ -263,18 +322,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           fieldKey: 'state',
                           initialValue: profile.state,
                           fieldType: FieldType.searchableSelect,
-                          options: [
-                            'Kerala',
-                            'Tamil Nadu',
-                            'Maharashtra',
-                            'Karnataka',
-                            'Gujarat',
-                            'Rajasthan',
-                            'Delhi',
-                            'Punjab',
-                            'Uttar Pradesh',
-                            'West Bengal'
-                          ],
+                          options: _indianStatesAndUTs,
                         ),
                       ),
                       ProfileFieldRow(
@@ -299,18 +347,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           title: 'Occupation',
                           fieldKey: 'occupation',
                           initialValue: profile.occupation,
-                          fieldType: FieldType.searchableSelect,
-                          options: [
-                            'Software Engineer',
-                            'Chartered Accountant',
-                            'Doctor (MD/MBBS)',
-                            'Architect',
-                            'Bank Manager',
-                            'Civil Engineer',
-                            'Teacher/Professor',
-                            'Business Owner',
-                            'Government Officer'
-                          ],
+                          fieldType: FieldType.text,
                         ),
                       ),
                       ProfileFieldRow(
@@ -320,8 +357,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           title: 'Number of Children',
                           fieldKey: 'children',
                           initialValue: profile.children,
-                          fieldType: FieldType.singleSelect,
-                          options: ['0', '1', '2', '3+'],
+                          fieldType: FieldType.number,
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return null;
+                            if (int.tryParse(val.trim()) == null) return 'Enter a valid number of children';
+                            return null;
+                          },
                         ),
                       ),
                       ProfileFieldRow(
@@ -386,19 +427,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           title: 'Mother Tongue',
                           fieldKey: 'motherTongue',
                           initialValue: profile.motherTongue,
-                          fieldType: FieldType.searchableSelect,
-                          options: [
-                            'Marathi',
-                            'Hindi',
-                            'Gujarati',
-                            'Tamil',
-                            'Malayalam',
-                            'Telugu',
-                            'Kannada',
-                            'Bengali',
-                            'Punjabi',
-                            'English'
-                          ],
+                          fieldType: FieldType.text,
                         ),
                       ),
                       ProfileFieldRow(
@@ -494,13 +523,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                       ProfileFieldRow(
                         label: 'WEIGHT',
-                        value: profile.weight,
+                        value: profile.weight.isNotEmpty
+                            ? (profile.weight.toLowerCase().contains('kg') ? profile.weight : '${profile.weight} kg')
+                            : '',
                         onTap: () => _openEditDialog(
                           title: 'Weight',
                           fieldKey: 'weight',
-                          initialValue: profile.weight,
-                          fieldType: FieldType.singleSelect,
-                          options: ['50 kg', '55 kg', '60 kg', '65 kg', '70 kg', '75 kg', '80 kg'],
+                          initialValue: profile.weight.replaceAll(RegExp(r'[^0-9.]'), ''),
+                          fieldType: FieldType.number,
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return null;
+                            final n = double.tryParse(val.trim());
+                            if (n == null || n <= 0 || n > 300) return 'Enter a valid weight in kg';
+                            return null;
+                          },
                         ),
                       ),
                       ProfileFieldRow(
@@ -539,8 +575,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           title: 'Highest Education',
                           fieldKey: 'highestEdu',
                           initialValue: profile.highestEdu,
-                          fieldType: FieldType.singleSelect,
-                          options: ['MBA', 'B.Tech', 'M.Tech', 'MBBS', 'Ph.D', 'B.Com', 'M.Com', 'B.Sc'],
+                          fieldType: FieldType.text,
                         ),
                       ),
                       ProfileFieldRow(
@@ -763,24 +798,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                       ProfileFieldRow(
                         label: 'BROTHERS',
-                        value: profile.brothers,
-                        onTap: () => _openEditDialog(
-                          title: 'Brothers',
-                          fieldKey: 'brothers',
-                          initialValue: profile.brothers,
-                          fieldType: FieldType.singleSelect,
-                          options: ['No', '1', '2', '3+'],
-                        ),
+                        value: profile.brothersSummary,
+                        onTap: () => _openDynamicFamilyDialog(DynamicFamilyType.brothers),
                       ),
                       ProfileFieldRow(
                         label: 'MATERNAL UNCLE',
-                        value: profile.maternalUncle,
-                        onTap: () => _openEditDialog(
-                          title: 'Maternal Uncle Name',
-                          fieldKey: 'maternalUncle',
-                          initialValue: profile.maternalUncle,
-                          fieldType: FieldType.text,
-                        ),
+                        value: profile.maternalUnclesSummary,
+                        onTap: () => _openDynamicFamilyDialog(DynamicFamilyType.maternalUncles),
                       ),
                       ProfileFieldRow(
                         label: 'UNCLE PHONE',
@@ -793,14 +817,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         ),
                       ),
                       ProfileFieldRow(
-                        label: "FATHER'S EDU.",
+                        label: "FATHER'S OCC.",
                         value: profile.fatherEdu,
                         onTap: () => _openEditDialog(
-                          title: "Father's Education",
+                          title: "Father's Occupation",
                           fieldKey: 'fatherEdu',
                           initialValue: profile.fatherEdu,
-                          fieldType: FieldType.singleSelect,
-                          options: ['IT', 'Graduate', 'Post Graduate', 'Doctorate', 'Schooling'],
+                          fieldType: FieldType.text,
                         ),
                       ),
                       ProfileFieldRow(
@@ -810,20 +833,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           title: "Mother's Occupation",
                           fieldKey: 'motherOcc',
                           initialValue: profile.motherOcc,
-                          fieldType: FieldType.singleSelect,
-                          options: ['Housewife', 'Teacher', 'Business', 'Service', 'Retired'],
+                          fieldType: FieldType.text,
                         ),
                       ),
                       ProfileFieldRow(
                         label: 'SISTERS',
-                        value: profile.sisters,
-                        onTap: () => _openEditDialog(
-                          title: 'Sisters',
-                          fieldKey: 'sisters',
-                          initialValue: profile.sisters,
-                          fieldType: FieldType.singleSelect,
-                          options: ['No', '1', '2', '3+'],
-                        ),
+                        value: profile.sistersSummary,
+                        onTap: () => _openDynamicFamilyDialog(DynamicFamilyType.sisters),
                       ),
                       ProfileFieldRow(
                         label: 'FAMILY TYPE',
@@ -849,44 +865,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                       ProfileFieldRow(
                         label: 'MARRIED SISTER',
-                        value: profile.marriedSister,
-                        onTap: () => _openEditDialog(
-                          title: 'Married Sisters',
-                          fieldKey: 'marriedSister',
-                          initialValue: profile.marriedSister,
-                          fieldType: FieldType.singleSelect,
-                          options: ['0', '1', '2', '3+'],
-                        ),
+                        value: profile.sistersDetails.isNotEmpty
+                            ? '${profile.sistersDetails.where((s) => s.isMarried).length}'
+                            : profile.marriedSister,
+                        onTap: () => _openDynamicFamilyDialog(DynamicFamilyType.sisters),
                       ),
                       ProfileFieldRow(
                         label: 'UNCLE NAME',
-                        value: profile.uncleName,
+                        value: profile.unclesSummary,
                         isLast: true,
-                        onTap: () => _openEditDialog(
-                          title: 'Uncle Name',
-                          fieldKey: 'uncleName',
-                          initialValue: profile.uncleName,
-                          fieldType: FieldType.text,
-                        ),
+                        onTap: () => _openDynamicFamilyDialog(DynamicFamilyType.uncles),
                       ),
-                    ],
-                  ),
-
-                  // 5. DOCUMENTS SECTION
-                  ProfileSectionCard(
-                    title: 'DOCUMENTS',
-                    children: [
-                      for (int i = 0; i < profile.documents.length; i++)
-                        DocumentRow(
-                          document: profile.documents[i],
-                          isLast: i == profile.documents.length - 1,
-                          onTap: () => _showDocumentOptions(profile.documents[i]),
-                        ),
                     ],
                   ),
                 ],
               ),
             ),
+          ),
           ),
 
           // Floating Save Banner (when changes are made)
@@ -894,7 +889,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             Positioned(
               left: 20,
               right: 20,
-              bottom: 85,
+              bottom: 12,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -944,82 +939,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ),
             ),
-
-          // FLOATING BOTTOM NAVIGATION BAR matching reference screenshot exactly
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 20,
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x18000000),
-                    blurRadius: 16,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Tab 0: Home
-                  GestureDetector(
-                    onTap: () {
-                      ref.read(homeControllerProvider.notifier).setBottomTab(0);
-                      context.go('/home');
-                    },
-                    child: const Icon(Icons.home_outlined, color: Colors.grey, size: 24),
-                  ),
-
-                  // Tab 1: Favourites/Matches
-                  GestureDetector(
-                    onTap: () {
-                      ref.read(homeControllerProvider.notifier).setBottomTab(1);
-                      context.go('/home');
-                    },
-                    child: const Icon(Icons.favorite_border, color: Colors.grey, size: 22),
-                  ),
-
-                  // Tab 2: Messages/Chat
-                  GestureDetector(
-                    onTap: () {
-                      ref.read(homeControllerProvider.notifier).setBottomTab(2);
-                      context.go('/home');
-                    },
-                    child: const Icon(Icons.chat_bubble_outline, color: Colors.grey, size: 22),
-                  ),
-
-                  // Tab 3: Active Profile Pill matching reference screenshot
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFC9003F), // Deep crimson red
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.person, color: Colors.white, size: 18),
-                        SizedBox(width: 6),
-                        Text(
-                          'Profile',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

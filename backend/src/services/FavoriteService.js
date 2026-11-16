@@ -39,7 +39,7 @@ class FavoriteService {
 
     const profiles = [];
     for (const doc of matrimonyDocs) {
-      const merged = await AuthService.getMergedUser(doc);
+      const merged = await AuthService.getMergedUser(doc, { includePrivate: false });
       profiles.push(merged);
     }
     return profiles;

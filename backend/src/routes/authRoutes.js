@@ -1,8 +1,11 @@
 import express from 'express';
-import multer from 'multer';
 import AuthController from '../controllers/AuthController.js';
 import UploadController from '../controllers/UploadController.js';
 import { protect, optionalProtect } from '../middlewares/authMiddleware.js';
+import {
+  createUploadFields,
+  createUploadRateLimiter,
+} from '../middlewares/uploadMiddleware.js';
 import {
   validate,
   loginSchema,
@@ -16,10 +19,15 @@ import {
 } from '../middlewares/validationMiddleware.js';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() }).fields([
-  { name: 'aadharCard', maxCount: 1 },
-  { name: 'photos', maxCount: 6 }
-]);
+const uploadRateLimiter = createUploadRateLimiter({ maxRequests: 20 });
+const upload = createUploadFields(
+  [
+    { name: 'aadharCard', maxCount: 1 },
+    { name: 'casteCertificate', maxCount: 1 },
+    { name: 'photos', maxCount: 6 },
+  ],
+  { pdfFields: ['aadharCard', 'casteCertificate'] }
+);
 
 router.post('/login', validate(loginSchema), AuthController.login);
 router.post('/check-user', validate(checkUserSchema), AuthController.checkUser);
@@ -30,7 +38,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), AuthController.f
 router.post('/verify-forgot-otp', AuthController.verifyForgotOtp);
 router.post('/reset-password', validate(resetPasswordSchema), AuthController.resetPassword);
 router.post('/change-password', protect, validate(changePasswordSchema), AuthController.changePassword);
-router.post('/upload', upload, UploadController.uploadFiles);
+router.post('/upload', uploadRateLimiter, upload, UploadController.uploadFiles);
 router.get('/me', protect, AuthController.getCurrentUser);
 
 export default router;

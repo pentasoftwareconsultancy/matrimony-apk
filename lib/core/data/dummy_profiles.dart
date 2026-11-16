@@ -1,4 +1,5 @@
 import '../../features/auth/domain/models/user.dart';
+import '../utils/date_formatter.dart';
 
 class MatrimonialProfile {
   final String id;
@@ -41,6 +42,8 @@ class MatrimonialProfile {
   final String workLocation;
   final String nativePlace;
   final String familyStatus;
+  final String birthDate;
+  final DateTime? dob;
 
   MatrimonialProfile({
     required this.id,
@@ -81,6 +84,8 @@ class MatrimonialProfile {
     required this.workLocation,
     required this.nativePlace,
     required this.familyStatus,
+    this.birthDate = '',
+    this.dob,
   });
 
   factory MatrimonialProfile.fromJson(Map<String, dynamic> json) {
@@ -267,6 +272,22 @@ class MatrimonialProfile {
         .toString();
 
     // ============================================================
+    // DATE OF BIRTH
+    // ============================================================
+
+    final dynamic rawDob = json['birthDate'] ??
+        json['dob'] ??
+        json['dateOfBirth'] ??
+        registration['dateOfBirth'] ??
+        registration['dob'] ??
+        registration['birthDate'] ??
+        personal['dateOfBirth'] ??
+        personal['dob'];
+
+    final String parsedBirthDate = formatDobString(rawDob);
+    final DateTime? parsedDob = parseDobDateTime(rawDob);
+
+    // ============================================================
     // RETURN PROFILE
     // ============================================================
 
@@ -442,7 +463,7 @@ class MatrimonialProfile {
       hobbies: hobbiesList,
 
       isVerified:
-      json['isVerified'] != false,
+      json['isVerified'] == true,
 
       workLocation:
       (json['workLocation'] ??
@@ -461,6 +482,10 @@ class MatrimonialProfile {
           family['familyStatus'] ??
           'Not Specified')
           .toString(),
+
+      birthDate: parsedBirthDate,
+
+      dob: parsedDob,
     );
   }
 
@@ -469,6 +494,7 @@ class MatrimonialProfile {
       id: id,
       fullName: fullName,
       age: age,
+      dob: dob,
       gender: gender,
       religion: religion,
       caste: caste,

@@ -92,7 +92,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           bottom: false,
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final isCompactHeight = constraints.maxHeight < 680;
+              final headerHeight = (constraints.maxHeight *
+                      (isCompactHeight ? 0.22 : 0.24))
+                  .clamp(128.0, 196.0);
+              final logoHeight = (headerHeight * 0.42).clamp(52.0, 74.0);
+
               return SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight,
@@ -100,60 +108,90 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: IntrinsicHeight(
                     child: Column(
                       children: [
-                        // Top header with logo
-                        Expanded(
-                          flex: 3,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Image.asset(
-                                    'assets/images/logo.png',
-                                    height: 42,
-                                    fit: BoxFit.contain,
-                                  ),
+                        // Top header with prominent brand logo
+                        Container(
+                          height: headerHeight,
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          alignment: Alignment.center,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 28,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.14),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
+                            ),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              height: logoHeight,
+                              fit: BoxFit.contain,
                             ),
                           ),
                         ),
 
-                        // Bottom white container
-                        Container(
-                          width: double.infinity,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(32),
-                              topRight: Radius.circular(32),
-                            ),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 36,
-                          ),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text(
-                                  'Login',
-                                  style: AppTextStyles.titleLarge.copyWith(
-                                    fontSize: 24,
-                                    color: Colors.black,
-                                  ),
+                        // Bottom white login panel
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(32),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, -6),
                                 ),
-                                AppSpacing.verticalLg,
+                              ],
+                            ),
+                            padding: EdgeInsets.fromLTRB(
+                              24,
+                              isCompactHeight ? 28 : 34,
+                              24,
+                              24,
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Align(
+                                alignment: Alignment.topCenter,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 460,
+                                  ),
+                                  child: Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Login',
+                                          style:
+                                              AppTextStyles.titleLarge.copyWith(
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textDark,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: isCompactHeight ? 18 : 22,
+                                        ),
 
                                 // Email label
                                 Text(
@@ -263,91 +301,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   child: TextButton(
                                     onPressed: () =>
                                         context.push('/forgot-password'),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 6,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
                                     child: const Text(
                                       'Forgot password?',
                                       style: TextStyle(
                                         color: AppColors.primary,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                 ),
-                                AppSpacing.verticalMd,
+                                const SizedBox(height: 20),
 
                                 // Login button
                                 ElevatedButton(
                                   onPressed:
-                                  authState.isLoading ? null : _submit,
+                                      authState.isLoading ? null : _submit,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
+                                    minimumSize:
+                                        const Size(double.infinity, 52),
+                                    elevation: 0,
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
                                   child: authState.isLoading
                                       ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
                                       : const Text('Login'),
                                 ),
-                                AppSpacing.verticalMd,
-
-                                // Or separator
-                                const Center(
-                                  child: Text(
-                                    'OR',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                AppSpacing.verticalMd,
-
-                                // Google sign-in button
-                                OutlinedButton(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Google sign-in is coming soon',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize:
-                                    const Size(double.infinity, 54),
-                                    side: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text('Continue with Google'),
-                                      Text(
-                                        'G',
-                                        style: TextStyle(
-                                          // Same as Colors.blue.shade700, but const-friendly
-                                          color: Color(0xFF1976D2),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                AppSpacing.verticalLg,
+                                const SizedBox(height: 20),
 
                                 // Terms and privacy disclaimer
                                 Center(
@@ -355,12 +358,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     textAlign: TextAlign.center,
                                     text: TextSpan(
                                       style: AppTextStyles.caption.copyWith(
-                                        color: Colors.grey,
+                                        color: AppColors.textLight,
+                                        height: 1.45,
                                       ),
                                       children: [
                                         const TextSpan(
                                           text:
-                                          'By continuing, you agree to our ',
+                                              'By continuing, you agree to our ',
                                         ),
                                         TextSpan(
                                           text: 'Terms and Conditions',
@@ -368,7 +372,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w600,
                                             decoration:
-                                            TextDecoration.underline,
+                                                TextDecoration.underline,
                                           ),
                                           recognizer: TapGestureRecognizer()
                                             ..onTap = () {
@@ -376,7 +380,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                 context,
                                                 MaterialPageRoute(
                                                   builder: (context) =>
-                                                  const TermsScreen(),
+                                                      const TermsScreen(),
                                                 ),
                                               );
                                             },
@@ -388,7 +392,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w600,
                                             decoration:
-                                            TextDecoration.underline,
+                                                TextDecoration.underline,
                                           ),
                                           recognizer: TapGestureRecognizer()
                                             ..onTap = () {
@@ -396,7 +400,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                 context,
                                                 MaterialPageRoute(
                                                   builder: (context) =>
-                                                  const PrivacyScreen(),
+                                                      const PrivacyScreen(),
                                                 ),
                                               );
                                             },
@@ -405,7 +409,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   ),
                                 ),
-                                AppSpacing.verticalLg,
+                                const SizedBox(height: 16),
 
                                 // Registration link
                                 Row(
@@ -433,7 +437,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   ],
                                 ),
-                              ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),

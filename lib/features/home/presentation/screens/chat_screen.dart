@@ -348,12 +348,26 @@ class _ChatDetailScreenState
           // ====================================================
 
           Expanded(
-            child: ListView.builder(
-              controller:
-              _scrollController,
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                try {
+                  await Future.wait([
+                    ref.read(messageProvider.notifier).refresh(),
+                    ref
+                        .read(presenceProvider.notifier)
+                        .loadPresence(widget.partnerId),
+                  ]);
+                } catch (_) {}
+              },
+              child: ListView.builder(
+                controller:
+                _scrollController,
 
-              padding:
-              const EdgeInsets.all(16),
+                physics: const AlwaysScrollableScrollPhysics(),
+
+                padding:
+                const EdgeInsets.all(16),
 
               itemCount:
               messages.length,
@@ -505,6 +519,7 @@ class _ChatDetailScreenState
                 );
               },
             ),
+          ),
           ),
 
           // ====================================================

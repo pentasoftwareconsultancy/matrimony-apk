@@ -254,6 +254,8 @@ class FavouriteNotifier extends StateNotifier<List<String>> {
     }
   }
 
+  Future<void> refresh() => _load();
+
 
   Future<void> toggle(String id) async {
     final wasFavourite = state.contains(id);
@@ -570,6 +572,8 @@ class MessageNotifier
       );
     }
   }
+
+  Future<void> refresh() => _load();
 
 
   void setActiveChat(String partnerId) {
@@ -1640,6 +1644,8 @@ class PrivacySettingsNotifier
     } catch (_) {}
   }
 
+  Future<void> refresh() => _load();
+
   Future<void> save(
       PrivacySettings settings,
       ) async {
@@ -1731,6 +1737,8 @@ class NotificationPrefsNotifier
           NotificationPrefs.fromJson(data);
     } catch (_) {}
   }
+
+  Future<void> refresh() => _load();
 
   Future<void> save(
       NotificationPrefs prefsData,
@@ -1833,65 +1841,39 @@ class BlockedUsersNotifier
 
   Future<void> _load() async {
     try {
-      final apiClient =
-      _ref.read(apiClientProvider);
-
-      final response =
-      await apiClient.get('/blocked');
-
-      final list =
-      response.data['data'] as List<dynamic>;
-
-      state =
-          list.map((e) => e.toString()).toList();
+      final apiClient = _ref.read(apiClientProvider);
+      final response = await apiClient.get('/blocked');
+      final list = response.data['data'] as List<dynamic>? ?? [];
+      state = list.map((e) => e.toString()).toList();
     } catch (_) {}
   }
 
   Future<void> block(String id) async {
-    try {
-      final apiClient =
-      _ref.read(apiClientProvider);
-
-      final response =
-      await apiClient.post('/blocked/$id');
-
-      final list =
-      response.data['data'] as List<dynamic>;
-
-      state =
-          list.map((e) => e.toString()).toList();
-    } catch (_) {
-      if (!state.contains(id)) {
-        state = [
-          ...state,
-          id,
-        ];
-      }
-    }
+    final apiClient = _ref.read(apiClientProvider);
+    final response = await apiClient.post('/blocked/$id');
+    final list = response.data['data'] as List<dynamic>? ?? [];
+    state = list.map((e) => e.toString()).toList();
+    _ref.invalidate(blockedProfilesProvider);
   }
 
   Future<void> unblock(String id) async {
-    try {
-      final apiClient =
-      _ref.read(apiClientProvider);
-
-      final response =
-      await apiClient.delete('/blocked/$id');
-
-      final list =
-      response.data['data'] as List<dynamic>;
-
-      state =
-          list.map((e) => e.toString()).toList();
-    } catch (_) {
-      state = state
-          .where(
-            (item) => item != id,
-      )
-          .toList();
-    }
+    final apiClient = _ref.read(apiClientProvider);
+    final response = await apiClient.delete('/blocked/$id');
+    final list = response.data['data'] as List<dynamic>? ?? [];
+    state = list.map((e) => e.toString()).toList();
+    _ref.invalidate(blockedProfilesProvider);
   }
 }
+
+final blockedProfilesProvider = FutureProvider.autoDispose<List<MatrimonialProfile>>((ref) async {
+  final apiClient = ref.watch(apiClientProvider);
+  final response = await apiClient.get('/blocked/profiles');
+  final rawList = response.data['data'] as List<dynamic>? ?? [];
+  return rawList
+      .whereType<Map>()
+      .map((item) => MatrimonialProfile.fromJson(Map<String, dynamic>.from(item)))
+      .toList();
+});
 
 final blockedUsersProvider =
 StateNotifierProvider<
@@ -2044,6 +2026,8 @@ class PartnerPreferenceNotifier
       }
     } catch (_) {}
   }
+
+  Future<void> refresh() => _load();
 
   Future<void> save(
       PartnerPreference pref,

@@ -41,94 +41,123 @@ class _NotificationPreferencesScreenState extends ConsumerState<NotificationPref
         ),
         centerTitle: false,
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
-            child: Text(
-              'Change notification settings',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Toggles Card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.01),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () async {
+          try {
+            await ref.read(notificationPrefsProvider.notifier).refresh();
+            final updated = ref.read(notificationPrefsProvider);
+            if (mounted) {
+              setState(() {
+                _push = updated.push;
+                _email = updated.email;
+                _whatsapp = updated.whatsapp;
+              });
+            }
+          } catch (_) {}
+        },
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildToggleTile(
-                    icon: Icons.phone_android,
-                    title: 'Push notification',
-                    value: _push,
-                    onChanged: (val) => setState(() => _push = val),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Text(
+                          'Change notification settings',
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Toggles Card
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.01),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              _buildToggleTile(
+                                icon: Icons.phone_android,
+                                title: 'Push notification',
+                                value: _push,
+                                onChanged: (val) => setState(() => _push = val),
+                              ),
+                              Divider(color: Colors.grey.shade100, height: 1),
+                              _buildToggleTile(
+                                icon: Icons.mail_outline,
+                                title: 'Email notification',
+                                value: _email,
+                                onChanged: (val) => setState(() => _email = val),
+                              ),
+                              Divider(color: Colors.grey.shade100, height: 1),
+                              _buildToggleTile(
+                                icon: Icons.chat_bubble_outline,
+                                title: 'Whatsapp notification',
+                                value: _whatsapp,
+                                onChanged: (val) => setState(() => _whatsapp = val),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Divider(color: Colors.grey.shade100, height: 1),
-                  _buildToggleTile(
-                    icon: Icons.mail_outline,
-                    title: 'Email notification',
-                    value: _email,
-                    onChanged: (val) => setState(() => _email = val),
-                  ),
-                  Divider(color: Colors.grey.shade100, height: 1),
-                  _buildToggleTile(
-                    icon: Icons.chat_bubble_outline,
-                    title: 'Whatsapp notification',
-                    value: _whatsapp,
-                    onChanged: (val) => setState(() => _whatsapp = val),
+
+                  // Save Changes Button
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final newPrefs = NotificationPrefs(
+                          push: _push,
+                          email: _email,
+                          whatsapp: _whatsapp,
+                        );
+                        await ref.read(notificationPrefsProvider.notifier).save(newPrefs);
+                        
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Preferences Updated'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      ),
+                      child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const Spacer(),
-
-          // Save Changes Button
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: ElevatedButton(
-              onPressed: () async {
-                final newPrefs = NotificationPrefs(
-                  push: _push,
-                  email: _email,
-                  whatsapp: _whatsapp,
-                );
-                await ref.read(notificationPrefsProvider.notifier).save(newPrefs);
-                
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Preferences Updated'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              ),
-              child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

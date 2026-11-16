@@ -118,39 +118,65 @@ class VendorListScreen extends ConsumerWidget {
 
             // Vendor Grid
             Expanded(
-              child: vendorsAsync.when(
-                data: (vendors) {
-                  if (vendors.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No vendors found in this category',
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                    );
-                  }
-
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: 0.72,
-                    ),
-                    itemCount: vendors.length,
-                    itemBuilder: (context, index) {
-                      final vendor = vendors[index];
-                      return _buildVendorCard(context, vendor);
-                    },
-                  );
+              child: RefreshIndicator(
+                color: const Color(0xFFC9003F),
+                onRefresh: () async {
+                  try {
+                    ref.invalidate(servicesByCategoryProvider(category));
+                    await ref.read(servicesByCategoryProvider(category).future);
+                  } catch (_) {}
                 },
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFC9003F)),
-                ),
-                error: (err, stack) => Center(
-                  child: Text(
-                    'Failed to load vendors: $err',
-                    style: const TextStyle(color: Colors.red),
+                child: vendorsAsync.when(
+                  data: (vendors) {
+                    if (vendors.isEmpty) {
+                      return LayoutBuilder(
+                        builder: (context, constraints) => SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            child: const Center(
+                              child: Text(
+                                'No vendors found in this category',
+                                style: TextStyle(color: Colors.grey, fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return GridView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 0.72,
+                      ),
+                      itemCount: vendors.length,
+                      itemBuilder: (context, index) {
+                        final vendor = vendors[index];
+                        return _buildVendorCard(context, vendor);
+                      },
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFC9003F)),
+                  ),
+                  error: (err, stack) => LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Center(
+                          child: Text(
+                            'Failed to load vendors: $err',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),

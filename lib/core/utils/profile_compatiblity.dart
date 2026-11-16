@@ -1,4 +1,5 @@
 import '../data/dummy_profiles.dart';
+import 'date_formatter.dart';
 
 /// Compatibility is calculated from profile fields that are present on both
 /// profiles. Missing fields are excluded rather than treated as a mismatch.
@@ -105,6 +106,8 @@ MatrimonialProfile profileFromUser(dynamic user) {
     workLocation: textValue(<String>['workLocation']),
     nativePlace: textValue(<String>['nativePlace']),
     familyStatus: textValue(<String>['familyStatus']),
+    birthDate: formatDobString(value(<String>['birthDate', 'dob', 'dateOfBirth'])),
+    dob: parseDobDateTime(value(<String>['birthDate', 'dob', 'dateOfBirth'])),
   );
 }
 

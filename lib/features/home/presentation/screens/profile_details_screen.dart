@@ -75,11 +75,34 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   int _selectedPhotoIndex = 0;
   bool _interestExpressing = false;
   bool _interestExpressed = false;
+  late MatrimonialProfile _profile;
+
+  Future<void> _fetchFreshProfile() async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.get('/profile/${widget.profile.id}');
+      if (!mounted) return;
+      final body = response.data;
+      if (body is Map && body['data'] is Map) {
+        final profileData = body['data']['profile'];
+        if (profileData is Map) {
+          final fresh = MatrimonialProfile.fromJson(Map<String, dynamic>.from(profileData));
+          if (mounted) {
+            setState(() {
+              _profile = fresh;
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   void initState() {
     super.initState();
+    _profile = widget.profile;
     _checkExistingInterest();
+    _fetchFreshProfile();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -160,7 +183,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   }
   @override
   Widget build(BuildContext context) {
-    final profile = widget.profile;
+    final profile = _profile;
     final homeState = ref.watch(homeControllerProvider);
     final currentUser = ref.watch(authControllerProvider).user;
     final ownProfile = currentUser == null ? null : profileFromUser(currentUser);
@@ -175,9 +198,23 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
         children: [
           // Scrollable Profile Details Content
           Positioned.fill(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 96), // Spacing for sticky bottom buttons
-              child: Column(
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                try {
+                  ref.invalidate(favoriteProfilesProvider);
+                  await Future.wait([
+                    _checkExistingInterest(),
+                    _fetchFreshProfile(),
+                    ref.read(favoriteProfilesProvider.future),
+                    ref.read(authControllerProvider.notifier).refreshCurrentUser(),
+                  ]);
+                } catch (_) {}
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 96), // Spacing for sticky bottom buttons
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Image Gallery Section
@@ -410,7 +447,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                         // PERSONAL DETAILS Card
                         _buildSectionHeader('PERSONAL DETAILS'),
                         _buildDetailsCard([
-                          _buildDetailRow('DATE OF BIRTH', '14 March 1997'), // deterministic fallback dob
+                          _buildDetailRow(
+                            'DATE OF BIRTH',
+                            profile.birthDate.isNotEmpty ? profile.birthDate : 'Not Specified',
+                          ),
                           _buildDetailRow('RELIGION / CASTE', '${profile.religion} • ${profile.caste}'),
                           _buildDetailRow('HEIGHT', profile.height),
                           _buildDetailRow('MARITAL STATUS', profile.maritalStatus),
@@ -454,6 +494,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               ),
             ),
           ),
+        ),
 
           // Sticky Bottom Bar Buttons Overlay
           Positioned(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../../../home/presentation/screens/premium_plans_screen.dart';
 
 class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
   final VoidCallback? onBackTap;
@@ -104,54 +103,6 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
             ),
           ),
           const Spacer(),
-
-          // Document Edit Icon
-          GestureDetector(
-            onTap: onEditIconTap,
-            child: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  )
-                ],
-              ),
-              child: const Icon(
-                Icons.edit_note,
-                color: Color(0xFFC9003F),
-                size: 20,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // Crown / Premium Action Icon
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const PremiumPlansScreen()),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: const BoxDecoration(
-                color: Color(0xFFC9003F),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.workspace_premium,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
 
           // Log out pill button
           GestureDetector(

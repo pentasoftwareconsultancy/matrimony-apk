@@ -92,8 +92,13 @@ class PhotoManagementDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Listen to the shared profile state so the thumbnail list rebuilds
-    // immediately when a photo is removed or added.
-    final currentPhotos = ref.watch(profileControllerProvider).profile.photos;
+    // immediately when a photo is removed or added. Exclude dummy placeholders.
+    final currentPhotos = ref
+        .watch(profileControllerProvider)
+        .profile
+        .photos
+        .where((p) => !p.contains('unsplash.com'))
+        .toList();
     final hasReachedLimit = currentPhotos.length >= maxPhotos;
 
     return Padding(

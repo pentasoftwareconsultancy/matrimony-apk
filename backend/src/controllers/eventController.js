@@ -1,10 +1,42 @@
 import Event from '../models/Event.js';
+import {
+  getEventDateWindow,
+  isUpcomingEvent,
+  toDayUtcMs,
+} from '../utils/eventDateFilter.js';
 
-// GET all events from shared database
+// GET upcoming events only from shared database
 export const getEvents = async (req, res, next) => {
   try {
-    const events = await Event.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: events.length, data: events });
+    const events = await Event.find({
+      isDeleted: { $ne: true },
+      deleted: { $ne: true },
+      isCancelled: { $ne: true },
+      isCanceled: { $ne: true },
+      cancelled: { $ne: true },
+      canceled: { $ne: true },
+      isActive: { $ne: false },
+      active: { $ne: false },
+    }).lean();
+
+    const now = new Date();
+    const upcomingEvents = events
+      .filter((event) => isUpcomingEvent(event, now))
+      .sort((a, b) => {
+        const winA = getEventDateWindow(a);
+        const winB = getEventDateWindow(b);
+        const dayA = winA.startDay || winA.endDay;
+        const dayB = winB.startDay || winB.endDay;
+        const diff = toDayUtcMs(dayA) - toDayUtcMs(dayB);
+        if (diff !== 0) return diff;
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      });
+
+    res.status(200).json({
+      success: true,
+      count: upcomingEvents.length,
+      data: upcomingEvents,
+    });
   } catch (error) {
     next(error);
   }
