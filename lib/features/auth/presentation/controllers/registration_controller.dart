@@ -13,21 +13,23 @@ class RegistrationState {
   final bool isLoading;
   final String? error;
 
-  // Step 1: Account Details
-  final String accountType;
+  // Step 1: Account Details / Basic Details
+  final String accountType; // Profile created for
   final String fullName;
   final String phone;
+  final DateTime? dob;
+  final int? age;
+  final String motherTongue;
   final String email;
   final String password;
   final String confirmPassword;
 
-  // Step 2: Basic Profile
+  // Step 2: Personal Details
   final String gender;
-  final DateTime? dob;
-  final int? age;
-  final String religion;
-  final String caste;
   final String maritalStatus;
+  final String height;
+  final String diet;
+  final String physicalStatus; // Physical Status / Special Case
   final String bloodGroup;
   final String address;
   final List<String> hobbies;
@@ -35,31 +37,36 @@ class RegistrationState {
   final String nakshatra;
   final bool manglik;
 
-  // Step 3: Education
-  final String qualification;
-  final String occupation;
+  // Step 3: Education / Career
+  final String qualification; // Highest Education
+  final String occupation; // Profession / Occupation
   final String annualIncome;
+
+  // Step 4: Location & Family
   final String country;
   final String state;
-  final String city;
+  final String city; // City / District
+  final String religion;
+  final String caste;
+  final String familyType;
+  final List<UncleDetail> maternalUnclesDetails;
+  final List<UncleDetail> paternalUnclesDetails;
   final List<String> languages;
-
-  // Step 4: Family Details
   final String fatherName;
   final String motherName;
   final int siblings;
-  final String familyType;
   final String familyStatus;
   final String nativePlace;
   final String aboutFamily;
-  final List<UncleDetail> maternalUnclesDetails;
-  final List<UncleDetail> paternalUnclesDetails;
 
-  // Step 5: Documents & Photos
+  // Step 5: Document Details & Photos
   final String aadharNumber;
   final String aadharCardUrl;
-  final String aadharCardName; // local file name picked
-  final List<int>? aadharBytes; // raw bytes of picked file
+  final String aadharCardName; // local front file name picked
+  final List<int>? aadharBytes; // raw front bytes of picked file
+  final String aadharBackUrl;
+  final String aadharBackName; // local back file name picked
+  final List<int>? aadharBackBytes; // raw back bytes of picked file
   final List<String> photos; // list of remote/local photo URLs
   final List<Map<String, dynamic>>? pickedPhotosData; // list of maps with { 'bytes': List<int>, 'fileName': String }
   
@@ -76,18 +83,22 @@ class RegistrationState {
     this.currentStep = 0,
     this.isLoading = false,
     this.error,
-    this.accountType = 'Self',
+    this.accountType = 'Yourself',
     this.fullName = '',
     this.phone = '',
+    this.dob,
+    this.age,
+    this.motherTongue = 'Marathi',
     this.email = '',
     this.password = '',
     this.confirmPassword = '',
     this.gender = 'Male',
-    this.dob,
-    this.age,
+    this.maritalStatus = 'Never Married',
+    this.height = '',
+    this.diet = '',
+    this.physicalStatus = '',
     this.religion = '',
     this.caste = '',
-    this.maritalStatus = 'Single',
     this.bloodGroup = '',
     this.address = '',
     this.hobbies = const [],
@@ -104,7 +115,7 @@ class RegistrationState {
     this.fatherName = '',
     this.motherName = '',
     this.siblings = 0,
-    this.familyType = 'Joint',
+    this.familyType = '',
     this.familyStatus = 'Middle Class',
     this.nativePlace = '',
     this.aboutFamily = '',
@@ -114,6 +125,9 @@ class RegistrationState {
     this.aadharCardUrl = '',
     this.aadharCardName = '',
     this.aadharBytes,
+    this.aadharBackUrl = '',
+    this.aadharBackName = '',
+    this.aadharBackBytes,
     this.photos = const [],
     this.pickedPhotosData,
     this.casteCertificatePath = '',
@@ -131,15 +145,19 @@ class RegistrationState {
     String? accountType,
     String? fullName,
     String? phone,
+    DateTime? dob,
+    int? age,
+    String? motherTongue,
     String? email,
     String? password,
     String? confirmPassword,
     String? gender,
-    DateTime? dob,
-    int? age,
+    String? maritalStatus,
+    String? height,
+    String? diet,
+    String? physicalStatus,
     String? religion,
     String? caste,
-    String? maritalStatus,
     String? bloodGroup,
     String? address,
     List<String>? hobbies,
@@ -166,6 +184,9 @@ class RegistrationState {
     String? aadharCardUrl,
     String? aadharCardName,
     List<int>? aadharBytes,
+    String? aadharBackUrl,
+    String? aadharBackName,
+    List<int>? aadharBackBytes,
     List<String>? photos,
     List<Map<String, dynamic>>? pickedPhotosData,
     String? casteCertificatePath,
@@ -182,15 +203,19 @@ class RegistrationState {
       accountType: accountType ?? this.accountType,
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
+      dob: dob ?? this.dob,
+      age: age ?? this.age,
+      motherTongue: motherTongue ?? this.motherTongue,
       email: email ?? this.email,
       password: password ?? this.password,
       confirmPassword: confirmPassword ?? this.confirmPassword,
       gender: gender ?? this.gender,
-      dob: dob ?? this.dob,
-      age: age ?? this.age,
+      maritalStatus: maritalStatus ?? this.maritalStatus,
+      height: height ?? this.height,
+      diet: diet ?? this.diet,
+      physicalStatus: physicalStatus ?? this.physicalStatus,
       religion: religion ?? this.religion,
       caste: caste ?? this.caste,
-      maritalStatus: maritalStatus ?? this.maritalStatus,
       bloodGroup: bloodGroup ?? this.bloodGroup,
       address: address ?? this.address,
       hobbies: hobbies ?? this.hobbies,
@@ -217,6 +242,9 @@ class RegistrationState {
       aadharCardUrl: aadharCardUrl ?? this.aadharCardUrl,
       aadharCardName: aadharCardName ?? this.aadharCardName,
       aadharBytes: aadharBytes ?? this.aadharBytes,
+      aadharBackUrl: aadharBackUrl ?? this.aadharBackUrl,
+      aadharBackName: aadharBackName ?? this.aadharBackName,
+      aadharBackBytes: aadharBackBytes ?? this.aadharBackBytes,
       photos: photos ?? this.photos,
       pickedPhotosData: pickedPhotosData ?? this.pickedPhotosData,
       casteCertificatePath: casteCertificatePath ?? this.casteCertificatePath,
@@ -379,6 +407,9 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
     String? accountType,
     String? fullName,
     String? phone,
+    DateTime? dob,
+    int? age,
+    String? motherTongue,
     String? email,
     String? password,
     String? confirmPassword,
@@ -387,6 +418,9 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
       accountType: accountType,
       fullName: fullName,
       phone: phone,
+      dob: dob,
+      age: age,
+      motherTongue: motherTongue,
       email: email,
       password: password,
       confirmPassword: confirmPassword,
@@ -395,11 +429,14 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
 
   void updateStep2({
     String? gender,
+    String? maritalStatus,
+    String? height,
+    String? diet,
+    String? physicalStatus,
     DateTime? dob,
     int? age,
     String? religion,
     String? caste,
-    String? maritalStatus,
     String? bloodGroup,
     String? address,
     List<String>? hobbies,
@@ -409,11 +446,14 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
   }) {
     state = state.copyWith(
       gender: gender,
+      maritalStatus: maritalStatus,
+      height: height,
+      diet: diet,
+      physicalStatus: physicalStatus,
       dob: dob,
       age: age,
       religion: religion,
       caste: caste,
-      maritalStatus: maritalStatus,
       bloodGroup: bloodGroup,
       address: address,
       hobbies: hobbies,
@@ -444,45 +484,138 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
   }
 
   void updateStep4({
+    String? country,
+    String? stateVal,
+    String? city,
+    String? religion,
+    String? caste,
+    String? familyType,
+    List<UncleDetail>? maternalUnclesDetails,
+    List<UncleDetail>? paternalUnclesDetails,
     String? fatherName,
     String? motherName,
     int? siblings,
-    String? familyType,
     String? familyStatus,
     String? nativePlace,
     String? aboutFamily,
-    List<UncleDetail>? maternalUnclesDetails,
-    List<UncleDetail>? paternalUnclesDetails,
   }) {
     state = state.copyWith(
+      country: country,
+      state: stateVal,
+      city: city,
+      religion: religion,
+      caste: caste,
+      familyType: familyType,
+      maternalUnclesDetails: maternalUnclesDetails,
+      paternalUnclesDetails: paternalUnclesDetails,
       fatherName: fatherName,
       motherName: motherName,
       siblings: siblings,
-      familyType: familyType,
       familyStatus: familyStatus,
       nativePlace: nativePlace,
       aboutFamily: aboutFamily,
-      maternalUnclesDetails: maternalUnclesDetails,
-      paternalUnclesDetails: paternalUnclesDetails,
     );
   }
 
   void updateStep5({
-    String? aadharNumber,
-    String? aadharCardUrl,
     String? aadharCardName,
     List<int>? aadharBytes,
+    String? aadharCardUrl,
+    String? aadharBackName,
+    List<int>? aadharBackBytes,
+    String? aadharBackUrl,
+    String? casteCertificateName,
+    List<int>? casteCertificateBytes,
+    String? casteCertificateUrl,
+    String? aadharNumber,
     List<String>? photos,
     List<Map<String, dynamic>>? pickedPhotosData,
   }) {
     state = state.copyWith(
-      aadharNumber: aadharNumber,
-      aadharCardUrl: aadharCardUrl,
       aadharCardName: aadharCardName,
       aadharBytes: aadharBytes,
+      aadharCardUrl: aadharCardUrl,
+      aadharBackName: aadharBackName,
+      aadharBackBytes: aadharBackBytes,
+      aadharBackUrl: aadharBackUrl,
+      casteCertificateName: casteCertificateName,
+      casteCertificateBytes: casteCertificateBytes,
+      casteCertificateUrl: casteCertificateUrl,
+      aadharNumber: aadharNumber,
       photos: photos,
       pickedPhotosData: pickedPhotosData,
     );
+  }
+
+  void updateAadharCard({
+    String? name,
+    List<int>? bytes,
+    String? url,
+  }) {
+    state = state.copyWith(
+      aadharCardName: name ?? state.aadharCardName,
+      aadharBytes: bytes ?? state.aadharBytes,
+      aadharCardUrl: url ?? state.aadharCardUrl,
+    );
+  }
+
+  void removeAadharCard() {
+    state = state.copyWith(
+      aadharCardName: '',
+      aadharBytes: null,
+      aadharCardUrl: '',
+    );
+  }
+
+  void updateAadharBack({
+    String? name,
+    List<int>? bytes,
+    String? url,
+  }) {
+    state = state.copyWith(
+      aadharBackName: name ?? state.aadharBackName,
+      aadharBackBytes: bytes ?? state.aadharBackBytes,
+      aadharBackUrl: url ?? state.aadharBackUrl,
+    );
+  }
+
+  void removeAadharBack() {
+    state = state.copyWith(
+      aadharBackName: '',
+      aadharBackBytes: null,
+      aadharBackUrl: '',
+    );
+  }
+
+  void addPickedPhoto({required List<int> bytes, required String fileName}) {
+    final currentList = List<Map<String, dynamic>>.from(state.pickedPhotosData ?? []);
+    if (currentList.length < 6) {
+      currentList.add({
+        'bytes': bytes,
+        'fileName': fileName,
+      });
+      state = state.copyWith(pickedPhotosData: currentList);
+    }
+  }
+
+  void removePickedPhoto(int index) {
+    final currentList = List<Map<String, dynamic>>.from(state.pickedPhotosData ?? []);
+    if (index >= 0 && index < currentList.length) {
+      currentList.removeAt(index);
+      state = state.copyWith(pickedPhotosData: currentList);
+    }
+  }
+
+  void removePhotoUrl(int index) {
+    final currentUrls = List<String>.from(state.photos);
+    if (index >= 0 && index < currentUrls.length) {
+      currentUrls.removeAt(index);
+      state = state.copyWith(photos: currentUrls);
+    }
+  }
+
+  void clearPickedPhotos() {
+    state = state.copyWith(pickedPhotosData: []);
   }
 
   void setConfirmDetailsAccepted(bool val) {
@@ -515,9 +648,10 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       String aadharUrl = state.aadharCardUrl;
+      String aadharBackUrl = state.aadharBackUrl;
       String casteCertificateUrl = state.casteCertificateUrl;
-// Keep persistent URLs only. Browser blob URLs and local paths
-// must never be stored as profile photo URLs.
+      // Keep persistent URLs only. Browser blob URLs and local paths
+      // must never be stored as profile photo URLs.
       List<String> uploadedPhotos = state.photos
           .where(
             (url) =>
@@ -527,16 +661,21 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
           .toList();
 
       // If we have local documents/photos to upload, upload them to Cloudinary first
-      if (state.aadharBytes != null || state.casteCertificateBytes != null || (state.pickedPhotosData != null && state.pickedPhotosData!.isNotEmpty)) {
+      if (state.aadharBytes != null || state.aadharBackBytes != null || state.casteCertificateBytes != null || (state.pickedPhotosData != null && state.pickedPhotosData!.isNotEmpty)) {
         final uploadResult = await _authRepository.uploadFiles(
           aadharBytes: state.aadharBytes,
           aadharFileName: state.aadharCardName,
+          aadharBackBytes: state.aadharBackBytes,
+          aadharBackFileName: state.aadharBackName,
           casteBytes: state.casteCertificateBytes,
           casteFileName: state.casteCertificateName,
           photos: state.pickedPhotosData,
         );
         if (uploadResult['aadharUrl'] != null && uploadResult['aadharUrl'].toString().isNotEmpty) {
           aadharUrl = uploadResult['aadharUrl'];
+        }
+        if (uploadResult['aadharBackUrl'] != null && uploadResult['aadharBackUrl'].toString().isNotEmpty) {
+          aadharBackUrl = uploadResult['aadharBackUrl'];
         }
         if (uploadResult['casteCertificateUrl'] != null && uploadResult['casteCertificateUrl'].toString().isNotEmpty) {
           casteCertificateUrl = uploadResult['casteCertificateUrl'];
@@ -562,6 +701,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         'profileCreatedFor': state.accountType,
         'fullName': state.fullName,
         'phone': state.phone,
+        'mobile': state.phone,
         'email': state.email,
         'password': state.password,
         'confirmPassword': state.confirmPassword,
@@ -571,10 +711,14 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         'religion': state.religion,
         'caste': state.caste,
         'maritalStatus': state.maritalStatus,
+        'height': state.height,
+        'diet': state.diet,
+        'specialCase': state.physicalStatus,
+        'physicalStatus': state.physicalStatus,
         'bloodGroup': state.bloodGroup,
         if (state.address.isNotEmpty) 'address': state.address,
         if (state.hobbies.isNotEmpty) 'hobbies': state.hobbies,
-        'rashi': state.rashi,
+        if (state.rashi.isNotEmpty) 'rashi': state.rashi,
         if (state.nakshatra.isNotEmpty) 'nakshatra': state.nakshatra,
         'manglik': state.manglik,
         'qualification': state.qualification,
@@ -589,7 +733,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
           'district': state.city,
         },
         if (state.languages.isNotEmpty) 'languages': state.languages,
-        'motherTongue': state.languages.isNotEmpty ? state.languages.first : 'Marathi',
+        'motherTongue': state.motherTongue.isNotEmpty ? state.motherTongue : (state.languages.isNotEmpty ? state.languages.first : 'Marathi'),
         'fatherName': state.fatherName,
         'motherName': state.motherName,
         'siblings': state.siblings,
@@ -600,18 +744,24 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         'nativePlace': state.nativePlace,
         'aboutFamily': state.aboutFamily,
         'maternalUnclesDetails': state.maternalUnclesDetails
-            .where((u) => u.name.trim().isNotEmpty || u.occupation.trim().isNotEmpty)
+            .where((u) => u.name.trim().isNotEmpty || u.occupation.trim().isNotEmpty || u.mobile.trim().isNotEmpty)
             .map((u) => u.toJson())
             .toList(),
         'unclesDetails': state.paternalUnclesDetails
-            .where((u) => u.name.trim().isNotEmpty || u.occupation.trim().isNotEmpty)
+            .where((u) => u.name.trim().isNotEmpty || u.occupation.trim().isNotEmpty || u.mobile.trim().isNotEmpty)
             .map((u) => u.toJson())
             .toList(),
         'maternalUncleName': state.maternalUnclesDetails.map((u) => u.name).where((n) => n.trim().isNotEmpty).join(', '),
         'uncleName': state.paternalUnclesDetails.map((u) => u.name).where((n) => n.trim().isNotEmpty).join(', '),
+        if (state.maternalUnclesDetails.isNotEmpty && state.maternalUnclesDetails.first.mobile.isNotEmpty)
+          'maternalUncleMobile': state.maternalUnclesDetails.first.mobile,
+        if (state.paternalUnclesDetails.isNotEmpty && state.paternalUnclesDetails.first.mobile.isNotEmpty)
+          'paternalUncleMobile': state.paternalUnclesDetails.first.mobile,
         'aadharNumber': state.aadharNumber,
         'aadharCardUrl': aadharUrl,
         'aadhaarFrontphoto': aadharUrl,
+        'aadharBackUrl': aadharBackUrl,
+        'aadhaarBackphoto': aadharBackUrl,
         'casteCertificateUrl': casteCertificateUrl,
         'castecertificate': casteCertificateUrl,
         'casteCertificateName': state.casteCertificateName,

@@ -13,6 +13,8 @@ abstract class AuthRepository {
   Future<Map<String, dynamic>> uploadFiles({
     List<int>? aadharBytes,
     String? aadharFileName,
+    List<int>? aadharBackBytes,
+    String? aadharBackFileName,
     List<int>? casteBytes,
     String? casteFileName,
     List<Map<String, dynamic>>? photos,
@@ -117,6 +119,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Map<String, dynamic>> uploadFiles({
     List<int>? aadharBytes,
     String? aadharFileName,
+    List<int>? aadharBackBytes,
+    String? aadharBackFileName,
     List<int>? casteBytes,
     String? casteFileName,
     List<Map<String, dynamic>>? photos,
@@ -130,6 +134,18 @@ class AuthRepositoryImpl implements AuthRepository {
           MultipartFile.fromBytes(
             aadharBytes,
             filename: aadharFileName ?? 'aadhar_doc.pdf',
+          ),
+        ),
+      );
+    }
+
+    if (aadharBackBytes != null && aadharBackBytes.isNotEmpty) {
+      formData.files.add(
+        MapEntry(
+          'aadharCardBack',
+          MultipartFile.fromBytes(
+            aadharBackBytes,
+            filename: aadharBackFileName ?? 'aadhar_back.pdf',
           ),
         ),
       );
@@ -179,8 +195,9 @@ class AuthRepositoryImpl implements AuthRepository {
         .toList();
 
     return {
-      'aadharUrl': responseData['aadharUrl'] ?? '',
-      'casteCertificateUrl': responseData['casteCertificateUrl'] ?? '',
+      'aadharUrl': responseData['aadharUrl'] ?? responseData['aadhaarFrontphoto'] ?? '',
+      'aadharBackUrl': responseData['aadharBackUrl'] ?? responseData['aadharCardBackUrl'] ?? responseData['aadhaarBackphoto'] ?? '',
+      'casteCertificateUrl': responseData['casteCertificateUrl'] ?? responseData['castecertificate'] ?? '',
       'photoUrls': photoUrls,
     };
   }

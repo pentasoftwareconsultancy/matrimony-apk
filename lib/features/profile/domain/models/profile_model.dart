@@ -104,18 +104,21 @@ class SisterDetail {
 class UncleDetail {
   final String name;
   final String occupation;
+  final String mobile;
 
   String get profession => occupation;
 
   const UncleDetail({
     this.name = '',
     this.occupation = '',
+    this.mobile = '',
   });
 
-  UncleDetail copyWith({String? name, String? occupation}) {
+  UncleDetail copyWith({String? name, String? occupation, String? mobile}) {
     return UncleDetail(
       name: name ?? this.name,
       occupation: occupation ?? this.occupation,
+      mobile: mobile ?? this.mobile,
     );
   }
 
@@ -123,11 +126,13 @@ class UncleDetail {
     'name': name,
     'occupation': occupation,
     'profession': occupation,
+    'mobile': mobile,
   };
 
   factory UncleDetail.fromJson(Map<String, dynamic> json) => UncleDetail(
     name: _asStr(json['name']),
     occupation: _asStr(json['occupation'] ?? json['profession']),
+    mobile: _asStr(json['mobile'] ?? json['phone']),
   );
 
   @override
@@ -136,13 +141,14 @@ class UncleDetail {
       other is UncleDetail &&
           runtimeType == other.runtimeType &&
           name == other.name &&
-          occupation == other.occupation;
+          occupation == other.occupation &&
+          mobile == other.mobile;
 
   @override
-  int get hashCode => name.hashCode ^ occupation.hashCode;
+  int get hashCode => name.hashCode ^ occupation.hashCode ^ mobile.hashCode;
 
   @override
-  String toString() => 'UncleDetail(name: $name, occupation: $occupation)';
+  String toString() => 'UncleDetail(name: $name, occupation: $occupation, mobile: $mobile)';
 }
 
 class ProfileModel {
