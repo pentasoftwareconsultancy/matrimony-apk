@@ -34,7 +34,7 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Matrimony App',
+      title: 'Soyarik',
       theme: AppTheme.themeData,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
