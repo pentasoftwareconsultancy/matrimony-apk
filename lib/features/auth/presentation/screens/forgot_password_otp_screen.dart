@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../controllers/password_controller.dart';
 import '../widgets/four_digit_otp_widget.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class ForgotPasswordOtpScreen extends ConsumerStatefulWidget {
   const ForgotPasswordOtpScreen({super.key});
@@ -77,9 +78,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
               const SizedBox(height: 16),
 
               // Title
-              const Text(
-                'Forgot your password',
-                style: TextStyle(
+              Text(
+                context.isMarathi ? 'पासवर्ड विसरलात?' : 'Forgot your password',
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -90,7 +91,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
               // Subtitle with Recipient in Bold
               RichText(
                 text: TextSpan(
-                  text: 'A verification code has been sent to ',
+                  text: context.isMarathi
+                      ? 'सत्यापन कोड या क्रमांकावर पाठवला आहे: '
+                      : 'A verification code has been sent to ',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade500,
@@ -111,9 +114,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
               const SizedBox(height: 36),
 
               // Label: Enter code
-              const Text(
-                'Enter code',
-                style: TextStyle(
+              Text(
+                context.isMarathi ? 'कोड प्रविष्ट करा' : 'Enter code',
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: Color(0xFF1E1E1E),
@@ -190,9 +193,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Next',
-                          style: TextStyle(
+                      : Text(
+                          context.l10n.next,
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),

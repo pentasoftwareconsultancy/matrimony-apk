@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/localization/l10n_helper.dart';
 import '../../../profile/domain/models/profile_model.dart';
 import '../controllers/registration_controller.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
@@ -397,7 +398,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(title, style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+                child: Text(context.tr(title), style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
               ),
               const Divider(height: 1),
               Expanded(
@@ -409,7 +410,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                     final isSelected = option == selectedValue;
                     return ListTile(
                       title: Text(
-                        option,
+                        context.tr(option),
                         style: TextStyle(
                           color: isSelected ? AppColors.primary : Colors.black,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -434,7 +435,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
   void _showDayPicker() {
     final days = List.generate(31, (i) => '${i + 1}');
     _showDropdownSelection(
-      title: 'Select Day',
+      title: context.isMarathi ? 'दिवस निवडा' : 'Select Day',
       options: days,
       selectedValue: _selectedDay != null ? '$_selectedDay' : '',
       onSelected: (val) {
@@ -448,7 +449,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
 
   void _showMonthPicker() {
     _showDropdownSelection(
-      title: 'Select Month',
+      title: context.isMarathi ? 'महिना निवडा' : 'Select Month',
       options: _monthNames,
       selectedValue: _selectedMonth != null ? _monthNames[_selectedMonth! - 1] : '',
       onSelected: (val) {
@@ -464,7 +465,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
     final currentYear = DateTime.now().year;
     final years = List.generate(65, (i) => '${currentYear - 18 - i}');
     _showDropdownSelection(
-      title: 'Select Year',
+      title: context.isMarathi ? 'वर्ष निवडा' : 'Select Year',
       options: years,
       selectedValue: _selectedYear != null ? '$_selectedYear' : '',
       onSelected: (val) {
@@ -1039,7 +1040,9 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             onPressed: currentStep > 0 ? _prevStep : () => context.go('/login'),
           ),
           title: Text(
-            currentStep == 5 ? 'Review Registration' : 'Register',
+            currentStep == 5
+                ? context.l10n.reviewRegistration
+                : (context.isMarathi ? 'नोंदणी' : 'Register'),
             style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ),
@@ -1143,7 +1146,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                           onPressed: _prevStep,
                           icon: const Icon(Icons.arrow_back, size: 18, color: AppColors.primary),
                           label: Text(
-                            regState.isEditingFromReview ? 'Cancel' : 'Back',
+                            regState.isEditingFromReview ? context.l10n.cancel : context.l10n.back,
                             style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 15),
                           ),
                           style: OutlinedButton.styleFrom(
@@ -1181,10 +1184,12 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                                 children: [
                                   Text(
                                     currentStep == 5
-                                        ? 'Submit Registration'
+                                        ? context.l10n.submitRegistration
                                         : (regState.isEditingFromReview
-                                            ? 'Save & Return to Review'
-                                            : (currentStep == 4 ? 'Complete Registration' : 'Next')),
+                                            ? (context.isMarathi ? 'जतन करा आणि पुनरावलोकन' : 'Save & Return to Review')
+                                            : (currentStep == 4
+                                                ? (context.isMarathi ? 'नोंदणी पूर्ण करा' : 'Complete Registration')
+                                                : context.l10n.next)),
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
                                   if (currentStep < 4 && !regState.isEditingFromReview) ...[
@@ -1214,11 +1219,11 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
   // ----------------------------------------------------
   Widget _buildStepperHeader(int currentStep) {
     final steps = [
-      {'icon': Icons.person, 'label': 'Basic Details'},
-      {'icon': Icons.favorite_border, 'label': 'Personal Details'},
-      {'icon': Icons.work_outline, 'label': 'Education/Career'},
-      {'icon': Icons.home_outlined, 'label': 'Location & Family'},
-      {'icon': Icons.description_outlined, 'label': 'Document Details'},
+      {'icon': Icons.person, 'label': context.l10n.stepBasicDetails},
+      {'icon': Icons.favorite_border, 'label': context.l10n.stepPersonalDetails},
+      {'icon': Icons.work_outline, 'label': context.l10n.stepEducationCareer},
+      {'icon': Icons.home_outlined, 'label': context.l10n.stepLocationFamily},
+      {'icon': Icons.description_outlined, 'label': context.l10n.stepDocumentDetails},
     ];
 
     return Row(
@@ -1327,7 +1332,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
             Icon(icon, color: AppColors.primary, size: 24),
             const SizedBox(width: 8),
             Text(
-              title,
+              context.tr(title),
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -1351,7 +1356,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
         ),
         const SizedBox(height: 4),
         Text(
-          subtitle,
+          context.tr(subtitle),
           style: TextStyle(
             fontSize: 13,
             color: Colors.grey.shade600,
@@ -1360,7 +1365,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
         if (note != null) ...[
           const SizedBox(height: 3),
           Text(
-            note,
+            context.tr(note),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade600,
@@ -1381,7 +1386,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
       padding: const EdgeInsets.only(bottom: 6.0, top: 4.0),
       child: Text.rich(
         TextSpan(
-          text: text,
+          text: context.tr(text),
           style: const TextStyle(
             fontSize: 13.5,
             fontWeight: FontWeight.w600,
@@ -1405,7 +1410,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
     Widget? suffixIcon,
   }) {
     return InputDecoration(
-      hintText: hintText,
+      hintText: context.tr(hintText),
       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13.5),
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
@@ -1463,7 +1468,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                 ],
                 Expanded(
                   child: Text(
-                    hasValue ? value : hintText,
+                    hasValue ? context.tr(value) : context.tr(hintText),
                     style: TextStyle(
                       color: hasValue ? Colors.black87 : Colors.grey.shade400,
                       fontSize: 13.5,
@@ -1585,7 +1590,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                       children: [
                         Expanded(
                           child: Text(
-                            _selectedDay != null ? '$_selectedDay' : 'Day',
+                            _selectedDay != null ? '$_selectedDay' : context.l10n.day,
                             style: TextStyle(
                               fontSize: 13.5,
                               color: _selectedDay != null ? Colors.black87 : Colors.grey.shade500,
@@ -1620,7 +1625,9 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                       children: [
                         Expanded(
                           child: Text(
-                            _selectedMonth != null ? _monthNames[_selectedMonth! - 1] : 'Month',
+                            _selectedMonth != null
+                                ? context.tr(_monthNames[_selectedMonth! - 1])
+                                : context.l10n.month,
                             style: TextStyle(
                               fontSize: 13.5,
                               color: _selectedMonth != null ? Colors.black87 : Colors.grey.shade500,
@@ -1655,7 +1662,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                       children: [
                         Expanded(
                           child: Text(
-                            _selectedYear != null ? '$_selectedYear' : 'Year',
+                            _selectedYear != null ? '$_selectedYear' : context.l10n.year,
                             style: TextStyle(
                               fontSize: 13.5,
                               color: _selectedYear != null ? Colors.black87 : Colors.grey.shade500,
@@ -2690,7 +2697,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  title,
+                  context.tr(title),
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -2708,14 +2715,14 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.edit, size: 13, color: AppColors.primary),
-                      SizedBox(width: 4),
+                      const Icon(Icons.edit, size: 13, color: AppColors.primary),
+                      const SizedBox(width: 4),
                       Text(
-                        'Edit',
-                        style: TextStyle(
+                        context.l10n.edit,
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -2743,7 +2750,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           SizedBox(
             width: 130,
             child: Text(
-              label,
+              context.tr(label),
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
@@ -2754,7 +2761,9 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              value.isNotEmpty ? value : 'Not specified',
+              value.isNotEmpty
+                  ? context.tr(value)
+                  : (context.isMarathi ? 'दिलेले नाही' : 'Not specified'),
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -2768,6 +2777,13 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
   }
 
   Widget _buildReviewDocumentItem(String label, String value, bool isUploaded) {
+    String displayValue = value;
+    if (value == 'Uploaded') {
+      displayValue = context.isMarathi ? 'अपलोड केले' : 'Uploaded';
+    } else if (value == 'Not uploaded') {
+      displayValue = context.isMarathi ? 'अपलोड नाही' : 'Not uploaded';
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -2775,7 +2791,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           SizedBox(
             width: 130,
             child: Text(
-              label,
+              context.tr(label),
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
@@ -2792,7 +2808,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              value,
+              displayValue,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -2847,15 +2863,17 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          fileName.isNotEmpty ? fileName : 'Document Uploaded',
+                          fileName.isNotEmpty
+                              ? fileName
+                              : (context.isMarathi ? 'दस्तऐवज अपलोड केले' : 'Document Uploaded'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'Ready to submit',
-                          style: TextStyle(color: Colors.green, fontSize: 11.5),
+                        Text(
+                          context.isMarathi ? 'सबमिट करण्यासाठी तयार' : 'Ready to submit',
+                          style: const TextStyle(color: Colors.green, fontSize: 11.5),
                         ),
                       ],
                     ),
@@ -2870,9 +2888,9 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Click to upload',
-                      style: TextStyle(
+                    Text(
+                      context.isMarathi ? 'अपलोड करण्यासाठी येथे टॅप करा' : 'Click to upload',
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         color: Color(0xFF333333),
@@ -2880,7 +2898,7 @@ class _RegistrationStepperScreenState extends ConsumerState<RegistrationStepperS
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'JPEG, PNG, or PDF (Max 5MB)',
+                      context.isMarathi ? 'JPEG, PNG किंवा PDF (कमाल ५MB)' : 'JPEG, PNG, or PDF (Max 5MB)',
                       style: TextStyle(
                         fontSize: 11.5,
                         color: Colors.grey.shade500,

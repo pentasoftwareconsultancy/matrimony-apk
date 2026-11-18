@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/l10n_helper.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import '../../../../core/utils/profile_compatiblity.dart';
 import '../../../../features/auth/presentation/controllers/auth_controller.dart';
@@ -61,17 +62,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final exitApp = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Exit Application?'),
-        content: const Text('Do you want to exit the app?'),
+        title: Text(context.l10n.exitApp),
+        content: Text(context.l10n.exitAppConfirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Exit'),
+            child: Text(context.l10n.exit),
           ),
         ],
       ),

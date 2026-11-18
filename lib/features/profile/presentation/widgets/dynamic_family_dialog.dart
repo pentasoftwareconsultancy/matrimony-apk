@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/models/profile_model.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 enum DynamicFamilyType {
   brothers,
@@ -195,6 +196,18 @@ class _DynamicFamilyDialogState extends State<DynamicFamilyDialog> {
   }
 
   String get _title {
+    if (context.isMarathi) {
+      switch (widget.type) {
+        case DynamicFamilyType.brothers:
+          return 'भावांची माहिती';
+        case DynamicFamilyType.sisters:
+          return 'बहिणींची माहिती';
+        case DynamicFamilyType.maternalUncles:
+          return 'मामांची माहिती';
+        case DynamicFamilyType.uncles:
+          return 'काकांची माहिती';
+      }
+    }
     switch (widget.type) {
       case DynamicFamilyType.brothers:
         return 'Brothers Details';
@@ -208,6 +221,18 @@ class _DynamicFamilyDialogState extends State<DynamicFamilyDialog> {
   }
 
   String get _singularLabel {
+    if (context.isMarathi) {
+      switch (widget.type) {
+        case DynamicFamilyType.brothers:
+          return 'भाऊ';
+        case DynamicFamilyType.sisters:
+          return 'बहीण';
+        case DynamicFamilyType.maternalUncles:
+          return 'मामा';
+        case DynamicFamilyType.uncles:
+          return 'काका';
+      }
+    }
     switch (widget.type) {
       case DynamicFamilyType.brothers:
         return 'Brother';
@@ -475,7 +500,7 @@ class _DynamicFamilyDialogState extends State<DynamicFamilyDialog> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
-              'Save $_title',
+              context.isMarathi ? 'जतन करा' : 'Save $_title',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 15,

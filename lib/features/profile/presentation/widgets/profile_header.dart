@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
   final VoidCallback? onBackTap;
@@ -22,21 +23,21 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Log out',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          context.l10n.logoutConfirmTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        content: const Text(
-          'Are you sure you want to log out?',
-          style: TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
+        content: Text(
+          context.l10n.logoutConfirmMessage,
+          style: const TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
         ),
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            child: Text(
+              context.l10n.cancel,
+              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
             ),
           ),
           ElevatedButton(
@@ -52,9 +53,9 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
               minimumSize: const Size(90, 40),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
-            child: const Text(
-              'Log out',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            child: Text(
+              context.l10n.logout,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -82,18 +83,18 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
                   }
                 },
             behavior: HitTestBehavior.opaque,
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.arrow_back,
                   color: Colors.black87,
                   size: 22,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
-                  'Profile',
-                  style: TextStyle(
+                  context.l10n.navProfile,
+                  style: const TextStyle(
                     color: Colors.black,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -113,9 +114,9 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
                 color: const Color(0xFFC9003F),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Text(
-                'Log out',
-                style: TextStyle(
+              child: Text(
+                context.l10n.logout,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,

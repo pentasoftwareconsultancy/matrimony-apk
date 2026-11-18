@@ -6,6 +6,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import '../controllers/app_providers.dart';
 import 'profile_details_screen.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -63,9 +64,9 @@ class _NotificationsScreenState
           onPressed: () => Navigator.pop(context),
         ),
 
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
+        title: Text(
+          context.isMarathi ? 'सूचना' : 'Notifications',
+          style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 16,
@@ -86,7 +87,7 @@ class _NotificationsScreenState
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '$unreadCount new',
+                  context.isMarathi ? '$unreadCount नवीन' : '$unreadCount new',
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,

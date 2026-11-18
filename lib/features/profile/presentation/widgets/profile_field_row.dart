@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class ProfileFieldRow extends StatelessWidget {
   final String label;
@@ -18,6 +19,11 @@ class ProfileFieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizedLabel = context.tr(label);
+    final localizedValue = value.isNotEmpty
+        ? context.tr(value)
+        : (context.isMarathi ? 'दिलेले नाही' : 'Not Specified');
+
     return InkWell(
       onTap: onTap,
       splashColor: const Color(0x0DC9003F),
@@ -40,7 +46,7 @@ class ProfileFieldRow extends StatelessWidget {
             SizedBox(
               width: 130,
               child: Text(
-                label.toUpperCase(),
+                localizedLabel.toUpperCase(),
                 style: const TextStyle(
                   color: Color(0xFF9E9E9E),
                   fontSize: 11,
@@ -54,7 +60,7 @@ class ProfileFieldRow extends StatelessWidget {
             // Field Value (RIGHT)
             Expanded(
               child: Text(
-                value.isNotEmpty ? value : 'Not Specified',
+                localizedValue,
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   color: value.isNotEmpty

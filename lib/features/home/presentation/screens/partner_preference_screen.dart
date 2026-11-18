@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/app_providers.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class PartnerPreferenceScreen extends ConsumerStatefulWidget {
   const PartnerPreferenceScreen({super.key});
@@ -424,9 +425,9 @@ class _PartnerPreferenceScreenState extends ConsumerState<PartnerPreferenceScree
                                   strokeWidth: 2.5,
                                 ),
                               )
-                            : const Text(
-                                'Save Changes',
-                                style: TextStyle(
+                            : Text(
+                                context.isMarathi ? 'बदल जतन करा' : 'Save Changes',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.3,
@@ -465,10 +466,10 @@ class _PartnerPreferenceScreenState extends ConsumerState<PartnerPreferenceScree
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Age range',
-              style: TextStyle(
+              context.isMarathi ? 'वयाची मर्यादा' : 'Age range',
+              style: const TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1E1E1E),
@@ -594,7 +595,7 @@ class _PartnerPreferenceScreenState extends ConsumerState<PartnerPreferenceScree
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              label,
+              context.tr(label),
               style: const TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.bold,
@@ -637,7 +638,7 @@ class _PartnerPreferenceScreenState extends ConsumerState<PartnerPreferenceScree
                   return DropdownMenuItem<String>(
                     value: opt,
                     child: Text(
-                      opt,
+                      context.tr(opt),
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 13.5,

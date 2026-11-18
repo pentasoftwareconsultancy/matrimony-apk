@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/profile_model.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class ProfileSummaryCard extends StatelessWidget {
   final ProfileModel profile;
@@ -100,7 +101,9 @@ class ProfileSummaryCard extends StatelessWidget {
                   children: [
                     // Name & Age text header matching reference screenshot
                     Text(
-                      '${profile.fullName}, age– ${profile.age}',
+                      context.isMarathi
+                          ? '${profile.fullName}, वय– ${profile.age}'
+                          : '${profile.fullName}, age– ${profile.age}',
                       style: const TextStyle(
                         color: Colors.black87,
                         fontSize: 17,
@@ -118,7 +121,7 @@ class ProfileSummaryCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        profile.tag.toUpperCase(),
+                        context.tr(profile.tag).toUpperCase(),
                         style: const TextStyle(
                           color: Color(0xFFC9003F),
                           fontSize: 9,
@@ -135,7 +138,7 @@ class ProfileSummaryCard extends StatelessWidget {
                       child: Text(
                         profile.aboutMe.isNotEmpty
                             ? profile.aboutMe
-                            : 'Not Specified',
+                            : (context.isMarathi ? 'माहिती दिलेली नाही' : 'Not Specified'),
                         style: TextStyle(
                           color: profile.aboutMe.isNotEmpty ? Colors.grey.shade700 : Colors.grey.shade400,
                           fontSize: 11.5,

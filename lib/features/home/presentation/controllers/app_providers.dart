@@ -1779,47 +1779,48 @@ class LanguageNotifier
 
   Future<void> _load() async {
     try {
-      final apiClient =
-      _ref.read(apiClientProvider);
-
-      final response =
-      await apiClient.get('/settings');
-
-      state =
-          response.data['data']['language'] ??
-              'English';
-    } catch (_) {
       final prefs =
-      await SharedPreferences.getInstance();
-
-      state =
-          prefs.getString('appLanguage') ??
-              'English';
+          await SharedPreferences.getInstance();
+      final local = prefs.getString('appLanguage');
+      if (local != null && local.isNotEmpty) {
+        state = local;
+      }
+      final apiClient =
+          _ref.read(apiClientProvider);
+      final response =
+          await apiClient.get('/settings');
+      final remoteLang =
+          response.data['data']?['language'];
+      if (remoteLang != null && remoteLang.toString().isNotEmpty) {
+        state = remoteLang.toString();
+        await prefs.setString('appLanguage', state);
+      }
+    } catch (_) {
+      // Kept local preference if remote failed
     }
   }
 
   Future<void> save(String lang) async {
     state = lang;
+    try {
+      final prefs =
+          await SharedPreferences.getInstance();
+      await prefs.setString(
+        'appLanguage',
+        lang,
+      );
+    } catch (_) {}
 
     try {
       final apiClient =
-      _ref.read(apiClientProvider);
-
+          _ref.read(apiClientProvider);
       await apiClient.put(
         '/settings/language',
         data: {
           'language': lang,
         },
       );
-    } catch (_) {
-      final prefs =
-      await SharedPreferences.getInstance();
-
-      await prefs.setString(
-        'appLanguage',
-        lang,
-      );
-    }
+    } catch (_) {}
   }
 }
 

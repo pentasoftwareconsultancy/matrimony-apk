@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/localization/l10n_helper.dart';
 import '../controllers/profile_controller.dart';
 
 class PhotoManagementDialog extends ConsumerWidget {
@@ -60,7 +61,7 @@ class PhotoManagementDialog extends ConsumerWidget {
       ) async {
     if (currentPhotos.length >= maxPhotos) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 6 profile photos are allowed.')),
+        SnackBar(content: Text(context.tr('Maximum 6 profile photos are allowed.'))),
       );
       return;
     }
@@ -81,8 +82,8 @@ class PhotoManagementDialog extends ConsumerWidget {
         SnackBar(
           content: Text(
             source == ImageSource.camera
-                ? 'Could not open the camera. Please try the gallery.'
-                : 'Could not select the image. Please try again.',
+                ? context.tr('Could not open the camera. Please try the gallery.')
+                : context.tr('Could not select the image. Please try again.'),
           ),
         ),
       );
@@ -118,9 +119,9 @@ class PhotoManagementDialog extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Profile Photos Management',
-            style: TextStyle(
+          Text(
+            context.tr('Profile Photos Management'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -128,7 +129,9 @@ class PhotoManagementDialog extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${currentPhotos.length} of $maxPhotos photos uploaded. You can add up to ${maxPhotos - currentPhotos.length} more.',
+            context.isMarathi
+                ? '${currentPhotos.length} / $maxPhotos फोटो अपलोड केले आहेत. आपण आणखी ${maxPhotos - currentPhotos.length} फोटो जोडू शकता.'
+                : '${currentPhotos.length} of $maxPhotos photos uploaded. You can add up to ${maxPhotos - currentPhotos.length} more.',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 12),
@@ -138,9 +141,9 @@ class PhotoManagementDialog extends ConsumerWidget {
               backgroundColor: Color(0xFFFFECEF),
               child: Icon(Icons.photo_camera, color: Color(0xFFC9003F)),
             ),
-            title: const Text(
-              'Take Photo from Camera',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            title: Text(
+              context.tr('Take Photo from Camera'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             enabled: !hasReachedLimit,
             onTap: hasReachedLimit
@@ -153,9 +156,9 @@ class PhotoManagementDialog extends ConsumerWidget {
               backgroundColor: Color(0xFFFFECEF),
               child: Icon(Icons.photo_library, color: Color(0xFFC9003F)),
             ),
-            title: const Text(
-              'Upload Photo from Gallery',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            title: Text(
+              context.tr('Upload Photo from Gallery'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             enabled: !hasReachedLimit,
             onTap: hasReachedLimit
@@ -166,15 +169,15 @@ class PhotoManagementDialog extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'You have reached the 6-photo limit. Delete a photo to add another.',
+                context.tr('You have reached the 6-photo limit. Delete a photo to add another.'),
                 style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
               ),
             ),
           if (currentPhotos.isNotEmpty) ...[
             const Divider(height: 24),
-            const Text(
-              'Saved Photos (Tap × to delete)',
-              style: TextStyle(
+            Text(
+              context.tr('Saved Photos (Tap × to delete)'),
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
                 color: Colors.black87,

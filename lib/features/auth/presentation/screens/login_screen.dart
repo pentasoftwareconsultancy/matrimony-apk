@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/localization/l10n_helper.dart';
 import '../controllers/auth_controller.dart';
 import '../../../home/presentation/screens/terms_screen.dart';
 import '../../../home/presentation/screens/privacy_screen.dart';
@@ -180,7 +181,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          'Login',
+                                          context.l10n.login,
                                           style:
                                               AppTextStyles.titleLarge.copyWith(
                                             fontSize: 26,
@@ -195,7 +196,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                                 // Email label
                                 Text(
-                                  'Email address',
+                                  context.l10n.email,
                                   style: AppTextStyles.bodyMedium.copyWith(
                                     color: Colors.black87,
                                     fontWeight: FontWeight.w500,
@@ -207,16 +208,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 TextFormField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Enter your email address',
-                                    hintStyle: TextStyle(
+                                  decoration: InputDecoration(
+                                    hintText: context.l10n.enterEmailAddress,
+                                    hintStyle: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 14,
                                     ),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter your email address';
+                                      return context.l10n.valEmailRequired;
                                     }
 
                                     final input = value.trim();
@@ -241,7 +242,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                                 // Password label
                                 Text(
-                                  'Password',
+                                  context.l10n.password,
                                   style: AppTextStyles.bodyMedium.copyWith(
                                     color: Colors.black87,
                                     fontWeight: FontWeight.w500,
@@ -254,7 +255,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
                                   decoration: InputDecoration(
-                                    hintText: 'Enter your password',
+                                    hintText: context.l10n.passwordHint,
                                     hintStyle: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 14,
@@ -310,9 +311,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       tapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    child: const Text(
-                                      'Forgot password?',
-                                      style: TextStyle(
+                                    child: Text(
+                                      context.l10n.forgotPassword,
+                                      style: const TextStyle(
                                         color: AppColors.primary,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -348,7 +349,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text('Login'),
+                                      : Text(context.l10n.login),
                                 ),
                                 const SizedBox(height: 20),
 
@@ -362,12 +363,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         height: 1.45,
                                       ),
                                       children: [
-                                        const TextSpan(
-                                          text:
-                                              'By continuing, you agree to our ',
+                                        TextSpan(
+                                          text: context.isMarathi
+                                              ? 'पुढे चालू ठेवून, आपण आमच्या '
+                                              : 'By continuing, you agree to our ',
                                         ),
                                         TextSpan(
-                                          text: 'Terms and Conditions',
+                                          text: context.l10n.termsAndConditions,
                                           style: const TextStyle(
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w600,
@@ -385,9 +387,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                               );
                                             },
                                         ),
-                                        const TextSpan(text: ' and '),
+                                        TextSpan(text: context.isMarathi ? ' आणि ' : ' and '),
                                         TextSpan(
-                                          text: 'Privacy Policy',
+                                          text: context.l10n.privacyPolicy,
                                           style: const TextStyle(
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w600,
@@ -415,20 +417,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text("Don't have an account?"),
+                                    Text(context.l10n.dontHaveAccount),
                                     GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onTap: () {
                                         context.push('/register/step1');
                                       },
-                                      child: const Padding(
-                                        padding: EdgeInsets.symmetric(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                           vertical: 4,
                                         ),
                                         child: Text(
-                                          'Register',
-                                          style: TextStyle(
+                                          context.l10n.registerNow,
+                                          style: const TextStyle(
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.bold,
                                           ),

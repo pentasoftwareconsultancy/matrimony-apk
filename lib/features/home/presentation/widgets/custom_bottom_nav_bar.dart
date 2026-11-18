@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/l10n_helper.dart';
 import '../controllers/home_controller.dart';
 
 class CustomBottomNavBar extends ConsumerWidget {
@@ -58,10 +59,10 @@ class CustomBottomNavBar extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildNavItem(context, ref, 0, Icons.home_rounded, 'Home', activeIndex),
-          _buildNavItem(context, ref, 1, Icons.favorite_rounded, 'Likes', activeIndex),
-          _buildNavItem(context, ref, 2, Icons.chat_bubble_rounded, 'Messages', activeIndex),
-          _buildNavItem(context, ref, 3, Icons.person_rounded, 'Profile', activeIndex),
+          _buildNavItem(context, ref, 0, Icons.home_rounded, context.l10n.navHome, activeIndex),
+          _buildNavItem(context, ref, 1, Icons.favorite_rounded, context.l10n.navLikes, activeIndex),
+          _buildNavItem(context, ref, 2, Icons.chat_bubble_rounded, context.l10n.navMessages, activeIndex),
+          _buildNavItem(context, ref, 3, Icons.person_rounded, context.l10n.navProfile, activeIndex),
         ],
       ),
     );

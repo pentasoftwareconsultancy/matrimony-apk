@@ -9,6 +9,7 @@ import '../controllers/app_providers.dart';
 import '../../../../core/network/api_client.dart';
 import 'chat_screen.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class ProfileDetailsScreen extends ConsumerStatefulWidget {
   final MatrimonialProfile profile;
@@ -434,9 +435,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const Text(
-                                    'MATCH',
-                                    style: TextStyle(
+                                  Text(
+                                    context.isMarathi ? 'जुळणी' : 'MATCH',
+                                    style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 8,
                                       fontWeight: FontWeight.w500,
@@ -467,9 +468,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'ABOUT ME',
-                                    style: TextStyle(
+                                  Text(
+                                    context.isMarathi ? 'माझ्याबद्दल' : 'ABOUT ME',
+                                    style: const TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 11,
@@ -797,7 +798,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                     size: 16,
                                   ),
                             label: Text(
-                              _interestExpressed ? 'Interest Sent' : 'Express Interest',
+                              _interestExpressed
+                                  ? (context.isMarathi ? 'पसंती पाठवली' : 'Interest Sent')
+                                  : (context.isMarathi ? 'पसंती पाठवा' : 'Express Interest'),
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primary,
@@ -831,7 +834,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                               );
                             },
                             icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 16),
-                            label: const Text('Message'),
+                            label: Text(context.isMarathi ? 'संदेश' : 'Message'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
@@ -866,7 +869,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           Icon(icon, color: Colors.grey, size: 13),
           const SizedBox(width: 6),
           Text(
-            label,
+            context.tr(label),
             style: const TextStyle(
               color: Colors.black87,
               fontSize: 11,
@@ -882,7 +885,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, top: 4.0),
       child: Text(
-        title,
+        context.tr(title),
         style: const TextStyle(
           color: AppColors.primary,
           fontWeight: FontWeight.bold,
@@ -919,6 +922,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   Widget _buildDetailRow(String label, String value, {bool isHighlighted = false}) {
     final displayVal = value.trim().isEmpty ? 'Not Specified' : value.trim();
     final isNotSpecified = displayVal.toLowerCase() == 'not specified';
+    final localizedLabel = context.tr(label);
+    final localizedVal = isNotSpecified
+        ? (context.isMarathi ? 'माहिती दिलेली नाही' : 'Not Specified')
+        : context.tr(displayVal);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -928,7 +935,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           SizedBox(
             width: 135,
             child: Text(
-              label,
+              localizedLabel,
               style: TextStyle(
                 color: Colors.grey.shade500,
                 fontSize: 10.5,
@@ -940,7 +947,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              displayVal,
+              localizedVal,
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: isHighlighted

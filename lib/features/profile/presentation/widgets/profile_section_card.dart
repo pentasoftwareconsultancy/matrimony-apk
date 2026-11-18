@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class ProfileSectionCard extends StatelessWidget {
   final String title;
@@ -21,7 +22,7 @@ class ProfileSectionCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
-              title.toUpperCase(),
+              context.tr(title).toUpperCase(),
               style: const TextStyle(
                 color: Color(0xFFC9003F), // Deep Crimson Red matching reference
                 fontSize: 12,

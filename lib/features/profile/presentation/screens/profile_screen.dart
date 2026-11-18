@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/localization/l10n_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../controllers/profile_controller.dart';
 import 'edit_profile_screen.dart';
@@ -33,21 +34,21 @@ class ProfileScreen extends ConsumerWidget {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Log out',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          context.l10n.logoutConfirmTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        content: const Text(
-          'Are you sure you want to log out?',
-          style: TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
+        content: Text(
+          context.l10n.logoutConfirmMessage,
+          style: const TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
         ),
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            child: Text(
+              context.l10n.cancel,
+              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
             ),
           ),
           ElevatedButton(
@@ -63,9 +64,9 @@ class ProfileScreen extends ConsumerWidget {
               minimumSize: const Size(90, 40),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
-            child: const Text(
-              'Log out',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            child: Text(
+              context.l10n.logout,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -392,9 +393,9 @@ class ProfileScreen extends ConsumerWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Text(
-                                    'Membership– ',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  Text(
+                                    context.isMarathi ? 'सदस्यत्व– ' : 'Membership– ',
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
                                   ),
                                   GestureDetector(
                                     onTap: () {
@@ -429,7 +430,9 @@ class ProfileScreen extends ConsumerWidget {
                                       ref.read(profileControllerProvider.notifier).loadProfile();
                                     },
                                     child: Text(
-                                      '${profileState.completionPercentage.toInt()}% Complete',
+                                      context.isMarathi
+                                          ? '${profileState.completionPercentage.toInt()}% पूर्ण'
+                                          : '${profileState.completionPercentage.toInt()}% Complete',
                                       style: const TextStyle(
                                         fontSize: 11,
                                         color: Color(0xFFC9003F),
@@ -467,11 +470,11 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // ACCOUNT SECTION
-              _buildSectionHeader('Account'),
+              _buildSectionHeader(context.isMarathi ? 'खाते' : 'Account'),
               _buildMenuCard([
                 _buildMenuItem(
                   icon: Icons.person_outline,
-                  title: 'View Profile',
+                  title: context.l10n.viewProfile,
                   onTap: () async {
                     final profileToView = profile.fullName.isNotEmpty
                         ? MatrimonialProfile.fromProfileModel(profile)
@@ -487,7 +490,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.edit_outlined,
-                  title: 'Edit Profile',
+                  title: context.l10n.editProfile,
                   onTap: () async {
                     await Navigator.push(
                       context,
@@ -499,7 +502,7 @@ class ProfileScreen extends ConsumerWidget {
 
                 _buildMenuItem(
                   icon: Icons.notifications_none_outlined,
-                  title: 'Notification preferences',
+                  title: context.l10n.notificationPreferences,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -511,7 +514,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.language_outlined,
-                  title: 'Language',
+                  title: context.l10n.language,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -521,7 +524,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.lock_outline,
-                  title: 'Changed password',
+                  title: context.l10n.changedPassword,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -533,11 +536,11 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // ACTIVITY SECTION
-              _buildSectionHeader('Activity'),
+              _buildSectionHeader(context.isMarathi ? 'क्रियाकलाप' : 'Activity'),
               _buildMenuCard([
                 _buildMenuItem(
                   icon: Icons.favorite_border_outlined,
-                  title: 'Partner preference',
+                  title: context.l10n.partnerPreference,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -547,7 +550,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.event_outlined,
-                  title: 'Events',
+                  title: context.l10n.events,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -557,7 +560,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.design_services_outlined,
-                  title: 'Services',
+                  title: context.l10n.services,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -567,7 +570,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.rate_review_outlined,
-                  title: 'Testimonials',
+                  title: context.l10n.testimonials,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -577,7 +580,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.block_outlined,
-                  title: 'Blocked profiles',
+                  title: context.l10n.blockedProfiles,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -589,11 +592,11 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // SUPPORT SECTION
-              _buildSectionHeader('Support'),
+              _buildSectionHeader(context.isMarathi ? 'मदत आणि धोरणे' : 'Support'),
               _buildMenuCard([
                 _buildMenuItem(
                   icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy settings',
+                  title: context.l10n.privacySettings,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -603,7 +606,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.help_outline,
-                  title: 'Help and support',
+                  title: context.l10n.helpAndSupport,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -613,7 +616,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.description_outlined,
-                  title: 'Terms and Condition',
+                  title: context.l10n.termsAndConditions,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -623,7 +626,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   icon: Icons.policy_outlined,
-                  title: 'Privacy policy',
+                  title: context.l10n.privacyPolicy,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -643,14 +646,23 @@ class ProfileScreen extends ConsumerWidget {
                     foregroundColor: Colors.white,
                     minimumSize: const Size(130, 44),
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    elevation: 1,
                   ),
-                  child: const Text(
-                    'Log out',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.logout, size: 16, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.l10n.logout,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -658,8 +670,8 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
-        ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class TestimonialItem {
   final String id;
@@ -61,20 +62,22 @@ class TestimonialsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Success Testimonials',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          context.isMarathi ? 'यशस्वी कथा' : 'Success Testimonials',
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: false,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
-              'Real stories from couples who found love on Soyrik',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              context.isMarathi
+                  ? 'सोयरिकच्या माध्यमातून जीवनसाथी शोधलेल्या जोडप्यांच्या खऱ्या कथा'
+                  : 'Real stories from couples who found love on Soyarik',
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
           const SizedBox(height: 16),

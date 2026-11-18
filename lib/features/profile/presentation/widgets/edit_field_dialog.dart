@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 enum FieldType {
   text,
@@ -151,7 +152,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Edit ${widget.title}',
+                context.isMarathi ? '${context.tr(widget.title)} संपादित करा' : 'Edit ${widget.title}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -206,14 +207,17 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             ElevatedButton(
               onPressed: () => _submit(_textController.text.trim()),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC9003F)),
-              child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(
+                context.isMarathi ? 'बदल जतन करा' : 'Save Changes',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
           ] else if (widget.fieldType == FieldType.date) ...[
             TextFormField(
               controller: _textController,
               readOnly: true,
               decoration: InputDecoration(
-                labelText: 'Birth Date (DD/MM/YYYY)',
+                labelText: context.isMarathi ? 'जन्मतारीख (दिवस/महिना/वर्ष)' : 'Birth Date (DD/MM/YYYY)',
                 suffixIcon: const Icon(Icons.calendar_today, color: Color(0xFFC9003F)),
                 errorText: _errorMessage,
               ),
@@ -246,7 +250,10 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             ElevatedButton(
               onPressed: () => _submit(_textController.text.trim()),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC9003F)),
-              child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(
+                context.isMarathi ? 'बदल जतन करा' : 'Save Changes',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
           ] else if (widget.fieldType == FieldType.singleSelect) ...[
             Wrap(
@@ -255,7 +262,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
               children: (widget.options ?? []).map((opt) {
                 final isSelected = _selectedSingle == opt;
                 return ChoiceChip(
-                  label: Text(opt),
+                  label: Text(context.tr(opt)),
                   selected: isSelected,
                   selectedColor: const Color(0xFFC9003F),
                   disabledColor: Colors.grey.shade100,
@@ -279,7 +286,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             TextField(
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                hintText: 'Search ${widget.title}...',
+                hintText: context.isMarathi ? '${context.tr(widget.title)} शोधा...' : 'Search ${widget.title}...',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               onChanged: (val) {
@@ -294,12 +301,14 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
               child: ListView(
                 shrinkWrap: true,
                 children: (widget.options ?? [])
-                    .where((opt) => opt.toLowerCase().contains(_searchQuery))
+                    .where((opt) =>
+                        opt.toLowerCase().contains(_searchQuery) ||
+                        context.tr(opt).toLowerCase().contains(_searchQuery))
                     .map((opt) {
                   final isSel = _selectedSingle == opt;
                   return ListTile(
                     title: Text(
-                      opt,
+                      context.tr(opt),
                       style: TextStyle(
                         fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                         color: isSel ? const Color(0xFFC9003F) : Colors.black87,
@@ -320,7 +329,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
               children: (widget.options ?? []).map((opt) {
                 final isSelected = _selectedMulti.contains(opt);
                 return FilterChip(
-                  label: Text(opt),
+                  label: Text(context.tr(opt)),
                   selected: isSelected,
                   selectedColor: const Color(0xFFC9003F),
                   backgroundColor: Colors.grey.shade100,
@@ -344,7 +353,10 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             ElevatedButton(
               onPressed: () => _submit(_selectedMulti),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC9003F)),
-              child: const Text('Save Selection', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(
+                context.isMarathi ? 'बदल जतन करा' : 'Save Changes',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
           ] else if (widget.fieldType == FieldType.heightPicker) ...[
             Container(

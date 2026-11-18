@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/dummy_profiles.dart';
 import '../controllers/app_providers.dart';
+import '../../../../core/localization/l10n_helper.dart';
 import '../controllers/home_controller.dart';
 import 'profile_details_screen.dart';
 import 'chat_screen.dart';
@@ -48,16 +49,18 @@ class ProfileViewsScreen extends ConsumerWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Profile views',
-                            style: TextStyle(
+                          Text(
+                            context.isMarathi ? 'प्रोफाइल व्ह्यूज' : 'Profile views',
+                            style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
                             ),
                           ),
                           Text(
-                            'People who visited your profile',
+                            context.isMarathi
+                                ? 'तुमच्या प्रोफाइलला भेट दिलेले सदस्य'
+                                : 'People who visited your profile',
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class PasswordSegmentSwitch extends StatelessWidget {
   final int selectedIndex; // 0: Phone, 1: Email
@@ -63,7 +64,9 @@ class PasswordSegmentSwitch extends StatelessWidget {
                             ? Colors.white
                             : const Color(0xFF374151),
                       ),
-                      child: const Text('By phone number'),
+                      child: Text(
+                        context.isMarathi ? 'मोबाईल नंबरद्वारे' : 'By phone number',
+                      ),
                     ),
                   ),
                 ),
@@ -86,7 +89,9 @@ class PasswordSegmentSwitch extends StatelessWidget {
                             ? Colors.white
                             : const Color(0xFF374151),
                       ),
-                      child: const Text('By email'),
+                      child: Text(
+                        context.isMarathi ? 'ईमेलद्वारे' : 'By email',
+                      ),
                     ),
                   ),
                 ),

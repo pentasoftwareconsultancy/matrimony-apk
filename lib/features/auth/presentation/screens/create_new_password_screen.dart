@@ -5,6 +5,7 @@ import '../controllers/password_controller.dart';
 import '../widgets/password_checklist_widget.dart';
 import '../widgets/password_strength_meter.dart';
 import '../widgets/password_success_dialog.dart';
+import '../../../../core/localization/l10n_helper.dart';
 import '../widgets/password_text_field.dart';
 
 class CreateNewPasswordScreen extends ConsumerStatefulWidget {
@@ -69,9 +70,9 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
               const SizedBox(height: 16),
 
               // Title
-              const Text(
-                'Create new password',
-                style: TextStyle(
+              Text(
+                context.l10n.createNewPassword,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -81,7 +82,9 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
 
               // Subtitle
               Text(
-                'Update password to enhance security',
+                context.isMarathi
+                    ? 'सुरक्षिततेसाठी पासवर्ड अद्यतनित करा'
+                    : 'Update password to enhance security',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade400,
@@ -92,8 +95,8 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
 
               // Create New Password Field
               PasswordTextField(
-                label: 'Create new password',
-                hintText: 'Enter password',
+                label: context.l10n.createNewPassword,
+                hintText: context.isMarathi ? 'पासवर्ड टाका' : 'Enter password',
                 controller: _newPasswordController,
                 isPassword: true,
                 onChanged: (val) {
@@ -104,8 +107,8 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
 
               // Confirm New Password Field
               PasswordTextField(
-                label: 'Confirm new password',
-                hintText: 'Enter password',
+                label: context.l10n.confirmNewPassword,
+                hintText: context.isMarathi ? 'पासवर्ड टाका' : 'Enter password',
                 controller: _confirmPasswordController,
                 isPassword: true,
                 onChanged: (val) {
@@ -155,9 +158,9 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Apply Changes',
-                          style: TextStyle(
+                      : Text(
+                          context.isMarathi ? 'बदल लागू करा' : 'Apply Changes',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),

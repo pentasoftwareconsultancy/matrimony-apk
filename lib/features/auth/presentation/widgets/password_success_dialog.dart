@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class PasswordSuccessDialog extends StatelessWidget {
   final VoidCallback onLoginPressed;
@@ -61,10 +62,12 @@ class PasswordSuccessDialog extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Title (2 Lines)
-              const Text(
-                'Password Updated\nSuccessfully',
+              Text(
+                context.isMarathi
+                    ? 'पासवर्ड यशस्वीरित्या\nबदलला गेला आहे'
+                    : 'Password Updated\nSuccessfully',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -87,9 +90,9 @@ class PasswordSuccessDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  child: const Text(
-                    'Log in',
-                    style: TextStyle(
+                  child: Text(
+                    context.isMarathi ? 'लॉगिन करा' : 'Log in',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),

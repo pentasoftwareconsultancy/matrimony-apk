@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/repositories/event_repository.dart';
 import '../../domain/models/event_model.dart';
 import 'event_details_screen.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class EventsScreen extends ConsumerWidget {
   const EventsScreen({super.key});
@@ -44,12 +45,12 @@ class EventsScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Events',
-                        style: TextStyle(
+                        context.isMarathi ? 'मेळावे आणि कार्यक्रम' : 'Events',
+                        style: const TextStyle(
                           color: Color(0xFFC0003E),
                           fontSize: 26,
                           fontFamily: 'serif',
@@ -57,10 +58,10 @@ class EventsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Where Hearts Meet Happily!',
-                        style: TextStyle(
+                        context.isMarathi ? 'जिथे जुळतात मने आनंदाने!' : 'Where Hearts Meet Happily!',
+                        style: const TextStyle(
                           color: Color(0xFF6B7280),
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
@@ -332,9 +333,9 @@ class EventsScreen extends ConsumerWidget {
                                     ),
                                     elevation: 0,
                                   ),
-                                  child: const Text(
-                                    'Contact us',
-                                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                  child: Text(
+                                    context.isMarathi ? 'संपर्क साधा' : 'Contact us',
+                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],

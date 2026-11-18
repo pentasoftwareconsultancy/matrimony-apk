@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/service_repository.dart';
 import 'vendor_list_screen.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class ServicesScreen extends ConsumerWidget {
   const ServicesScreen({super.key});
@@ -31,9 +32,9 @@ class ServicesScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Services',
-                    style: TextStyle(
+                  Text(
+                    context.isMarathi ? 'लग्न कार्य सेवा' : 'Services',
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

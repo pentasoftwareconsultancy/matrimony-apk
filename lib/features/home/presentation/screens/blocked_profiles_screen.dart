@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/app_providers.dart';
+import '../../../../core/localization/l10n_helper.dart';
 
 class BlockedProfilesScreen extends ConsumerWidget {
   const BlockedProfilesScreen({super.key});
@@ -19,20 +20,22 @@ class BlockedProfilesScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Blocked Profiles',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          context.isMarathi ? 'ब्लॉक केलेले प्रोफाईल्स' : 'Blocked Profiles',
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: false,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
-              'Manage profiles you have blocked from contacting you',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              context.isMarathi
+                  ? 'तुम्ही ब्लॉक केलेल्या प्रोफाईलचे व्यवस्थापन करा'
+                  : 'Manage profiles you have blocked from contacting you',
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
           const SizedBox(height: 16),
