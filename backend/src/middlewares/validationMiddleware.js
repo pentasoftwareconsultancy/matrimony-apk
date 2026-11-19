@@ -14,8 +14,31 @@ const emailPattern =
 // GENERIC VALIDATION MIDDLEWARE
 // ============================================================
 
+const marathiValidationMap = {
+  'Validation Error': 'प्रमाणीकरण त्रुटी',
+  'Please enter a valid email address': 'कृपया वैध ईमेल पत्ता प्रविष्ट करा',
+  'Email is required': 'ईमेल आवश्यक आहे',
+  'Password is required': 'पासवर्ड आवश्यक आहे',
+  'OTP must be exactly 4 digits': 'ओटीपी अचूक ४ अंकी असावा',
+  'OTP code is required': 'ओटीपी कोड आवश्यक आहे',
+  'Phone number is required': 'फोन नंबर आवश्यक आहे',
+  'Full name is required': 'पूर्ण नाव आवश्यक आहे',
+  'is required': 'आवश्यक आहे',
+};
+
+const localizeValidationMessage = (msg, isMr) => {
+  if (!isMr || !msg) return msg;
+  if (marathiValidationMap[msg]) return marathiValidationMap[msg];
+  if (msg.includes('is required')) {
+    const field = msg.replace('is required', '').trim();
+    return `${field} आवश्यक आहे`;
+  }
+  return msg;
+};
+
 export const validate = (schema) => {
   return (req, res, next) => {
+    const isMr = req.language === 'mr';
     const { error } = schema.validate(req.body, {
       abortEarly: false,
       allowUnknown: false,
@@ -24,17 +47,18 @@ export const validate = (schema) => {
     if (error) {
       const errorDetails = error.details.reduce((acc, current) => {
         const key = current.path.join('.');
-
-        acc[key] = current.message.replace(/"/g, '');
-
+        const cleanMsg = current.message.replace(/"/g, '');
+        acc[key] = localizeValidationMessage(cleanMsg, isMr);
         return acc;
       }, {});
 
       console.log('[VALIDATION FAILED]', errorDetails);
 
-      const firstMessage =
+      const rawFirstMessage =
         error.details[0]?.message.replace(/"/g, '') ||
         'Validation Error';
+
+      const firstMessage = localizeValidationMessage(rawFirstMessage, isMr);
 
       return ApiResponse.error(
         res,
@@ -166,6 +190,14 @@ export const registerSchema = Joi.object({
       'string.empty': 'Password is required',
     }),
 
+  confirmPassword: Joi.string()
+    .valid(Joi.ref('password'))
+    .optional()
+    .allow('', null)
+    .messages({
+      'any.only': 'Password and confirm password do not match',
+    }),
+
   // ----------------------------------------------------------
   // PERSONAL DETAILS
   // ----------------------------------------------------------
@@ -283,16 +315,19 @@ export const registerSchema = Joi.object({
         'Occupation position is required',
     }),
 
-  annualIncome: Joi.number()
-    .min(0)
+  annualIncome: Joi.alternatives()
+    .try(
+      Joi.number().min(0),
+      Joi.string()
+        .trim()
+        .pattern(/\d+/)
+        .messages({
+          'string.pattern.base': 'Annual income must include a numeric value',
+        })
+    )
     .required()
     .messages({
-      'number.base':
-        'Annual income is required',
-      'number.min':
-        'Annual income cannot be negative',
-      'any.required':
-        'Annual income is required',
+      'any.required': 'Annual income is required',
     }),
 
   // ----------------------------------------------------------
@@ -612,6 +647,26 @@ expectedAgeRange: Joi.object({
   aboutFamily: Joi.string()
     .trim()
     .allow('', null)
+    .optional(),
+
+  maternalUnclesDetails: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().trim().allow('', null).optional(),
+        occupation: Joi.string().trim().allow('', null).optional(),
+        profession: Joi.string().trim().allow('', null).optional(),
+      }).unknown(true)
+    )
+    .optional(),
+
+  unclesDetails: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().trim().allow('', null).optional(),
+        occupation: Joi.string().trim().allow('', null).optional(),
+        profession: Joi.string().trim().allow('', null).optional(),
+      }).unknown(true)
+    )
     .optional(),
 
   // ----------------------------------------------------------

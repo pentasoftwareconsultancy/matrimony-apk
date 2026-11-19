@@ -1,5 +1,6 @@
 import Message from "../models/Message.js";
 import Matrimony from "../models/Matrimony.js";
+import UserAction from "../models/UserAction.js";
 import AuthService from "./AuthService.js";
 
 class MessageService {
@@ -70,7 +71,7 @@ class MessageService {
 
     for (const doc of partnerDocs) {
       partnerMap[doc._id.toString()] =
-        await AuthService.getMergedUser(doc);
+        await AuthService.getMergedUser(doc, { includePrivate: false });
     }
 
     const conversations = partnerIds.map((partnerId) => {
@@ -86,13 +87,12 @@ class MessageService {
         partnerId,
 
         partnerName:
-          partner?.fullName ||
-          "Matrimony Member",
+          partner?.fullName || "",
 
         partnerAvatar:
           partner?.photos?.length > 0
             ? partner.photos[0]
-            : "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100",
+            : "",
 
         lastMessage: lastMessage?.text || "",
 
@@ -206,6 +206,22 @@ class MessageService {
 
       error.statusCode = 404;
 
+      throw error;
+    }
+
+    // Prevent messaging when either user has blocked the other
+    const isBlocked = await UserAction.findOne({
+      actionType: "ignore",
+      active: true,
+      $or: [
+        { fromUser: senderId, toUser: partnerId },
+        { fromUser: partnerId, toUser: senderId },
+      ],
+    }).select("_id");
+
+    if (isBlocked) {
+      const error = new Error("You cannot message this user");
+      error.statusCode = 403;
       throw error;
     }
 

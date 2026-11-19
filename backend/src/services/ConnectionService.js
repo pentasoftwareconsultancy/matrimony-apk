@@ -32,7 +32,7 @@ async expressInterest(fromUserId, toUserId) {
 
   const senderMerged =
     senderMatrimony
-      ? await AuthService.getMergedUser(senderMatrimony)
+      ? await AuthService.getMergedUser(senderMatrimony, { includePrivate: false })
       : null;
 
   const senderName =
@@ -42,7 +42,7 @@ async expressInterest(fromUserId, toUserId) {
   const senderImage =
     senderMerged?.photos?.length > 0
       ? senderMerged.photos[0]
-      : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100';
+      : '';
 
   // ============================================================
   // CHECK EXISTING INTEREST
@@ -166,7 +166,9 @@ async expressInterest(fromUserId, toUserId) {
     await action.save();
 
     const responderMatrimony = await Matrimony.findById(userId);
-    const responderMerged = responderMatrimony ? await AuthService.getMergedUser(responderMatrimony) : null;
+    const responderMerged = responderMatrimony
+      ? await AuthService.getMergedUser(responderMatrimony, { includePrivate: false })
+      : null;
     const responderName = responderMerged ? responderMerged.fullName : 'A member';
 
     await Notification.create({

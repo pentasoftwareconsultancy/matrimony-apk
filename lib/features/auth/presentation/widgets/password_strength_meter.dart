@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PasswordStrengthMeter extends StatelessWidget {
   final int score; // 0: Empty, 1: Weak, 2: Medium, 3: Strong
@@ -10,6 +11,8 @@ class PasswordStrengthMeter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     Color getBarColor(int barIndex) {
       if (score == 0) return const Color(0xFFE5E7EB);
 
@@ -24,11 +27,11 @@ class PasswordStrengthMeter extends StatelessWidget {
 
     String getSubtitleText() {
       if (score <= 1) {
-        return 'Weak password, must contain';
+        return l10n?.weakPassword ?? 'Weak password, must contain';
       } else if (score == 2) {
-        return 'Medium password, must contain';
+        return l10n?.mediumPassword ?? 'Medium password, must contain';
       } else {
-        return 'Strong password!';
+        return l10n?.strongPassword ?? 'Strong password!';
       }
     }
 

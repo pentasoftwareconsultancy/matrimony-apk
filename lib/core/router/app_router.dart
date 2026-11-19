@@ -23,43 +23,32 @@ import '../../features/services/presentation/screens/services_screen.dart';
 import '../../features/services/presentation/screens/vendor_list_screen.dart';
 import '../../features/events/presentation/screens/events_screen.dart';
 
-// Reusable stepper navigation wrapper to map routes to RegistrationStepperScreen step state
+const _registerRouteNames = [
+  'register_step1',
+  'register_step2',
+  'register_step3',
+  'register_step4',
+  'register_step5',
+  'register_review',
+];
+
+// Single shell wrapper hosting RegistrationStepperScreen once across all step routes
 class StepperNavigationWrapper extends ConsumerWidget {
-  final int routeStep;
-  const StepperNavigationWrapper({super.key, required this.routeStep});
+  const StepperNavigationWrapper({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
-    // Listen to changes in the currentStep to push/pop routes accordingly
+    // Sync currentStep transitions via GoRouter without pushing duplicate stepper screens onto the stack
     ref.listen<int>(
       registrationControllerProvider.select((s) => s.currentStep),
       (prev, next) {
-        if (prev != null) {
-          if (next > prev) {
-            if (next == 1) {
-              context.pushNamed('register_step2');
-            } else if (next == 2) {
-              context.pushNamed('register_step3');
-            } else if (next == 3) {
-              context.pushNamed('register_step4');
-            } else if (next == 4) {
-              context.pushNamed('register_step5');
-            } else if (next == 5) {
-              context.pushNamed('register_review');
-            }
-          } else if (next < prev) {
-            // Popping is handled by the Navigator pop when Android/iOS back gestures occur,
-            // but we programmatically pop if the controller drives backward navigation.
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
-          }
+        if (prev != null && next != prev && next >= 0 && next < _registerRouteNames.length) {
+          context.goNamed(_registerRouteNames[next]);
         }
       },
     );
 
-    // Whenever we open or rebuild a step, prefill its controllers from current registrationState
+    // Whenever we open the registration shell with empty draft data, prefill from authenticated user
     final regState = ref.read(registrationControllerProvider);
     if (regState.fullName.isEmpty && regState.email.isEmpty && regState.phone.isEmpty) {
       final authUser = ref.read(authControllerProvider).user;
@@ -130,35 +119,40 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'help_support',
         builder: (context, state) => const HelpSupportScreen(),
       ),
-      GoRoute(
-        path: '/register/step1',
-        name: 'register_step1',
-        builder: (context, state) => const StepperNavigationWrapper(routeStep: 0),
-      ),
-      GoRoute(
-        path: '/register/step2',
-        name: 'register_step2',
-        builder: (context, state) => const StepperNavigationWrapper(routeStep: 1),
-      ),
-      GoRoute(
-        path: '/register/step3',
-        name: 'register_step3',
-        builder: (context, state) => const StepperNavigationWrapper(routeStep: 2),
-      ),
-      GoRoute(
-        path: '/register/step4',
-        name: 'register_step4',
-        builder: (context, state) => const StepperNavigationWrapper(routeStep: 3),
-      ),
-      GoRoute(
-        path: '/register/step5',
-        name: 'register_step5',
-        builder: (context, state) => const StepperNavigationWrapper(routeStep: 4),
-      ),
-      GoRoute(
-        path: '/register/review',
-        name: 'register_review',
-        builder: (context, state) => const StepperNavigationWrapper(routeStep: 5),
+      ShellRoute(
+        builder: (context, state, child) => const StepperNavigationWrapper(),
+        routes: [
+          GoRoute(
+            path: '/register/step1',
+            name: 'register_step1',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+          GoRoute(
+            path: '/register/step2',
+            name: 'register_step2',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+          GoRoute(
+            path: '/register/step3',
+            name: 'register_step3',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+          GoRoute(
+            path: '/register/step4',
+            name: 'register_step4',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+          GoRoute(
+            path: '/register/step5',
+            name: 'register_step5',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+          GoRoute(
+            path: '/register/review',
+            name: 'register_review',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/home',

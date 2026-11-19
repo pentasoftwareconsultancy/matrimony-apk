@@ -1,10 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../auth/domain/models/user.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/locale_provider.dart';
 
 class PremiumPlansScreen extends ConsumerStatefulWidget {
   const PremiumPlansScreen({super.key});
@@ -52,53 +51,60 @@ class _PremiumPlansScreenState extends ConsumerState<PremiumPlansScreen> {
     'Platinum': '₹4,999/-',
   };
 
-  void _startPaymentFlow() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => _RazorpaySimulator(
-        plan: _selectedPlan,
-        price: _planPrices[_selectedPlan]!,
-        onSuccess: () async {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('premiumPlan', _selectedPlan);
-          await prefs.setBool('isPremium', true);
+  bool _isProcessingOrder = false;
 
-          // Update user state
-          final profileStr = prefs.getString('profile');
-          if (profileStr != null) {
-            final Map<String, dynamic> userMap = jsonDecode(profileStr);
-            userMap['isPremium'] = true;
-            userMap['premiumPlan'] = _selectedPlan;
-            await prefs.setString('profile', jsonEncode(userMap));
-            final updatedUser = User.fromJson(userMap);
-            ref.read(authControllerProvider.notifier).setAuthenticatedState(updatedUser);
-          }
+  Future<void> _startPaymentFlow() async {
+    if (_isProcessingOrder) return;
+    setState(() => _isProcessingOrder = true);
 
-          if (mounted) {
-            Navigator.pop(context); // Close checkout
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PaymentSuccessScreen(plan: _selectedPlan),
-              ),
-            );
-          }
-        },
-        onFailure: () {
-          Navigator.pop(context); // Close checkout
-          _showFailureDialog();
-        },
-      ),
-    );
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.post(
+        '/payments/create-order',
+        data: {'planType': _selectedPlan},
+      );
+
+      if (!mounted) return;
+      final body = response.data is Map ? response.data as Map : {};
+      final orderData = body['data'] is Map ? body['data'] as Map : body;
+      final orderId = orderData['id']?.toString() ?? '';
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text(
+            'Order Created',
+            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+          ),
+          content: Text(
+            'Server order $orderId created for $_selectedPlan (${_planPrices[_selectedPlan]}).\n\n'
+            'Complete native Razorpay checkout and server verification before premium access is activated.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('OK', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showFailureDialog(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingOrder = false);
+      }
+    }
   }
 
-  void _showFailureDialog() {
+  void _showFailureDialog([String? message]) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Payment Failed', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-        content: const Text('Your transaction could not be completed. Please try again.'),
+        title: const Text('Payment Unavailable', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+        content: Text(message ?? 'Your transaction could not be completed. Please try again.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -128,20 +134,20 @@ class _PremiumPlansScreenState extends ConsumerState<PremiumPlansScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Go Premium',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          context.l10n.premiumPlans,
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: false,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
-              'Find more accurate match with premium',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              context.l10n.findMoreAccurateMatch,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
           const SizedBox(height: 24),
@@ -202,25 +208,34 @@ class _PremiumPlansScreenState extends ConsumerState<PremiumPlansScreen> {
                     ),
                     const SizedBox(height: 16),
                     Expanded(
-                      child: ListView(
-                        children: _planFeatures[_selectedPlan]!
-                            .map((f) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          f,
-                                          style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      child: RefreshIndicator(
+                        color: AppColors.primary,
+                        onRefresh: () async {
+                          try {
+                            await ref.read(authControllerProvider.notifier).refreshCurrentUser();
+                          } catch (_) {}
+                        },
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: _planFeatures[_selectedPlan]!
+                              .map((f) => Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            f,
+                                            style: const TextStyle(fontSize: 13, color: Colors.black87),
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ))
-                            .toList(),
+                                      ],
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
                       ),
                     ),
                   ],
@@ -241,7 +256,7 @@ class _PremiumPlansScreenState extends ConsumerState<PremiumPlansScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              child: Text(context.l10n.continueButton, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             ),
           ),
         ],
@@ -299,110 +314,12 @@ class _PremiumPlansScreenState extends ConsumerState<PremiumPlansScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              'per month',
+              context.l10n.perMonth,
               style: TextStyle(
                 color: isSelected ? Colors.white70 : Colors.grey,
                 fontSize: 9,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RazorpaySimulator extends StatefulWidget {
-  final String plan;
-  final String price;
-  final VoidCallback onSuccess;
-  final VoidCallback onFailure;
-
-  const _RazorpaySimulator({
-    required this.plan,
-    required this.price,
-    required this.onSuccess,
-    required this.onFailure,
-  });
-
-  @override
-  State<_RazorpaySimulator> createState() => _RazorpaySimulatorState();
-}
-
-class _RazorpaySimulatorState extends State<_RazorpaySimulator> {
-  String _status = 'Initializing Payment...';
-  bool _showActions = false;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      if (mounted) {
-        setState(() {
-          _status = 'Razorpay Secure Checkout';
-          _showActions = true;
-        });
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.payment, color: Colors.blue, size: 24),
-                const SizedBox(width: 8),
-                Text(
-                  _status,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Plan: ${widget.plan}',
-              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Amount: ${widget.price}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.blue),
-            ),
-            const SizedBox(height: 24),
-            if (!_showActions)
-              const CircularProgressIndicator(color: AppColors.primary)
-            else
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: widget.onFailure,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade100,
-                      foregroundColor: Colors.red.shade700,
-                      elevation: 0,
-                    ),
-                    child: const Text('Simulate Failure'),
-                  ),
-                  ElevatedButton(
-                    onPressed: widget.onSuccess,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade100,
-                      foregroundColor: Colors.green.shade700,
-                      elevation: 0,
-                    ),
-                    child: const Text('Simulate Success'),
-                  ),
-                ],
-              ),
           ],
         ),
       ),

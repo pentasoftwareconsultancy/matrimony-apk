@@ -10,6 +10,24 @@ class ProfileSectionCard extends StatelessWidget {
     required this.children,
   });
 
+  String _localizeSectionTitle(BuildContext context, String rawTitle) {
+    if (Localizations.localeOf(context).languageCode != 'mr') {
+      return rawTitle.toUpperCase();
+    }
+    final key = rawTitle.trim().toUpperCase();
+    final map = {
+      'PERSONAL DETAILS': 'वैयक्तिक माहिती',
+      'EDUCATION & CAREER': 'शिक्षण आणि कारकीर्द',
+      'RELIGIOUS & HOROSCOPE': 'धार्मिक आणि कुंडली माहिती',
+      'LOCATION DETAILS': 'स्थानाचा तपशील',
+      'FAMILY DETAILS': 'कुटुंबाची माहिती',
+      'LIFESTYLE & HABITS': 'जीवनशैली आणि सवयी',
+      'PARTNER PREFERENCES': 'जोडीदाराच्या अपेक्षा',
+      'DOCUMENT DETAILS': 'दस्तऐवज तपशील',
+    };
+    return (map[key] ?? rawTitle).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -21,7 +39,7 @@ class ProfileSectionCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
-              title.toUpperCase(),
+              _localizeSectionTitle(context, title),
               style: const TextStyle(
                 color: Color(0xFFC9003F), // Deep Crimson Red matching reference
                 fontSize: 12,

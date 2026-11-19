@@ -18,10 +18,10 @@ class ProfileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photos = profile.photos;
-    final primaryPhoto = photos.isNotEmpty
-        ? photos.first
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500';
+    final photos = profile.photos
+        .where((p) => p.trim().isNotEmpty && !p.toLowerCase().contains('unsplash.com'))
+        .toList();
+    final primaryPhoto = photos.isNotEmpty ? photos.first : '';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -46,6 +46,7 @@ class ProfileSummaryCard extends StatelessWidget {
                       height: 125,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFFFD4DC), width: 1.2),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x1A000000),
@@ -53,10 +54,22 @@ class ProfileSummaryCard extends StatelessWidget {
                             offset: Offset(0, 3),
                           )
                         ],
-                        image: DecorationImage(
-                          image: CachedNetworkImageProvider(primaryPhoto),
-                          fit: BoxFit.cover,
-                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14.8),
+                        child: (primaryPhoto.isNotEmpty &&
+                                (primaryPhoto.startsWith('http://') ||
+                                    primaryPhoto.startsWith('https://') ||
+                                    primaryPhoto.startsWith('blob:')))
+                            ? CachedNetworkImage(
+                                imageUrl: primaryPhoto,
+                                width: 105,
+                                height: 125,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => _buildPlaceholder(),
+                                errorWidget: (context, url, error) => _buildPlaceholder(),
+                              )
+                            : _buildPlaceholder(),
                       ),
                     ),
                     Positioned(
@@ -122,9 +135,9 @@ class ProfileSummaryCard extends StatelessWidget {
                       child: Text(
                         profile.aboutMe.isNotEmpty
                             ? profile.aboutMe
-                            : 'Tap to add about me description...',
+                            : 'Not Specified',
                         style: TextStyle(
-                          color: Colors.grey.shade700,
+                          color: profile.aboutMe.isNotEmpty ? Colors.grey.shade700 : Colors.grey.shade400,
                           fontSize: 11.5,
                           height: 1.35,
                         ),
@@ -155,23 +168,66 @@ class ProfileSummaryCard extends StatelessWidget {
                         color: i == 0 ? const Color(0xFFC9003F) : Colors.grey.shade300,
                         width: i == 0 ? 1.5 : 1.0,
                       ),
-                      image: i < photos.length
-                          ? DecorationImage(
-                              image: CachedNetworkImageProvider(photos[i]),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                      color: Colors.grey.shade200,
+                      color: Colors.grey.shade100,
                     ),
-                    child: i >= photos.length
-                        ? const Icon(Icons.add, size: 14, color: Colors.grey)
-                        : null,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: i < photos.length
+                          ? CachedNetworkImage(
+                              imageUrl: photos[i],
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(color: Colors.grey.shade200),
+                              errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 14, color: Colors.grey),
+                            )
+                          : const Icon(Icons.add, size: 14, color: Colors.grey),
+                    ),
                   ),
                 ),
               ],
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      width: 105,
+      height: 125,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF0F3),
+            Color(0xFFFFD6E0),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 52,
+          height: 52,
+          decoration: const BoxDecoration(
+            color: Color(0xEBFFFFFF),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x14C9003F),
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.person_rounded,
+              color: Color(0xFFC9003F),
+              size: 34,
+            ),
+          ),
+        ),
       ),
     );
   }

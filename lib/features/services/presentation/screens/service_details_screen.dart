@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../domain/models/service_vendor_model.dart';
 import '../../data/repositories/service_repository.dart';
+import '../../../../core/localization/locale_provider.dart';
 
 class ServiceDetailsScreen extends ConsumerWidget {
   final String vendorId;
@@ -63,13 +64,15 @@ class ServiceDetailsScreen extends ConsumerWidget {
         child: vendorAsync.when(
           data: (item) {
             if (item == null) {
-              return const Center(child: Text('Vendor details not found'));
+              return Center(child: Text(context.l10n.vendorDetailsNotFound));
             }
 
-            final img1 = item.images.isNotEmpty
-                ? item.images[0]
-                : 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
-            final img2 = item.images.length > 1 ? item.images[1] : img1;
+            final validImages = item.images
+                .where((img) => img.trim().isNotEmpty && !img.contains('unsplash.com'))
+                .toList();
+            final hasImages = validImages.isNotEmpty;
+            final img1 = hasImages ? validImages[0] : '';
+            final img2 = validImages.length > 1 ? validImages[1] : img1;
 
             return Column(
               children: [
@@ -127,9 +130,9 @@ class ServiceDetailsScreen extends ConsumerWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'Connect',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        child: Text(
+                          context.l10n.connectNow,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),
                     ],
@@ -138,41 +141,77 @@ class ServiceDetailsScreen extends ConsumerWidget {
 
                 // SCROLLABLE CONTENT
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
+                  child: RefreshIndicator(
+                    color: const Color(0xFFC9003F),
+                    onRefresh: () async {
+                      try {
+                        ref.invalidate(vendorByIdProvider(vendorId));
+                        await ref.read(vendorByIdProvider(vendorId).future);
+                      } catch (_) {}
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Gallery (2 Images)
                         SizedBox(
                           height: 160,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: CachedNetworkImage(
-                                    imageUrl: img1,
-                                    fit: BoxFit.cover,
-                                    height: double.infinity,
+                          child: hasImages
+                              ? Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: CachedNetworkImage(
+                                          imageUrl: img1,
+                                          fit: BoxFit.cover,
+                                          height: double.infinity,
+                                          errorWidget: (context, url, error) => Container(
+                                            color: const Color(0xFFFDECEF),
+                                            child: const Center(
+                                              child: Icon(Icons.business, color: Color(0xFFC9003F), size: 40),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 2,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: CachedNetworkImage(
+                                          imageUrl: img2,
+                                          fit: BoxFit.cover,
+                                          height: double.infinity,
+                                          errorWidget: (context, url, error) => Container(
+                                            color: const Color(0xFFFDECEF),
+                                            child: const Center(
+                                              child: Icon(Icons.business, color: Color(0xFFC9003F), size: 40),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFDECEF),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.business,
+                                      color: Color(0xFFC9003F),
+                                      size: 54,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 2,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: CachedNetworkImage(
-                                    imageUrl: img2,
-                                    fit: BoxFit.cover,
-                                    height: double.infinity,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         const SizedBox(height: 14),
 
@@ -198,14 +237,14 @@ class ServiceDetailsScreen extends ConsumerWidget {
                                   Expanded(
                                     child: _buildInfoGridItem(
                                       icon: Icons.storefront_outlined,
-                                      label: 'STUDIO',
+                                      label: context.l10n.studio.toUpperCase(),
                                       value: item.subtitle.isNotEmpty ? item.subtitle : item.name,
                                     ),
                                   ),
                                   Expanded(
                                     child: _buildInfoGridItem(
                                       icon: Icons.location_on_outlined,
-                                      label: 'LOCATION',
+                                      label: context.l10n.location.toUpperCase(),
                                       value: item.location,
                                     ),
                                   ),
@@ -217,14 +256,14 @@ class ServiceDetailsScreen extends ConsumerWidget {
                                   Expanded(
                                     child: _buildInfoGridItem(
                                       icon: Icons.work_outline,
-                                      label: 'PROJECTS',
+                                      label: context.l10n.projects.toUpperCase(),
                                       value: item.projectCount,
                                     ),
                                   ),
                                   Expanded(
                                     child: _buildInfoGridItem(
                                       icon: Icons.phone_outlined,
-                                      label: 'PHONE',
+                                      label: context.l10n.phone.toUpperCase(),
                                       value: item.phone,
                                     ),
                                   ),
@@ -255,9 +294,9 @@ class ServiceDetailsScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'About me',
-                                  style: TextStyle(
+                                Text(
+                                  context.l10n.aboutMe,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
@@ -298,12 +337,12 @@ class ServiceDetailsScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Row(
+                                Row(
                                   children: [
-                                    Text('💰 ', style: TextStyle(fontSize: 12)),
+                                    const Text('💰 ', style: TextStyle(fontSize: 12)),
                                     Text(
-                                      'Pricing packages',
-                                      style: TextStyle(
+                                      context.l10n.pricingPackages,
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black,
@@ -374,12 +413,12 @@ class ServiceDetailsScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Row(
+                                Row(
                                   children: [
-                                    Text('✨ ', style: TextStyle(fontSize: 12)),
+                                    const Text('✨ ', style: TextStyle(fontSize: 12)),
                                     Text(
-                                      'Specializations',
-                                      style: TextStyle(
+                                      context.l10n.specializations,
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black,
@@ -430,7 +469,7 @@ class ServiceDetailsScreen extends ConsumerWidget {
                                   elevation: 0,
                                 ),
                                 child: Text(
-                                  'Connect with ${item.name}',
+                                  context.l10n.connectWithVendor(item.name),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
@@ -468,12 +507,12 @@ class ServiceDetailsScreen extends ConsumerWidget {
 
                         // REVIEWS SECTION matching screenshot
                         if (item.reviews.isNotEmpty) ...[
-                          const Row(
+                          Row(
                             children: [
-                              Text('⭐ ', style: TextStyle(fontSize: 13)),
+                              const Text('⭐ ', style: TextStyle(fontSize: 13)),
                               Text(
-                                'Reviews',
-                                style: TextStyle(
+                                context.l10n.reviews,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black,
@@ -550,8 +589,9 @@ class ServiceDetailsScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ],
-            );
+              ),
+            ],
+          );
           },
           loading: () => const Center(
             child: CircularProgressIndicator(color: Color(0xFFC9003F)),

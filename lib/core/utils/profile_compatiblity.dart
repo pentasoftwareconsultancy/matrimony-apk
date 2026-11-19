@@ -1,4 +1,5 @@
 import '../data/dummy_profiles.dart';
+import 'date_formatter.dart';
 
 /// Compatibility is calculated from profile fields that are present on both
 /// profiles. Missing fields are excluded rather than treated as a mismatch.
@@ -20,10 +21,18 @@ MatrimonialProfile profileFromUser(dynamic user) {
   // so expressions such as user.incomeValue can throw NoSuchMethodError.
   Map<String, dynamic> data = <String, dynamic>{};
   try {
-    final raw = user.toJson();
-    if (raw is Map) data = Map<String, dynamic>.from(raw);
+    if (user is Map<String, dynamic>) {
+      data = user;
+    } else {
+      final raw = user.toJson();
+      if (raw is Map) data = Map<String, dynamic>.from(raw);
+    }
   } catch (_) {
     // Keep an empty map; missing fields will be represented as unavailable.
+  }
+
+  if (data.isNotEmpty) {
+    return MatrimonialProfile.fromJson(data);
   }
 
   dynamic value(List<String> keys) {
@@ -105,6 +114,8 @@ MatrimonialProfile profileFromUser(dynamic user) {
     workLocation: textValue(<String>['workLocation']),
     nativePlace: textValue(<String>['nativePlace']),
     familyStatus: textValue(<String>['familyStatus']),
+    birthDate: formatDobString(value(<String>['birthDate', 'dob', 'dateOfBirth'])),
+    dob: parseDobDateTime(value(<String>['birthDate', 'dob', 'dateOfBirth'])),
   );
 }
 

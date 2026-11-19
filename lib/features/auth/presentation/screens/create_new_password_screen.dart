@@ -6,6 +6,7 @@ import '../widgets/password_checklist_widget.dart';
 import '../widgets/password_strength_meter.dart';
 import '../widgets/password_success_dialog.dart';
 import '../widgets/password_text_field.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class CreateNewPasswordScreen extends ConsumerStatefulWidget {
   const CreateNewPasswordScreen({super.key});
@@ -41,6 +42,7 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(passwordControllerProvider);
 
     final isButtonEnabled = state.isNewPasswordValid && state.doPasswordsMatch;
@@ -69,9 +71,9 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
               const SizedBox(height: 16),
 
               // Title
-              const Text(
-                'Create new password',
-                style: TextStyle(
+              Text(
+                l10n?.createNewPassword ?? 'Create new password',
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -81,7 +83,7 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
 
               // Subtitle
               Text(
-                'Update password to enhance security',
+                l10n?.updatePasswordSubtitle ?? 'Update password to enhance security',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade400,
@@ -92,8 +94,8 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
 
               // Create New Password Field
               PasswordTextField(
-                label: 'Create new password',
-                hintText: 'Enter password',
+                label: l10n?.createNewPassword ?? 'Create new password',
+                hintText: l10n?.enterPassword ?? 'Enter password',
                 controller: _newPasswordController,
                 isPassword: true,
                 onChanged: (val) {
@@ -104,8 +106,8 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
 
               // Confirm New Password Field
               PasswordTextField(
-                label: 'Confirm new password',
-                hintText: 'Enter password',
+                label: l10n?.confirmNewPassword ?? 'Confirm new password',
+                hintText: l10n?.enterPassword ?? 'Enter password',
                 controller: _confirmPasswordController,
                 isPassword: true,
                 onChanged: (val) {
@@ -155,9 +157,9 @@ class _CreateNewPasswordScreenState extends ConsumerState<CreateNewPasswordScree
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Apply Changes',
-                          style: TextStyle(
+                      : Text(
+                          l10n?.applyChanges ?? 'Apply Changes',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),

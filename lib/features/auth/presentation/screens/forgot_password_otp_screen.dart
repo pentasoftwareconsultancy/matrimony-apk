@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../controllers/password_controller.dart';
 import '../widgets/four_digit_otp_widget.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ForgotPasswordOtpScreen extends ConsumerStatefulWidget {
   const ForgotPasswordOtpScreen({super.key});
@@ -15,6 +16,7 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
   String _enteredOtp = '';
 
   void _onNext() async {
+    final l10n = AppLocalizations.of(context);
     final controller = ref.read(passwordControllerProvider.notifier);
     final success = await controller.verifyOtp(_enteredOtp);
     if (mounted) {
@@ -22,9 +24,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
         context.push('/forgot-password/create-password');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid OTP code. Please enter 1234.'),
-            backgroundColor: Color(0xFFC2003B),
+          SnackBar(
+            content: Text(l10n?.invalidOtpMessage ?? 'Invalid OTP code. Please enter 1234.'),
+            backgroundColor: const Color(0xFFC2003B),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -33,13 +35,14 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
   }
 
   void _onResendCode() async {
+    final l10n = AppLocalizations.of(context);
     final controller = ref.read(passwordControllerProvider.notifier);
     final success = await controller.resendOtp();
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('OTP Sent Successfully'),
-          backgroundColor: Color(0xFF10B981),
+        SnackBar(
+          content: Text(l10n?.otpSentSuccessfully ?? 'OTP Sent Successfully'),
+          backgroundColor: const Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -48,6 +51,7 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(passwordControllerProvider);
     final recipient = state.activeRecipient;
 
@@ -77,9 +81,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
               const SizedBox(height: 16),
 
               // Title
-              const Text(
-                'Forgot your password',
-                style: TextStyle(
+              Text(
+                l10n?.forgotYourPassword ?? 'Forgot your password',
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -90,7 +94,7 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
               // Subtitle with Recipient in Bold
               RichText(
                 text: TextSpan(
-                  text: 'A verification code has been sent to ',
+                  text: l10n?.verificationCodeSentTo ?? 'A verification code has been sent to ',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade500,
@@ -111,9 +115,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
               const SizedBox(height: 36),
 
               // Label: Enter code
-              const Text(
-                'Enter code',
-                style: TextStyle(
+              Text(
+                l10n?.enterCode ?? 'Enter code',
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: Color(0xFF1E1E1E),
@@ -141,7 +145,7 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
               Center(
                 child: RichText(
                   text: TextSpan(
-                    text: 'You can resend the code in ',
+                    text: l10n?.resendCodeIn ?? 'You can resend the code in ',
                     style: TextStyle(
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
@@ -149,7 +153,7 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
                     ),
                     children: [
                       TextSpan(
-                        text: '${state.timerSeconds} seconds',
+                        text: '${state.timerSeconds} ${l10n?.seconds ?? 'seconds'}',
                         style: const TextStyle(
                           fontSize: 13,
                           fontStyle: FontStyle.italic,
@@ -190,9 +194,9 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Next',
-                          style: TextStyle(
+                      : Text(
+                          l10n?.next ?? 'Next',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -207,7 +211,7 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Didn't receive the code? ",
+                      l10n?.didntReceiveCode ?? "Didn't receive the code? ",
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -216,7 +220,7 @@ class _ForgotPasswordOtpScreenState extends ConsumerState<ForgotPasswordOtpScree
                     GestureDetector(
                       onTap: state.canResend ? _onResendCode : null,
                       child: Text(
-                        'Resend code',
+                        l10n?.resendCode ?? 'Resend code',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,

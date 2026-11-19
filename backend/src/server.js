@@ -3,6 +3,10 @@ import app from "./app.js";
 import connectDB from "./config/db.js";
 import { seedDatabase } from "./seed.js";
 import { initializeSocket } from "./sockets/index.js";
+import { getJwtSecret } from "./config/jwt.js";
+
+// Fail fast at startup if JWT_SECRET is not configured
+getJwtSecret();
 
 const PORT = process.env.PORT || 8000;
 

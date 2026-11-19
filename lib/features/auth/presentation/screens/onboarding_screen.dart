@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class OnboardingModel {
   final String imagePath;
@@ -82,6 +83,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final pages = [
+      OnboardingModel(
+        imagePath: 'assets/images/onboarding1.png',
+        title: l10n?.onboardingTitle1 ?? 'Crafting Beautiful\nBeginnings',
+        description: l10n?.onboardingDesc1 ?? 'A thoughtful space designed for intentional connections and shared futures. We move beyond filters to help you find a partner who truly aligns with your life goals.',
+      ),
+      OnboardingModel(
+        imagePath: 'assets/images/onboarding2.png',
+        title: l10n?.onboardingTitle2 ?? 'Two Lives, One Perfect\nAlignment',
+        description: l10n?.onboardingDesc2 ?? 'Where family, compatibility, and shared dreams gracefully bring two families together, let us help you discover the connection you\'ve been waiting for.',
+      ),
+      OnboardingModel(
+        imagePath: 'assets/images/onboarding3.png',
+        title: l10n?.onboardingTitle3 ?? 'The Trusted & Secure\nApproach',
+        description: l10n?.onboardingDesc3 ?? 'Simplifying the search for a life partner with absolute clarity and elegance. Welcome to a sophisticated way of finding your forever.',
+      ),
+    ];
     final size = MediaQuery.of(context).size;
 
     return PopScope(
@@ -119,9 +138,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: _onPageChanged,
-                itemCount: _pages.length,
+                itemCount: pages.length,
                 itemBuilder: (context, index) {
-                  final page = _pages[index];
+                  final page = pages[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Column(
@@ -191,7 +210,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   TextButton(
                     onPressed: _navigateToLogin,
                     child: Text(
-                      'Skip',
+                      l10n?.skip ?? 'Skip',
                       style: AppTextStyles.bodyLarge.copyWith(
                         color: AppColors.textLight,
                         fontWeight: FontWeight.w500,
@@ -202,7 +221,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   // Bottom dot indicators
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(_pages.length, (index) {
+                    children: List.generate(pages.length, (index) {
                       final isActive = index == _currentPage;
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
@@ -233,7 +252,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Next',
+                          l10n?.next ?? 'Next',
                           style: AppTextStyles.labelLarge.copyWith(
                             color: Colors.white,
                             fontSize: 14,

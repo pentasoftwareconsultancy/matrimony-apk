@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../controllers/auth_controller.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
@@ -65,6 +66,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   void _resendOTP() async {
+    final l10n = AppLocalizations.of(context);
     if (_canResend) {
       final authState = ref.read(authControllerProvider);
       ref.read(authControllerProvider.notifier).clearError();
@@ -78,7 +80,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         _startTimer();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('OTP code has been resent!')),
+            SnackBar(content: Text(l10n?.otpResentSuccessfully ?? 'OTP code has been resent!')),
           );
         }
       }
@@ -86,6 +88,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   void _submit() async {
+    final l10n = AppLocalizations.of(context);
     final code = _pinController.text;
     if (code.length == 6) {
       ref.read(authControllerProvider.notifier).clearError();
@@ -95,13 +98,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter all 6 digits')),
+        SnackBar(content: Text(l10n?.pleaseEnterAllDigits ?? 'Please enter all 6 digits')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final authState = ref.watch(authControllerProvider);
     final identifier = authState.tempEmail ?? authState.tempPhone ?? '';
 
@@ -184,7 +188,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
-                                  'OTP verification',
+                                  l10n?.otpVerification ?? 'OTP verification',
                                   style: AppTextStyles.titleLarge.copyWith(
                                     color: Colors.black,
                                     fontSize: 20,
@@ -196,7 +200,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
                             // Description
                             Text(
-                              'A verification code has been sent to\n$identifier',
+                              '${l10n?.verificationCodeSentTo ?? 'A verification code has been sent to '}\n$identifier',
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: Colors.grey.shade600,
                               ),
@@ -205,7 +209,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
                             // Enter OTP Label
                             Text(
-                              'Enter Otp',
+                              l10n?.enterOtp ?? 'Enter Otp',
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: Colors.black87,
                                 fontWeight: FontWeight.w500,
@@ -226,16 +230,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                               child: _canResend
                                   ? TextButton(
                                       onPressed: _resendOTP,
-                                      child: const Text(
-                                        'Resend OTP',
-                                        style: TextStyle(
+                                      child: Text(
+                                        l10n?.resendOtp ?? 'Resend OTP',
+                                        style: const TextStyle(
                                           color: AppColors.primary,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     )
                                   : Text(
-                                      'You can resend the code in $_secondsRemaining seconds',
+                                      '${l10n?.resendCodeIn ?? 'You can resend the code in '}$_secondsRemaining ${l10n?.seconds ?? 'seconds'}',
                                       style: AppTextStyles.caption.copyWith(
                                         color: Colors.grey.shade600,
                                       ),
@@ -259,7 +263,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                       width: 24,
                                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                     )
-                                  : const Text('Log in'),
+                                  : Text(l10n?.logIn ?? 'Log in'),
                             ),
                             AppSpacing.verticalLg,
 
@@ -267,12 +271,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text('Already have an account? '),
+                                Text(l10n?.alreadyHaveAccount ?? 'Already have an account? '),
                                 GestureDetector(
                                   onTap: () => context.pop(),
-                                  child: const Text(
-                                    'Log in',
-                                    style: TextStyle(
+                                  child: Text(
+                                    l10n?.logIn ?? 'Log in',
+                                    style: const TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
                                     ),

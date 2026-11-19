@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../controllers/app_providers.dart';
+import '../../../../core/utils/dropdown_localizer.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PartnerPreferenceScreen extends ConsumerStatefulWidget {
   const PartnerPreferenceScreen({super.key});
@@ -26,333 +27,735 @@ class _PartnerPreferenceScreenState extends ConsumerState<PartnerPreferenceScree
   late String _diet;
   late String _manglik;
   bool _initialized = false;
+  bool _isSaving = false;
 
-  final List<String> _religions = ['Hindu', 'Christian', 'Muslim', 'Sikh', 'Jain', 'Buddhist', 'Any'];
-  final List<String> _educations = ['B.Tech', 'Doctorate', 'M.B.A', 'Master\'s', 'Bachelor\'s', 'Any'];
-  final List<String> _diets = ['Vegetarian', 'Non-Vegetarian', 'Eggetarian', 'Vegan', 'Any'];
-  final List<String> _maritalStatuses = ['Single', 'Never Married', 'Divorced', 'Widowed', 'Awaiting Divorce', 'Any'];
+  final List<String> _heights = [
+    'Any',
+    '4\'10" - 5\'2"',
+    '5\'0" - 5\'6"',
+    '5\'2" - 5\'8"',
+    '5\'2" - 6\'0"',
+    '5\'5" - 6\'0"',
+    '5\'8" - 6\'2"',
+    '6\'0" & Above',
+  ];
+
+  final List<String> _religions = [
+    'Hindu',
+    'Christian',
+    'Muslim',
+    'Sikh',
+    'Jain',
+    'Buddhist',
+    'Any',
+  ];
+
+  final List<String> _castes = [
+    'Any',
+    'Kunbi',
+    'Maratha',
+    'Brahmin',
+    'Nair',
+    'Ezhava',
+    'Lingayat',
+    'Rajput',
+    'Other',
+  ];
+
+  final List<String> _cities = [
+    'Pune',
+    'Mumbai',
+    'Nagpur',
+    'Nashik',
+    'Amravati',
+    'Akola',
+    'Buldhana',
+    'Washim',
+    'Yavatmal',
+    'Ahmedabad',
+    'Hyderabad',
+    'Bengaluru',
+    'Delhi',
+    'Any',
+    'Other',
+  ];
+
+  final List<String> _educations = [
+    'Bachelor\'s',
+    'Master\'s',
+    'B.Tech',
+    'M.Tech',
+    'M.B.A',
+    'Doctorate',
+    'Ph.D',
+    'MBBS',
+    'B.Com',
+    'M.Com',
+    'B.Sc',
+    'Any',
+    'Other',
+  ];
+
+  final List<String> _occupations = [
+    'Software Engineer',
+    'Chartered Accountant',
+    'Doctor (MD/MBBS)',
+    'Architect',
+    'Bank Manager',
+    'Civil Engineer',
+    'Teacher/Professor',
+    'Business Owner',
+    'Government Officer',
+    'Any',
+    'Other',
+  ];
+
+  void _syncFromPref(PartnerPreference pref) {
+    _ageMin = pref.ageMin;
+    _ageMax = pref.ageMax;
+    _height = pref.height;
+    _religion = pref.religion;
+    _caste = pref.caste;
+    _city = pref.city;
+    _education = pref.education;
+    _occupation = pref.occupation;
+    _income = pref.income;
+    _maritalStatus = pref.maritalStatus;
+    _diet = pref.diet;
+    _manglik = pref.manglik;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _syncFromPref(ref.read(partnerPreferenceProvider));
+      _initialized = true;
+    }
+  }
+
+  List<String> _resolveOptions(List<String> baseOptions, String currentValue) {
+    final result = List<String>.from(baseOptions);
+    final trimmed = currentValue.trim();
+    if (trimmed.isNotEmpty && !result.any((e) => e.toLowerCase() == trimmed.toLowerCase())) {
+      result.insert(0, trimmed);
+    }
+    return result;
+  }
+
+  Future<void> _handleSave() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      final updatedPref = PartnerPreference(
+        ageMin: _ageMin,
+        ageMax: _ageMax,
+        height: _height,
+        religion: _religion,
+        caste: _caste,
+        city: _city,
+        education: _education,
+        occupation: _occupation,
+        income: _income,
+        maritalStatus: _maritalStatus,
+        diet: _diet,
+        manglik: _manglik,
+      );
+
+      await ref.read(partnerPreferenceProvider.notifier).save(updatedPref);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Partner preference saved successfully.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save preferences: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pref = ref.watch(partnerPreferenceProvider);
-
-    if (!_initialized) {
-      _ageMin = pref.ageMin;
-      _ageMax = pref.ageMax;
-      _height = pref.height;
-      _religion = pref.religion;
-      _caste = pref.caste;
-      _city = pref.city;
-      _education = pref.education;
-      _occupation = pref.occupation;
-      _income = pref.income;
-      _maritalStatus = pref.maritalStatus;
-      _diet = pref.diet;
-      _manglik = pref.manglik;
-      _initialized = true;
-    }
+    // Listen for provider updates to keep state synchronized
+    ref.listen<PartnerPreference>(partnerPreferenceProvider, (previous, next) {
+      if (!_isSaving) {
+        setState(() {
+          _syncFromPref(next);
+        });
+      }
+    });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFDF9),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Partner Preference',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: false,
-      ),
-      body: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: Text(
-                'Set your partner requirements',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+      backgroundColor: const Color(0xFFFFF1F4), // Soft pink screen background
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: const Color(0xFFC0003E),
+          onRefresh: () async {
+            try {
+              await ref.read(partnerPreferenceProvider.notifier).refresh();
+              final updated = ref.read(partnerPreferenceProvider);
+              if (mounted) {
+                setState(() {
+                  _syncFromPref(updated);
+                });
+              }
+            } catch (_) {}
+          },
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Age Range
-                  const Text('Age range', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          value: _ageMin,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  // 1. Romantic Top Header with Couple & Floating Hearts
+                  SizedBox(
+                    height: 165,
+                    child: Stack(
+                      children: [
+                        // Layered rolling soft pink landscape
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _HeaderLandscapePainter(),
                           ),
-                          items: List.generate(24, (index) => index + 18)
-                              .map((age) => DropdownMenuItem(value: age, child: Text('$age')))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _ageMin = val);
-                          },
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          value: _ageMax,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+
+                        // Two overlapping outlined pink hearts in upper-right corner
+                        Positioned(
+                          top: 10,
+                          right: 18,
+                          child: CustomPaint(
+                            size: const Size(60, 50),
+                            painter: _OverlappingHeartsPainter(),
                           ),
-                          items: List.generate(24, (index) => index + 18)
-                              .map((age) => DropdownMenuItem(value: age, child: Text('$age')))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _ageMax = val);
-                          },
                         ),
+
+                        // Couple illustration seated together looking out
+                        Positioned(
+                          right: 48,
+                          bottom: 0,
+                          child: Image.asset(
+                            'assets/images/couple1.png',
+                            height: 108,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const SizedBox.shrink(),
+                          ),
+                        ),
+
+                        // Back arrow, Title, and Subtitle on the left
+                        Positioned(
+                          top: 10,
+                          left: 16,
+                          right: 150,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (Navigator.canPop(context)) {
+                                    Navigator.pop(context);
+                                  }
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Icon(
+                                    Icons.arrow_back,
+                                    color: Color(0xFF1E1E1E),
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                AppLocalizations.of(context)?.partnerPreferences ?? 'Partner Preference',
+                                style: const TextStyle(
+                                  color: Color(0xFFC0003E),
+                                  fontSize: 25,
+                                  fontFamily: 'serif',
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                AppLocalizations.of(context)?.savePreferences ?? 'Set your partner requirements',
+                                style: const TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 2. Main Rounded White Form Card with 7 Preference Rows
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFFFE0E8), width: 1.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFC0003E).withValues(alpha: 0.04),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Column(
+                        children: [
+                          // 1. Age Range Row
+                          _buildAgeRangeRow(),
+                          const Divider(color: Color(0xFFFFEEF3), height: 18, thickness: 1.0),
 
-                  // Height Preference
-                  const Text('Height expectation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: _height,
-                    decoration: InputDecoration(
-                      hintText: 'Enter height expectation (e.g. 5\'2" - 6\'0")',
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onChanged: (val) => _height = val.trim(),
-                  ),
-                  const SizedBox(height: 16),
+                          // 2. Height Expectation Row
+                          _buildPreferenceRow(
+                            icon: Icons.straighten_rounded,
+                            label: 'Height expectation',
+                            currentValue: _height,
+                            options: _heights,
+                            onChanged: (val) => setState(() => _height = val),
+                          ),
+                          const Divider(color: Color(0xFFFFEEF3), height: 18, thickness: 1.0),
 
-                  // Religion
-                  const Text('Religion', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _religions.contains(_religion) ? _religion : 'Hindu',
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: _religions
-                        .map((rel) => DropdownMenuItem(value: rel, child: Text(rel)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _religion = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Caste
-                  const Text('Caste expectation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: _caste,
-                    decoration: InputDecoration(
-                      hintText: 'Enter caste (or "Any")',
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onChanged: (val) => _caste = val.trim(),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // City
-                  const Text('City preference', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: _city,
-                    decoration: InputDecoration(
-                      hintText: 'Enter city preference',
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onChanged: (val) => _city = val.trim(),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Education
-                  const Text('Education level', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _educations.contains(_education) ? _education : 'Bachelor\'s',
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: _educations
-                        .map((edu) => DropdownMenuItem(value: edu, child: Text(edu)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _education = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Occupation
-                  const Text('Occupation preference', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: _occupation,
-                    decoration: InputDecoration(
-                      hintText: 'Enter preferred occupation',
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onChanged: (val) => _occupation = val.trim(),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Income
-                  const Text('Annual Income expectation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: _income,
-                    decoration: InputDecoration(
-                      hintText: 'Enter annual income range expectation',
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onChanged: (val) => _income = val.trim(),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Marital Status
-                  const Text('Marital status requirement', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _maritalStatuses.contains(_maritalStatus) ? _maritalStatus : 'Never Married',
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: _maritalStatuses
-                        .map((status) => DropdownMenuItem(value: status, child: Text(status)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _maritalStatus = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Diet
-                  const Text('Diet requirement', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _diets.contains(_diet) ? _diet : 'Vegetarian',
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: _diets
-                        .map((diet) => DropdownMenuItem(value: diet, child: Text(diet)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _diet = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Manglik
-                  const Text('Manglik expectation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: ['Yes', 'No', 'Any'].map((m) {
-                      final isSel = _manglik == m;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _manglik = m),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: isSel ? AppColors.primary : Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: isSel ? AppColors.primary : Colors.grey.shade300),
-                            ),
-                            child: Text(
-                              m,
+                          // 3. Religion Row with Om Symbol
+                          _buildPreferenceRow(
+                            customIcon: const Text(
+                              'ॐ',
                               style: TextStyle(
-                                color: isSel ? Colors.white : Colors.black87,
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                color: Color(0xFFC0003E),
+                                height: 1.0,
                               ),
                             ),
+                            label: 'Religion',
+                            currentValue: _religion,
+                            options: _religions,
+                            onChanged: (val) => setState(() => _religion = val),
+                          ),
+                          const Divider(color: Color(0xFFFFEEF3), height: 18, thickness: 1.0),
+
+                          // 4. Caste Expectation Row
+                          _buildPreferenceRow(
+                            icon: Icons.groups_rounded,
+                            label: 'Caste expectation',
+                            currentValue: _caste,
+                            options: _castes,
+                            onChanged: (val) => setState(() => _caste = val),
+                          ),
+                          const Divider(color: Color(0xFFFFEEF3), height: 18, thickness: 1.0),
+
+                          // 5. City Preference Row
+                          _buildPreferenceRow(
+                            icon: Icons.location_on_rounded,
+                            label: 'City preference',
+                            currentValue: _city,
+                            options: _cities,
+                            onChanged: (val) => setState(() => _city = val),
+                          ),
+                          const Divider(color: Color(0xFFFFEEF3), height: 18, thickness: 1.0),
+
+                          // 6. Education Level Row
+                          _buildPreferenceRow(
+                            icon: Icons.school_rounded,
+                            label: 'Education level',
+                            currentValue: _education,
+                            options: _educations,
+                            onChanged: (val) => setState(() => _education = val),
+                          ),
+                          const Divider(color: Color(0xFFFFEEF3), height: 18, thickness: 1.0),
+
+                          // 7. Occupation Preference Row
+                          _buildPreferenceRow(
+                            icon: Icons.work_rounded,
+                            label: 'Occupation preference',
+                            currentValue: _occupation,
+                            options: _occupations,
+                            onChanged: (val) => setState(() => _occupation = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 3. Large Rounded Save Changes Button
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 22, 16, 28),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _handleSave,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC0003E),
+                          foregroundColor: Colors.white,
+                          elevation: 1.5,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
                           ),
                         ),
-                      );
-                    }).toList(),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                AppLocalizations.of(context)?.savePreferences ?? 'Save Changes',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
-
-            // Save changes button
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    final updatedPref = PartnerPreference(
-                      ageMin: _ageMin,
-                      ageMax: _ageMax,
-                      height: _height,
-                      religion: _religion,
-                      caste: _caste,
-                      city: _city,
-                      education: _education,
-                      occupation: _occupation,
-                      income: _income,
-                      maritalStatus: _maritalStatus,
-                      diet: _diet,
-                      manglik: _manglik,
-                    );
-                    await ref.read(partnerPreferenceProvider.notifier).save(updatedPref);
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Partner preference saved successfully.'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                ),
-                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+
+  // Row 1: Age range row with two side-by-side dropdowns separated by dash
+  Widget _buildAgeRangeRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE8EF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.calendar_month_outlined,
+              color: Color(0xFFC0003E),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Age range',
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E1E1E),
+              ),
+            ),
+          ),
+          _buildAgeDropdown(
+            value: _ageMin,
+            items: List.generate(43, (i) => i + 18),
+            onChanged: (val) {
+              if (val != null) setState(() => _ageMin = val);
+            },
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6.0),
+            child: Text(
+              '–',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF9E9E9E),
+              ),
+            ),
+          ),
+          _buildAgeDropdown(
+            value: _ageMax,
+            items: List.generate(43, (i) => i + 18),
+            onChanged: (val) {
+              if (val != null) setState(() => _ageMax = val);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgeDropdown({
+    required int value,
+    required List<int> items,
+    required ValueChanged<int?> onChanged,
+  }) {
+    final resolvedItems = items.contains(value) ? items : [value, ...items];
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFDDE6), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: value,
+          isDense: true,
+          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF333333), size: 20),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E1E1E),
+          ),
+          items: resolvedItems.map((age) {
+            return DropdownMenuItem<int>(
+              value: age,
+              child: Text(
+                '$age',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E1E1E),
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  // Rows 2-7: Reusable row with icon, label, and right-aligned dropdown pill
+  Widget _buildPreferenceRow({
+    IconData? icon,
+    Widget? customIcon,
+    required String label,
+    required String currentValue,
+    required List<String> options,
+    required ValueChanged<String> onChanged,
+  }) {
+    final resolvedOptions = _resolveOptions(options, currentValue);
+    final selected = resolvedOptions.contains(currentValue)
+        ? currentValue
+        : (resolvedOptions.isNotEmpty ? resolvedOptions.first : '');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE8EF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: customIcon ??
+                Icon(
+                  icon,
+                  color: const Color(0xFFC0003E),
+                  size: 22,
+                ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E1E1E),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            height: 38,
+            constraints: const BoxConstraints(minWidth: 100, maxWidth: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFFFDDE6), width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selected,
+                isDense: true,
+                isExpanded: false,
+                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF333333), size: 20),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E1E1E),
+                ),
+                items: resolvedOptions.map((opt) {
+                  return DropdownMenuItem<String>(
+                    value: opt,
+                    child: Text(
+                      DropdownLocalizer.getLabel(context, opt),
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1E1E1E),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    onChanged(val);
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Two overlapping delicate outline pink hearts for top-right header
+class _OverlappingHeartsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFE8507D)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    // Main / Left larger heart
+    final path1 = Path();
+    final w1 = size.width * 0.68;
+    final h1 = size.height * 0.78;
+    final ox1 = size.width * 0.04;
+    final oy1 = size.height * 0.04;
+
+    path1.moveTo(ox1 + w1 * 0.5, oy1 + h1 * 0.3);
+    path1.cubicTo(ox1 + w1 * 0.5, oy1 + h1 * 0.1, ox1 + w1 * 0.35, oy1, ox1 + w1 * 0.22, oy1);
+    path1.cubicTo(ox1 + w1 * 0.05, oy1, ox1, oy1 + h1 * 0.2, ox1, oy1 + h1 * 0.35);
+    path1.cubicTo(ox1, oy1 + h1 * 0.6, ox1 + w1 * 0.35, oy1 + h1 * 0.82, ox1 + w1 * 0.5, oy1 + h1);
+    path1.cubicTo(ox1 + w1 * 0.65, oy1 + h1 * 0.82, ox1 + w1, oy1 + h1 * 0.6, ox1 + w1, oy1 + h1 * 0.35);
+    path1.cubicTo(ox1 + w1, oy1 + h1 * 0.2, ox1 + w1 * 0.95, oy1, ox1 + w1 * 0.78, oy1);
+    path1.cubicTo(ox1 + w1 * 0.65, oy1, ox1 + w1 * 0.5, oy1 + h1 * 0.1, ox1 + w1 * 0.5, oy1 + h1 * 0.3);
+    canvas.drawPath(path1, paint);
+
+    // Secondary / overlapping smaller heart on bottom-right
+    final path2 = Path();
+    final w2 = size.width * 0.46;
+    final h2 = size.height * 0.52;
+    final ox2 = size.width * 0.52;
+    final oy2 = size.height * 0.45;
+
+    path2.moveTo(ox2 + w2 * 0.5, oy2 + h2 * 0.3);
+    path2.cubicTo(ox2 + w2 * 0.5, oy2 + h2 * 0.1, ox2 + w2 * 0.35, oy2, ox2 + w2 * 0.22, oy2);
+    path2.cubicTo(ox2 + w2 * 0.05, oy2, ox2, oy2 + h2 * 0.2, ox2, oy2 + h2 * 0.35);
+    path2.cubicTo(ox2, oy2 + h2 * 0.6, ox2 + w2 * 0.35, oy2 + h2 * 0.82, ox2 + w2 * 0.5, oy2 + h2);
+    path2.cubicTo(ox2 + w2 * 0.65, oy2 + h2 * 0.82, ox2 + w2, oy2 + h2 * 0.6, ox2 + w2, oy2 + h2 * 0.35);
+    path2.cubicTo(ox2 + w2, oy2 + h2 * 0.2, ox2 + w2 * 0.95, oy2, ox2 + w2 * 0.78, oy2);
+    path2.cubicTo(ox2 + w2 * 0.65, oy2, ox2 + w2 * 0.5, oy2 + h2 * 0.1, ox2 + w2 * 0.5, oy2 + h2 * 0.3);
+    canvas.drawPath(path2, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Rolling pink hills landscape in the background of the header
+class _HeaderLandscapePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Distant soft hill
+    final hillPaint1 = Paint()
+      ..color = const Color(0xFFF7D5E0).withValues(alpha: 0.55)
+      ..style = PaintingStyle.fill;
+    final hill1 = Path();
+    hill1.moveTo(0, size.height * 0.85);
+    hill1.quadraticBezierTo(
+      size.width * 0.4,
+      size.height * 0.6,
+      size.width * 0.8,
+      size.height * 0.8,
+    );
+    hill1.quadraticBezierTo(
+      size.width * 0.9,
+      size.height * 0.85,
+      size.width,
+      size.height * 0.75,
+    );
+    hill1.lineTo(size.width, size.height);
+    hill1.lineTo(0, size.height);
+    hill1.close();
+    canvas.drawPath(hill1, hillPaint1);
+
+    // Closer hill
+    final hillPaint2 = Paint()
+      ..color = const Color(0xFFF4C4D4).withValues(alpha: 0.65)
+      ..style = PaintingStyle.fill;
+    final hill2 = Path();
+    hill2.moveTo(0, size.height * 0.95);
+    hill2.quadraticBezierTo(
+      size.width * 0.5,
+      size.height * 0.72,
+      size.width,
+      size.height * 0.88,
+    );
+    hill2.lineTo(size.width, size.height);
+    hill2.lineTo(0, size.height);
+    hill2.close();
+    canvas.drawPath(hill2, hillPaint2);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

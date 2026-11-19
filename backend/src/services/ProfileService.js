@@ -13,10 +13,11 @@ class ProfileService {
     return await AuthService.getMergedUser(matrimony);
   }
 
-  async getProfileById(id) {
+  async getProfileById(id, viewerId = null) {
     const matrimony = await Matrimony.findById(id);
     if (!matrimony) return null;
-    return await AuthService.getMergedUser(matrimony);
+    const isOwner = Boolean(viewerId && viewerId.toString() === id.toString());
+    return await AuthService.getMergedUser(matrimony, { includePrivate: isOwner });
   }
 
   async updateProfile(userId, profileData) {
@@ -31,32 +32,258 @@ class ProfileService {
     const docs = matrimony.documentDetails || {};
     const reg = matrimony.userRegistration || {};
 
-    if (profileData.fullName) reg.fullName = profileData.fullName;
-    if (profileData.phone) reg.phoneNumber = Number(profileData.phone.replace(/\D/g, ''));
-    if (profileData.city) reg.city = profileData.city;
-    if (profileData.state) reg.state = profileData.state;
-    if (profileData.address) reg.address = profileData.address;
+    const hasValue = (val) => val !== undefined && val !== null && (typeof val !== 'string' || val.trim().length > 0);
 
-    if (profileData.maritalStatus) personal.maritalStatus = profileData.maritalStatus;
-    if (profileData.height) personal.height = profileData.height;
-    if (profileData.weight) personal.weight = profileData.weight;
-    if (profileData.bloodGroup) personal.bloodGroup = profileData.bloodGroup;
-    if (profileData.diet) personal.diet = profileData.diet;
-    if (profileData.about || profileData.aboutMe) personal.descriptionAboutSelf = profileData.about || profileData.aboutMe;
+    // 1. User Registration / Basic Information
+    if (hasValue(profileData.fullName || profileData.name)) {
+      reg.fullName = (profileData.fullName || profileData.name).toString().trim();
+    }
+    if (hasValue(profileData.phone || profileData.phoneNumber)) {
+      const cleanPhone = (profileData.phone || profileData.phoneNumber).toString().replace(/\D/g, '');
+      if (cleanPhone) reg.phoneNumber = Number(cleanPhone);
+    }
+    if (hasValue(profileData.altPhone || profileData.alternativePhoneNumber)) {
+      reg.alternativePhoneNumber = (profileData.altPhone || profileData.alternativePhoneNumber).toString().trim();
+    }
+    if (hasValue(profileData.email)) {
+      reg.email = profileData.email.toString().trim().toLowerCase();
+    }
+    const rawDob = profileData.birthDate || profileData.dob || profileData.dateOfBirth;
+    if (hasValue(rawDob)) {
+      let parsedDate = null;
+      if (typeof rawDob === 'string' && rawDob.includes('/')) {
+        const parts = rawDob.split('/');
+        if (parts.length === 3) {
+          parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        }
+      } else {
+        parsedDate = new Date(rawDob);
+      }
+      if (parsedDate && !isNaN(parsedDate.getTime())) {
+        reg.dateOfBirth = parsedDate;
+      }
+    }
+    if (hasValue(profileData.city || profileData.district)) {
+      reg.district = (profileData.city || profileData.district).toString().trim();
+    }
+    if (hasValue(profileData.state)) {
+      reg.state = profileData.state.toString().trim();
+    }
+    if (hasValue(profileData.country)) {
+      reg.country = profileData.country.toString().trim();
+    }
+    if (hasValue(profileData.address || profileData.homePlace)) {
+      reg.address = (profileData.address || profileData.homePlace).toString().trim();
+    }
+    if (hasValue(profileData.village)) {
+      reg.village = profileData.village.toString().trim();
+    }
+    if (hasValue(profileData.pincode)) {
+      reg.pincode = profileData.pincode.toString().trim();
+    }
 
-    if (profileData.highestEdu || profileData.qualification) edu.highestEducation = profileData.highestEdu || profileData.qualification;
-    if (profileData.profession || profileData.occupation) edu.profession = profileData.profession || profileData.occupation;
-    if (profileData.income || profileData.annualIncome) edu.annualIncome = profileData.income || profileData.annualIncome;
+    // 2. Personal Details
+    if (hasValue(profileData.maritalStatus)) personal.maritalStatus = profileData.maritalStatus.toString().trim();
+    if (hasValue(profileData.age)) {
+      const parsedAge = Number(profileData.age);
+      if (!isNaN(parsedAge) && parsedAge > 0) personal.age = parsedAge;
+    }
+    if (hasValue(profileData.height)) {
+      const digits = profileData.height.toString().replace(/[^\d.]/g, '');
+      const h = Number(digits);
+      if (!isNaN(h) && h > 0) personal.height = h;
+    }
+    if (hasValue(profileData.weight)) {
+      const digits = profileData.weight.toString().replace(/[^\d.]/g, '');
+      const w = Number(digits);
+      if (!isNaN(w) && w > 0) personal.weight = w;
+    }
+    if (hasValue(profileData.bloodGroup)) personal.bloodGroup = profileData.bloodGroup.toString().trim();
+    if (hasValue(profileData.diet)) personal.diet = profileData.diet.toString().trim();
+    if (hasValue(profileData.complexion || profileData.complexionType)) {
+      personal.complexionType = (profileData.complexion || profileData.complexionType).toString().trim();
+    }
+    if (hasValue(profileData.bodyType)) personal.bodyType = profileData.bodyType.toString().trim();
+    if (hasValue(profileData.specialCase)) personal.specialCase = profileData.specialCase.toString().trim();
+    if (hasValue(profileData.smoking)) personal.smoking = profileData.smoking.toString().trim();
+    if (hasValue(profileData.drinking)) personal.drinking = profileData.drinking.toString().trim();
+    if (hasValue(profileData.drinkingSmoking)) {
+      personal.smoking = profileData.drinkingSmoking.toString().trim();
+      personal.drinking = profileData.drinkingSmoking.toString().trim();
+    }
+    if (hasValue(profileData.hobbies)) {
+      personal.hobbies = Array.isArray(profileData.hobbies) ? profileData.hobbies : [profileData.hobbies.toString().trim()];
+    }
+    if (hasValue(profileData.agriLand || profileData.agriculturalLandAcres)) {
+      personal.agriculturalLandAcres = (profileData.agriLand || profileData.agriculturalLandAcres).toString().trim();
+    }
+    if (hasValue(profileData.children || profileData.numberOfChildren)) {
+      const c = Number(profileData.children ?? profileData.numberOfChildren);
+      if (!isNaN(c)) personal.numberOfChildren = c;
+    }
+    if (hasValue(profileData.about || profileData.aboutMe || profileData.descriptionAboutSelf)) {
+      personal.descriptionAboutSelf = (profileData.about || profileData.aboutMe || profileData.descriptionAboutSelf).toString().trim();
+    }
 
-    if (profileData.religion) astro.religion = profileData.religion;
-    if (profileData.caste) astro.caste = profileData.caste;
-    if (profileData.rashi) astro.rashi = profileData.rashi;
-    if (profileData.gotra) astro.gotra = profileData.gotra;
-    if (profileData.manglik !== undefined) astro.isManglik = profileData.manglik === true || profileData.manglik === 'Yes';
+    // 3. Educational & Professional Details
+    if (hasValue(profileData.highestEdu || profileData.qualification || profileData.highestEducation)) {
+      edu.highestEducation = (profileData.highestEdu || profileData.qualification || profileData.highestEducation).toString().trim();
+    }
+    if (hasValue(profileData.eduField || profileData.educationField)) {
+      edu.educationField = (profileData.eduField || profileData.educationField).toString().trim();
+    }
+    if (hasValue(profileData.university || profileData.universityCollege)) {
+      edu.universityCollege = (profileData.university || profileData.universityCollege).toString().trim();
+    }
+    if (hasValue(profileData.profession || profileData.occupation)) {
+      edu.profession = (profileData.profession || profileData.occupation).toString().trim();
+    }
+    if (hasValue(profileData.designation || profileData.occupationPosition)) {
+      edu.occupationPosition = (profileData.designation || profileData.occupationPosition).toString().trim();
+    }
+    if (hasValue(profileData.organization || profileData.organizationName)) {
+      edu.organizationName = (profileData.organization || profileData.organizationName).toString().trim();
+    }
+    if (hasValue(profileData.companyAddress || profileData.workPlace || profileData.workLocation)) {
+      edu.companyAddress = (profileData.companyAddress || profileData.workPlace || profileData.workLocation).toString().trim();
+    }
+    if (hasValue(profileData.income || profileData.annualIncome)) {
+      edu.annualIncome = (profileData.income || profileData.annualIncome).toString().trim();
+    }
 
-    if (profileData.fatherName) family.fatherName = profileData.fatherName;
-    if (profileData.motherName) family.motherName = profileData.motherName;
-    if (profileData.familyType) family.familyType = profileData.familyType;
+    // 4. Astrology / Religion Details
+    if (hasValue(profileData.motherTongue)) astro.motherTongue = profileData.motherTongue.toString().trim();
+    if (hasValue(profileData.religion)) astro.religion = profileData.religion.toString().trim();
+    if (hasValue(profileData.caste)) astro.caste = profileData.caste.toString().trim();
+    if (hasValue(profileData.subCast)) astro.subCast = profileData.subCast.toString().trim();
+    if (hasValue(profileData.placeOfBirth)) astro.placeOfBirth = profileData.placeOfBirth.toString().trim();
+    if (hasValue(profileData.birthTime || profileData.timeOfBirth)) {
+      astro.timeOfBirth = (profileData.birthTime || profileData.timeOfBirth).toString().trim();
+    }
+    if (hasValue(profileData.rashi)) astro.rashi = profileData.rashi.toString().trim();
+    if (hasValue(profileData.gotra)) astro.gotra = profileData.gotra.toString().trim();
+    if (hasValue(profileData.nakshatra)) astro.nakshatra = profileData.nakshatra.toString().trim();
+    if (hasValue(profileData.charan)) astro.charan = profileData.charan.toString().trim();
+    if (hasValue(profileData.gan)) astro.gan = profileData.gan.toString().trim();
+    if (hasValue(profileData.nadi)) astro.nadi = profileData.nadi.toString().trim();
+    if (profileData.manglik !== undefined) {
+      astro.isManglik = profileData.manglik === true || profileData.manglik === 'Yes' || profileData.manglik === 'yes';
+    }
+    if (hasValue(profileData.partnerPriority || profileData.importanceOfPatrika)) {
+      astro.importanceOfPatrika = (profileData.partnerPriority || profileData.importanceOfPatrika).toString().trim();
+    }
+
+    // 5. Family Details
+    if (hasValue(profileData.fatherName)) family.fatherName = profileData.fatherName.toString().trim();
+    if (hasValue(profileData.fatherEdu || profileData.fatherOccupation)) {
+      family.fatherOccupation = (profileData.fatherEdu || profileData.fatherOccupation).toString().trim();
+    }
+    if (hasValue(profileData.motherName)) family.motherName = profileData.motherName.toString().trim();
+    if (hasValue(profileData.motherOcc || profileData.motherOccupation)) {
+      family.motherOccupation = (profileData.motherOcc || profileData.motherOccupation).toString().trim();
+    }
+    if (hasValue(profileData.familyType)) family.familyType = profileData.familyType.toString().trim();
+    if (hasValue(profileData.familyValues || profileData.familyStatus)) {
+      family.familyValues = (profileData.familyValues || profileData.familyStatus).toString().trim();
+      family.familyStatus = (profileData.familyStatus || profileData.familyValues).toString().trim();
+    }
+    if (hasValue(profileData.nativePlace || profileData.homePlace)) {
+      family.nativePlace = (profileData.nativePlace || profileData.homePlace).toString().trim();
+    }
+
+    // Dynamic Brothers Details
+    if (Array.isArray(profileData.brothersDetails)) {
+      family.brothersDetails = profileData.brothersDetails.map((b) => ({
+        name: (b?.name || '').toString().trim(),
+        occupation: (b?.occupation || '').toString().trim(),
+      }));
+      family.brothers = family.brothersDetails.length;
+    } else if (hasValue(profileData.brothers)) {
+      const b = Number(profileData.brothers);
+      if (!isNaN(b)) family.brothers = b;
+    }
+
+    // Dynamic Sisters Details
+    if (Array.isArray(profileData.sistersDetails)) {
+      family.sistersDetails = profileData.sistersDetails.map((s) => ({
+        name: (s?.name || '').toString().trim(),
+        occupation: (s?.occupation || '').toString().trim(),
+        isMarried: Boolean(s?.isMarried === true || s?.isMarried === 'true' || s?.isMarried === 'Yes' || s?.married === true),
+        husbandName: (s?.husbandName || '').toString().trim(),
+        husbandProfession: (s?.husbandProfession || '').toString().trim(),
+      }));
+      family.sisters = family.sistersDetails.length;
+      const marriedCount = family.sistersDetails.filter((s) => s.isMarried).length;
+      family.marriedSisters = marriedCount > 0 ? String(marriedCount) : '0';
+    } else {
+      if (hasValue(profileData.sisters)) {
+        const s = Number(profileData.sisters);
+        if (!isNaN(s)) family.sisters = s;
+      }
+      if (hasValue(profileData.marriedSister || profileData.marriedSisters)) {
+        family.marriedSisters = (profileData.marriedSister || profileData.marriedSisters).toString().trim();
+      }
+    }
+
+    // Dynamic Maternal Uncles Details
+    if (Array.isArray(profileData.maternalUnclesDetails)) {
+      family.maternalUnclesDetails = profileData.maternalUnclesDetails.map((u) => ({
+        name: (u?.name || '').toString().trim(),
+        occupation: (u?.occupation || '').toString().trim(),
+      }));
+      if (family.maternalUnclesDetails.length > 0) {
+        family.maternalUncleName = family.maternalUnclesDetails.map((u) => u.name).filter(Boolean).join(', ');
+      }
+    } else if (hasValue(profileData.maternalUncle || profileData.maternalUncleName)) {
+      family.maternalUncleName = (profileData.maternalUncle || profileData.maternalUncleName).toString().trim();
+    }
+
+    // Dynamic Uncles Details
+    if (Array.isArray(profileData.unclesDetails)) {
+      family.unclesDetails = profileData.unclesDetails.map((u) => ({
+        name: (u?.name || '').toString().trim(),
+        occupation: (u?.occupation || '').toString().trim(),
+      }));
+      if (family.unclesDetails.length > 0) {
+        family.uncleName = family.unclesDetails.map((u) => u.name).filter(Boolean).join(', ');
+      }
+    } else if (hasValue(profileData.uncleName)) {
+      family.uncleName = profileData.uncleName.toString().trim();
+    }
+
+    if (hasValue(profileData.unclePhone || profileData.maternalUnclePhone)) {
+      family.unclePhone = (profileData.unclePhone || profileData.maternalUnclePhone).toString().trim();
+      family.maternalUnclePhone = (profileData.unclePhone || profileData.maternalUnclePhone).toString().trim();
+    }
+    if (hasValue(profileData.aboutFamily)) family.aboutFamily = profileData.aboutFamily.toString().trim();
+
+    // 6. Documents & Photos
+    if (Array.isArray(profileData.photos) && profileData.photos.length > 0) {
+      docs.photos = profileData.photos.filter((p) => typeof p === 'string' && p.trim().length > 0);
+      if (docs.photos.length > 0) {
+        docs.photoFulls = docs.photos[0];
+        if (docs.photos.length > 1) docs.photoCloseup = docs.photos[1];
+        if (docs.photos.length > 2) docs.photoFull = docs.photos[2];
+      }
+    }
+    if (hasValue(profileData.aadharNumber || profileData.aadharCardNumber)) {
+      docs.aadharCardNumber = (profileData.aadharNumber || profileData.aadharCardNumber).toString().trim();
+    }
+    if (hasValue(profileData.aadharCardUrl || profileData.aadhaarFrontphoto)) {
+      const nextAadhar = (profileData.aadharCardUrl || profileData.aadhaarFrontphoto).toString().trim();
+      if (nextAadhar !== docs.aadhaarFrontphoto) {
+        docs.aadhaarFrontphoto = nextAadhar;
+        docs.aadharStatus = 'pending';
+        matrimony.isVerified = false;
+      }
+    }
+    if (hasValue(profileData.casteCertificateUrl || profileData.castecertificate)) {
+      const nextCaste = (profileData.casteCertificateUrl || profileData.castecertificate).toString().trim();
+      if (nextCaste !== docs.castecertificate) {
+        docs.castecertificate = nextCaste;
+        docs.casteStatus = 'pending';
+      }
+    }
 
     matrimony.userRegistration = reg;
     matrimony.personalDetail = personal;
@@ -66,7 +293,104 @@ class ProfileService {
     matrimony.partnerDetail = partner;
     matrimony.documentDetails = docs;
 
+    matrimony.markModified('userRegistration');
+    matrimony.markModified('personalDetail');
+    matrimony.markModified('educationalDetail');
+    matrimony.markModified('familyDetails');
+    matrimony.markModified('astrologyDetails');
+    matrimony.markModified('partnerDetail');
+    matrimony.markModified('documentDetails');
+
     await matrimony.save();
+    return await AuthService.getMergedUser(matrimony);
+  }
+
+  async addPhoto(userId, photoUrl) {
+    const matrimony = await Matrimony.findById(userId);
+    if (!matrimony) throw new Error('Profile not found');
+    const docs = matrimony.documentDetails || {};
+    const photos = Array.isArray(docs.photos) ? docs.photos : [];
+    if (!photos.includes(photoUrl)) {
+      photos.push(photoUrl);
+    }
+    docs.photos = photos;
+    if (!docs.photoFulls) docs.photoFulls = photoUrl;
+    matrimony.documentDetails = docs;
+    matrimony.markModified('documentDetails');
+    await matrimony.save();
+    return await AuthService.getMergedUser(matrimony);
+  }
+
+  async removePhoto(userId, photoUrl) {
+    const matrimony = await Matrimony.findById(userId);
+    if (!matrimony) throw new Error('Profile not found');
+    const docs = matrimony.documentDetails || {};
+    let photos = Array.isArray(docs.photos) ? docs.photos : [];
+    photos = photos.filter((p) => p !== photoUrl);
+    docs.photos = photos;
+    if (docs.photoFulls === photoUrl) {
+      docs.photoFulls = photos[0] || '';
+    }
+    matrimony.documentDetails = docs;
+    matrimony.markModified('documentDetails');
+    await matrimony.save();
+    return await AuthService.getMergedUser(matrimony);
+  }
+
+  _resolveDocumentFields(docId) {
+    const docMap = {
+      aadhar: { urlField: 'aadhaarFrontphoto', statusField: 'aadharStatus' },
+      aadhaar: { urlField: 'aadhaarFrontphoto', statusField: 'aadharStatus' },
+      caste: { urlField: 'castecertificate', statusField: 'casteStatus' },
+      pan: { urlField: 'panFrontphoto', statusField: 'panStatus' },
+      education: { urlField: 'highestEducationalDoc', statusField: 'educationStatus' },
+    };
+    const mapping = docMap[(docId || '').toString().toLowerCase()];
+    if (!mapping) {
+      const error = new Error('Unsupported document type');
+      error.statusCode = 400;
+      throw error;
+    }
+    return mapping;
+  }
+
+  async uploadDocument(userId, docId, fileUrl) {
+    const mapping = this._resolveDocumentFields(docId);
+    const matrimony = await Matrimony.findById(userId);
+    if (!matrimony) {
+      const error = new Error('Profile not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const docs = matrimony.documentDetails || {};
+    docs[mapping.urlField] = fileUrl;
+    docs[mapping.statusField] = 'pending';
+    matrimony.isVerified = false;
+    matrimony.documentDetails = docs;
+    matrimony.markModified('documentDetails');
+    await matrimony.save();
+
+    return await AuthService.getMergedUser(matrimony);
+  }
+
+  async removeDocument(userId, docId) {
+    const mapping = this._resolveDocumentFields(docId);
+    const matrimony = await Matrimony.findById(userId);
+    if (!matrimony) {
+      const error = new Error('Profile not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const docs = matrimony.documentDetails || {};
+    docs[mapping.urlField] = '';
+    docs[mapping.statusField] = 'pending';
+    matrimony.isVerified = false;
+    matrimony.documentDetails = docs;
+    matrimony.markModified('documentDetails');
+    await matrimony.save();
+
     return await AuthService.getMergedUser(matrimony);
   }
 
@@ -91,8 +415,16 @@ class ProfileService {
     let blockedIds = [];
     if (currentUserId) {
       currentUserDoc = await Matrimony.findById(currentUserId);
-      const blockedActions = await UserAction.find({ fromUser: currentUserId, actionType: 'ignore' });
-      blockedIds = blockedActions.map(b => b.toUser.toString());
+      const blockedActions = await UserAction.find({
+        actionType: 'ignore',
+        active: true,
+        $or: [{ fromUser: currentUserId }, { toUser: currentUserId }],
+      }).lean();
+      blockedIds = blockedActions.map((b) =>
+        b.fromUser.toString() === currentUserId.toString()
+          ? b.toUser.toString()
+          : b.fromUser.toString()
+      );
     }
 
     const query = {
@@ -179,7 +511,7 @@ class ProfileService {
    const sanitizedProfiles =
      await Promise.all(
        docs.map((doc) =>
-         AuthService.getMergedUser(doc)
+         AuthService.getMergedUser(doc, { includePrivate: false })
        )
      );
 
@@ -417,7 +749,7 @@ async getProfileViews(userId) {
     // ==========================================================
 
     const viewerProfile =
-      await AuthService.getMergedUser(viewerMatrimony);
+      await AuthService.getMergedUser(viewerMatrimony, { includePrivate: false });
 
     if (!viewerProfile) {
       continue;

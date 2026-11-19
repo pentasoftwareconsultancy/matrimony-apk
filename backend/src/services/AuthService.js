@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import Matrimony from '../models/Matrimony.js';
 import Membership from '../models/Membership.js';
 import { sendOTPEmail } from '../utils/mailer.js';
+import { getJwtSecret } from '../config/jwt.js';
 
 const otpStore = new Map();
 
@@ -18,11 +18,99 @@ function parseIncomeLPA(incomeStr) {
   return val > 0 ? val : 15.0;
 }
 
+function normalizeAnnualIncome(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const trimmed = value.toString().replace(/,/g, '').trim();
+  const direct = Number(trimmed);
+  if (trimmed !== '' && Number.isFinite(direct)) return direct;
+  const lpaMatch = trimmed.match(/(\d+(?:\.\d+)?)\s*(?:lpa|lakh|lakhs)/i);
+  if (lpaMatch) return Math.round(parseFloat(lpaMatch[1]) * 100000);
+  const numMatch = trimmed.match(/\d+(?:\.\d+)?/);
+  return numMatch ? parseFloat(numMatch[0]) : null;
+}
+
+function buildDocumentsList(docs = {}) {
+  const normalizeStatus = (val) =>
+    val === 'verified' || val === 'rejected' ? val : 'pending';
+
+  return [
+    {
+      id: 'aadhar',
+      type: 'aadhar',
+      title: 'Aadhar Card',
+      status: normalizeStatus(docs.aadharStatus),
+      fileUrl: docs.aadhaarFrontphoto || '',
+      number: docs.aadharCardNumber || '',
+    },
+    {
+      id: 'caste',
+      type: 'caste',
+      title: 'Caste Certificate',
+      status: normalizeStatus(docs.casteStatus),
+      fileUrl: docs.castecertificate || '',
+      number: '',
+    },
+    ...(docs.panFrontphoto
+      ? [
+          {
+            id: 'pan',
+            type: 'pan',
+            title: 'PAN Card',
+            status: normalizeStatus(docs.panStatus),
+            fileUrl: docs.panFrontphoto,
+            number: docs.panCardNumber || '',
+          },
+        ]
+      : []),
+    ...(docs.highestEducationalDoc
+      ? [
+          {
+            id: 'education',
+            type: 'education',
+            title: 'Education Certificate',
+            status: normalizeStatus(docs.educationStatus),
+            fileUrl: docs.highestEducationalDoc,
+            number: '',
+          },
+        ]
+      : []),
+  ];
+}
+
+function formatBirthDate(d) {
+  if (!d) return '';
+  const dateObj = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(dateObj.getTime())) {
+    return typeof d === 'string' ? d.trim() : '';
+  }
+
+  let year = dateObj.getUTCFullYear();
+  let month = dateObj.getUTCMonth();
+  let date = dateObj.getUTCDate();
+  const hours = dateObj.getUTCHours();
+
+  // If time is >= 18 UTC, it was stored as local midnight in India (UTC+5:30) of the target day.
+  // Adding 5.5 hours recovers the intended calendar date without shift.
+  if (hours >= 18) {
+    const istDate = new Date(dateObj.getTime() + (5.5 * 60 * 60 * 1000));
+    year = istDate.getUTCFullYear();
+    month = istDate.getUTCMonth();
+    date = istDate.getUTCDate();
+  }
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return `${date} ${months[month]} ${year}`;
+}
+
 class AuthService {
   generateToken(userId, email) {
     return jwt.sign(
       { id: userId, email, role: 'user' },
-      process.env.JWT_SECRET || 'supersecretjwtkey123!@#',
+      getJwtSecret(),
       { expiresIn: '30d' }
     );
   }
@@ -31,7 +119,7 @@ class AuthService {
     return Math.floor(1000 + Math.random() * 9000).toString();
   }
 
-  async getMergedUser(matrimonyDoc) {
+  async getMergedUser(matrimonyDoc, { includePrivate = true } = {}) {
     if (!matrimonyDoc) return null;
 
     const doc = matrimonyDoc.toObject ? matrimonyDoc.toObject() : matrimonyDoc;
@@ -54,9 +142,6 @@ class AuthService {
     if (Array.isArray(docs.photos)) {
       docs.photos.forEach(p => { if (p && !photosList.includes(p)) photosList.push(p); });
     }
-    if (photosList.length === 0) {
-      photosList.push('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500');
-    }
 
     // Check active membership
     let isPremium = false;
@@ -73,12 +158,15 @@ class AuthService {
     let mappedGender = personal.gender;
     if (mappedGender === 'Bride') mappedGender = 'Female';
     if (mappedGender === 'Groom') mappedGender = 'Male';
-    if (!mappedGender) mappedGender = 'Female';
+    if (!mappedGender) mappedGender = '';
 
-    // Calculate age if missing in personalDetail
+    // Extract user date of birth from registration, document, or personal details
+    const rawDob = reg.dateOfBirth || doc.dateOfBirth || personal.dateOfBirth || doc.dob || reg.dob || null;
+
+    // Calculate age if missing in personalDetail (do not override if already set)
     let age = personal.age;
-    if (!age && reg.dateOfBirth) {
-      const bDate = new Date(reg.dateOfBirth);
+    if (!age && rawDob) {
+      const bDate = new Date(rawDob);
       if (!isNaN(bDate.getTime())) {
         const today = new Date();
         age = today.getFullYear() - bDate.getFullYear();
@@ -88,81 +176,213 @@ class AuthService {
         }
       }
     }
-    if (!age || age <= 0) age = 25;
+    if (!age || age <= 0) age = 0;
 
     const incomeLPA = parseIncomeLPA(edu.annualIncome);
+
+    const isVerified = Boolean(
+      doc.isVerified === true ||
+      docs.aadharStatus === 'verified' ||
+      docs.casteStatus === 'verified'
+    );
+
+    let brothersDetails = Array.isArray(family.brothersDetails) ? family.brothersDetails : [];
+    if (brothersDetails.length === 0 && Number(family.brothers) > 0) {
+      brothersDetails = Array.from({ length: Number(family.brothers) }, () => ({ name: '', occupation: '' }));
+    }
+
+    let sistersDetails = Array.isArray(family.sistersDetails) ? family.sistersDetails : [];
+    if (sistersDetails.length === 0 && Number(family.sisters) > 0) {
+      const marriedCount = parseInt(family.marriedSisters, 10) || 0;
+      sistersDetails = Array.from({ length: Number(family.sisters) }, (_, idx) => ({
+        name: '',
+        occupation: '',
+        isMarried: idx < marriedCount,
+        husbandName: '',
+        husbandProfession: '',
+      }));
+    }
+
+    let maternalUnclesDetails = Array.isArray(family.maternalUnclesDetails)
+      ? family.maternalUnclesDetails.filter((u) => (u?.name || '').trim().length > 0 || (u?.occupation || '').trim().length > 0)
+      : [];
+    if (maternalUnclesDetails.length === 0 && family.maternalUncleName && family.maternalUncleName.trim()) {
+      maternalUnclesDetails = [{ name: family.maternalUncleName.trim(), occupation: '' }];
+    }
+
+    let unclesDetails = Array.isArray(family.unclesDetails)
+      ? family.unclesDetails.filter((u) => (u?.name || '').trim().length > 0 || (u?.occupation || '').trim().length > 0)
+      : [];
+    if (unclesDetails.length === 0 && family.uncleName && family.uncleName.trim()) {
+      unclesDetails = [{ name: family.uncleName.trim(), occupation: '' }];
+    }
+
+    const publicFamilyDetails = {
+      ...family,
+      brothersDetails,
+      sistersDetails,
+      maternalUnclesDetails,
+      unclesDetails,
+      maternalUnclePhone: includePrivate ? family.maternalUnclePhone : undefined,
+      unclePhone: includePrivate ? family.unclePhone : undefined,
+    };
+
+    const dobIso = rawDob ? (rawDob.toISOString ? rawDob.toISOString() : new Date(rawDob).toISOString()) : null;
+    const formattedBirthDate = formatBirthDate(rawDob);
 
     const merged = {
       _id: userIdStr,
       id: userIdStr,
-      email: reg.email || '',
-      phone: reg.phoneNumber ? reg.phoneNumber.toString() : '',
+      email: includePrivate ? (reg.email || '') : '',
+      phone: includePrivate ? (reg.phoneNumber ? reg.phoneNumber.toString() : '') : '',
       accountType: reg.profileCreatedFor || 'Yourself',
-      fullName: reg.fullName || 'Matrimony Member',
-      name: reg.fullName || 'Matrimony Member',
+      fullName: reg.fullName || '',
+      name: reg.fullName || '',
       gender: mappedGender,
       age,
-      dob: reg.dateOfBirth || null,
-      birthDate: reg.dateOfBirth ? new Date(reg.dateOfBirth).toLocaleDateString() : '',
-      religion: astro.religion || 'Hindu',
-      caste: astro.caste || 'Kunbi',
-      maritalStatus: personal.maritalStatus || 'Single',
-      bloodGroup: personal.bloodGroup || 'B+',
-      address: reg.address || '',
+      dob: dobIso,
+      dateOfBirth: dobIso,
+      birthDate: formattedBirthDate,
+      religion: astro.religion || '',
+      caste: astro.caste || '',
+      subCast: astro.subCast || '',
+      subCaste: astro.subCast || '',
+      placeOfBirth: astro.placeOfBirth || '',
+      nadi: astro.nadi || '',
+      taluka: reg.taluka || '',
+      maritalStatus: personal.maritalStatus || '',
+      bloodGroup: personal.bloodGroup || '',
+      address: includePrivate ? (reg.address || '') : '',
       hobbies: Array.isArray(personal.hobbies) ? personal.hobbies : (personal.hobbies ? [personal.hobbies] : []),
-      rashi: astro.rashi || 'Mesh',
-      nakshatra: astro.nakshatra || 'Ashwini',
+      rashi: astro.rashi || '',
+      nakshatra: astro.nakshatra || '',
       manglik: astro.isManglik ?? false,
-      qualification: edu.highestEducation || 'Graduate',
-      education: edu.highestEducation || 'Graduate',
-      occupation: edu.profession || 'Professional',
-      profession: edu.profession || 'Professional',
-      annualIncome: edu.annualIncome ? edu.annualIncome.toString() : '₹10 Lakhs - ₹15 Lakhs',
-      income: edu.annualIncome ? edu.annualIncome.toString() : '₹10 Lakhs - ₹15 Lakhs',
+      highestEdu: edu.highestEducation || '',
+      highestEducation: edu.highestEducation || '',
+      qualification: edu.highestEducation || '',
+      education: edu.highestEducation || '',
+      occupation: edu.profession || '',
+      profession: edu.profession || '',
+      annualIncome: edu.annualIncome ? edu.annualIncome.toString() : '',
+      income: edu.annualIncome ? edu.annualIncome.toString() : '',
       incomeValue: incomeLPA,
-      country: reg.country || 'India',
-      state: reg.state || 'Maharashtra',
-      city: reg.district || reg.village || reg.city || 'Pune',
-      district: reg.district || 'Pune',
+      country: reg.country || '',
+      state: reg.state || '',
+      city: reg.district || reg.village || reg.city || '',
+      district: reg.district || '',
       village: reg.village || '',
-      workLocation: edu.companyAddress || reg.district || 'Pune',
-      homePlace: reg.address || reg.district || 'Pune',
-      nativePlace: family.nativePlace || reg.district || 'Pune',
-      languages: [astro.motherTongue || 'Marathi'],
+      pincode: includePrivate ? (reg.pincode || '') : '',
+      altPhone: includePrivate ? (reg.alternativePhoneNumber || '') : '',
+      workLocation: edu.companyAddress || reg.district || '',
+      workPlace: edu.companyAddress || reg.district || '',
+      homePlace: includePrivate ? (reg.address || reg.district || '') : (reg.district || ''),
+      nativePlace: family.nativePlace || reg.district || '',
+      motherTongue: astro.motherTongue || '',
+      languages: astro.motherTongue ? [astro.motherTongue] : [],
       fatherName: family.fatherName || '',
+      fatherEdu: family.fatherOccupation || '',
+      fatherOccupation: family.fatherOccupation || '',
       motherName: family.motherName || '',
+      motherOcc: family.motherOccupation || '',
+      motherOccupation: family.motherOccupation || '',
       siblings: (family.brothers || 0) + (family.sisters || 0),
-      familyType: family.familyType || 'Nuclear',
-      familyStatus: family.familyValues || 'Middle Class',
-      about: personal.descriptionAboutSelf || 'Family-oriented person with modern values.',
-      aboutMe: personal.descriptionAboutSelf || 'Family-oriented person with modern values.',
-      height: personal.height ? `${personal.height} cm` : "5'6\"",
-      weight: personal.weight ? `${personal.weight} kg` : "60 kg",
-      diet: personal.diet || 'Vegetarian',
-      smoking: personal.smoking || 'No',
-      drinking: personal.drinking || 'No',
-      aadharNumber: docs.aadharCardNumber || '',
-      aadharCardUrl: docs.aadhaarFrontphoto || '',
-      casteCertificateUrl: docs.castecertificate || '',
-      casteCertificateName: docs.castecertificate ? 'caste_certificate.pdf' : '',
+      brothers: family.brothers ? String(family.brothers) : '0',
+      brothersDetails,
+      sisters: family.sisters ? String(family.sisters) : '0',
+      sistersDetails,
+      marriedSister: family.marriedSisters || '',
+      maternalUncle: family.maternalUncleName || '',
+      maternalUnclesDetails,
+      unclePhone: includePrivate ? (family.unclePhone || family.maternalUnclePhone || '') : '',
+      uncleName: family.uncleName || '',
+      unclesDetails,
+      aboutFamily: family.aboutFamily || '',
+      familyType: family.familyType || '',
+      familyStatus: family.familyValues || family.familyStatus || '',
+      familyValues: family.familyValues || family.familyStatus || '',
+      about: personal.descriptionAboutSelf || '',
+      aboutMe: personal.descriptionAboutSelf || '',
+      complexion: personal.complexionType || '',
+      bodyType: personal.bodyType || '',
+      specialCase: personal.specialCase || '',
+      drinkingSmoking: personal.smoking ? `${personal.smoking} / ${personal.drinking || 'No'}` : '',
+      agriLand: personal.agriculturalLandAcres || '',
+      children: personal.numberOfChildren || 0,
+      university: edu.universityCollege || '',
+      organization: edu.organizationName || '',
+      companyAddress: edu.companyAddress || '',
+      eduField: edu.educationField || '',
+      designation: edu.occupationPosition || '',
+      birthTime: astro.timeOfBirth || '',
+      charan: astro.charan || '',
+      gotra: astro.gotra || '',
+      gan: astro.gan || '',
+      partnerPriority: astro.importanceOfPatrika ? String(astro.importanceOfPatrika) : '',
+      height: personal.height ? `${personal.height} cm` : '',
+      weight: personal.weight ? `${personal.weight} kg` : '',
+      diet: personal.diet || '',
+      smoking: personal.smoking || '',
+      drinking: personal.drinking || '',
+      partnerMaritalStatus: partner.partnerMaritalStatus || '',
+      partnerAgeRange: partner.expectedAgeRange
+        ? `${partner.expectedAgeRange.from || ''}${partner.expectedAgeRange.to ? ` - ${partner.expectedAgeRange.to}` : ''}`
+        : '',
+      partnerComplexion: partner.partnerComplexionType || '',
+      partnerHeight: partner.partnerHeight ? `${partner.partnerHeight} cm` : '',
+      partnerWeight: partner.partnerWeight ? `${partner.partnerWeight} kg` : '',
+      partnerDiet: partner.partnerDiet || '',
+      partnerSmoking: partner.partnerSmoking || '',
+      partnerDrinking: partner.partnerDrinking || '',
+      partnerWorkingLocation: partner.partnerWorkingLocation || '',
+      partnerIncome: partner.partnerIncome ? String(partner.partnerIncome) : '',
+      partnerEducation: partner.partnerEducation || '',
+      partnerProfession: partner.partnerProfession || '',
+      wantsWorkingPartner: partner.wantsWorkingPartner ?? false,
+      aadharNumber: includePrivate ? (docs.aadharCardNumber || '') : '',
+      aadharCardUrl: includePrivate ? (docs.aadhaarFrontphoto || '') : '',
+      casteCertificateUrl: includePrivate ? (docs.castecertificate || '') : '',
+      casteCertificateName: includePrivate && docs.castecertificate ? 'caste_certificate.pdf' : '',
+      documents: includePrivate ? buildDocumentsList(docs) : [],
       photos: photosList,
       profileCompleted: true,
-      isVerified: true,
+      isVerified,
       isPremium,
       role: 'user',
-      compatibilityScore: 92,
-      compatibilityTags: ['Same religion', 'Nearby city', 'Same caste'],
-      userRegistration: {
-        ...reg,
-        password: undefined,
-        confirmPassword: undefined,
-      },
+      compatibilityScore: doc.compatibilityScore || 0,
+      compatibilityTags: Array.isArray(doc.compatibilityTags) ? doc.compatibilityTags : [],
+      ...(includePrivate
+        ? {
+            userRegistration: {
+              ...reg,
+              password: undefined,
+              confirmPassword: undefined,
+              dateOfBirth: rawDob || null,
+              dob: dobIso,
+              birthDate: formattedBirthDate,
+            },
+            documentDetails: docs,
+          }
+        : {
+            userRegistration: {
+              fullName: reg.fullName || '',
+              dateOfBirth: rawDob || null,
+              dob: dobIso,
+              birthDate: formattedBirthDate,
+              gender: mappedGender,
+              country: reg.country || '',
+              state: reg.state || '',
+              district: reg.district || '',
+              city: reg.district || reg.village || reg.city || '',
+            },
+            documentDetails: {
+              photos: docs.photos || [],
+            },
+          }),
       personalDetail: personal,
       educationalDetail: edu,
-      familyDetails: family,
+      familyDetails: publicFamilyDetails,
       astrologyDetails: astro,
       partnerDetail: partner,
-      documentDetails: docs,
       approvalStatus: doc.approvalStatus || 'Approved',
     };
 
@@ -244,19 +464,7 @@ class AuthService {
       throw error;
     }
 
-    const storedPassword = user.userRegistration?.password;
-    if (!storedPassword) {
-      const error = new Error('Incorrect password');
-      error.statusCode = 401;
-      throw error;
-    }
-
-    let isMatch = false;
-    if (storedPassword.startsWith('$2')) {
-      isMatch = await bcrypt.compare(password, storedPassword);
-    } else {
-      isMatch = password === storedPassword;
-    }
+    const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
       const error = new Error('Incorrect password');
@@ -575,6 +783,21 @@ async completeRegistration(userId, registrationData) {
   }
 
   // ============================================================
+  // PASSWORD CONFIRMATION CHECK (NEVER PERSIST confirmPassword)
+  // ============================================================
+
+  if (
+    data.confirmPassword !== undefined &&
+    data.confirmPassword !== null &&
+    data.confirmPassword !== '' &&
+    data.password !== data.confirmPassword
+  ) {
+    const error = new Error('Password and confirm password do not match');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // ============================================================
   // USER REGISTRATION
   // ============================================================
 
@@ -596,13 +819,9 @@ async completeRegistration(userId, registrationData) {
     password:
       data.password,
 
-    confirmPassword:
-      optionalString(
-        data.confirmPassword
-      ),
-
     profileCreatedFor:
       optionalString(
+        data.profileCreatedFor ||
         data.accountType
       ),
 
@@ -633,6 +852,13 @@ async completeRegistration(userId, registrationData) {
 
     district:
       optionalString(
+        data.district ||
+        data.city
+      ),
+
+    city:
+      optionalString(
+        data.city ||
         data.district
       ),
 
@@ -724,9 +950,12 @@ async completeRegistration(userId, registrationData) {
   // EDUCATIONAL DETAILS
   // ============================================================
 
+  const normalizedIncome = normalizeAnnualIncome(data.annualIncome);
+
   const educationalDetails = {
     highestEducation:
-      data.highestEducation,
+      data.highestEducation ||
+      data.qualification,
 
     educationField:
       data.educationField,
@@ -737,7 +966,8 @@ async completeRegistration(userId, registrationData) {
       ),
 
     profession:
-      data.profession,
+      data.profession ||
+      data.occupation,
 
     occupationPosition:
       data.occupationPosition,
@@ -753,7 +983,7 @@ async completeRegistration(userId, registrationData) {
       ),
 
     annualIncome:
-      data.annualIncome,
+      normalizedIncome !== null ? normalizedIncome : data.annualIncome,
   };
 
   // ============================================================
@@ -813,7 +1043,10 @@ async completeRegistration(userId, registrationData) {
 
     maternalUncleName:
       optionalString(
-        data.maternalUncleName
+        data.maternalUncleName ||
+        (Array.isArray(data.maternalUnclesDetails)
+          ? data.maternalUnclesDetails.map((u) => u?.name).filter(Boolean).join(', ')
+          : '')
       ),
 
     maternalUnclePhone:
@@ -823,7 +1056,10 @@ async completeRegistration(userId, registrationData) {
 
     uncleName:
       optionalString(
-        data.uncleName
+        data.uncleName ||
+        (Array.isArray(data.unclesDetails)
+          ? data.unclesDetails.map((u) => u?.name).filter(Boolean).join(', ')
+          : '')
       ),
 
     unclePhone:
@@ -835,6 +1071,28 @@ async completeRegistration(userId, registrationData) {
       optionalString(
         data.aboutFamily
       ),
+
+    maternalUnclesDetails: Array.isArray(data.maternalUnclesDetails)
+      ? data.maternalUnclesDetails
+          .map((u) => ({
+            name: (u?.name || '').toString().trim(),
+            occupation: (u?.occupation || u?.profession || '').toString().trim(),
+          }))
+          .filter((u) => u.name.length > 0 || u.occupation.length > 0)
+      : (data.maternalUncleName && data.maternalUncleName.trim()
+          ? [{ name: data.maternalUncleName.toString().trim(), occupation: '' }]
+          : []),
+
+    unclesDetails: Array.isArray(data.unclesDetails)
+      ? data.unclesDetails
+          .map((u) => ({
+            name: (u?.name || '').toString().trim(),
+            occupation: (u?.occupation || u?.profession || '').toString().trim(),
+          }))
+          .filter((u) => u.name.length > 0 || u.occupation.length > 0)
+      : (data.uncleName && data.uncleName.trim()
+          ? [{ name: data.uncleName.toString().trim(), occupation: '' }]
+          : []),
   };
 
   // ============================================================
@@ -843,7 +1101,8 @@ async completeRegistration(userId, registrationData) {
 
   const astrologyDetails = {
     motherTongue:
-      data.motherTongue,
+      data.motherTongue ||
+      (Array.isArray(data.languages) ? data.languages[0] : data.languages),
 
     religion:
       data.religion,
@@ -993,8 +1252,12 @@ async completeRegistration(userId, registrationData) {
 
     aadhaarFrontphoto:
       optionalDocument(
-        data.aadhaarFrontphoto
+        data.aadhaarFrontphoto ||
+        data.aadharCardUrl ||
+        (Array.isArray(data.aadharCard) ? data.aadharCard[0] : data.aadharCard)
       ),
+
+    aadharStatus: 'pending',
 
     aadhaarBackphoto:
       optionalDocument(
@@ -1018,8 +1281,12 @@ async completeRegistration(userId, registrationData) {
 
     castecertificate:
       optionalDocument(
-        data.castecertificate
+        data.castecertificate ||
+        data.casteCertificateUrl ||
+        data.casteCertificate
       ),
+
+    casteStatus: 'pending',
 
     passportFrontphoto:
       optionalDocument(

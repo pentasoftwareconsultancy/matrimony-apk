@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/localization/locale_provider.dart';
+import '../../../../core/utils/dropdown_localizer.dart';
 
 enum FieldType {
   text,
@@ -171,23 +173,34 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             TextFormField(
               controller: _textController,
               keyboardType: widget.fieldType == FieldType.number
-                  ? TextInputType.number
+                  ? (widget.fieldKey == 'weight'
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : TextInputType.number)
                   : TextInputType.text,
               autofocus: true,
               inputFormatters: widget.fieldType == FieldType.number
                   ? [
-                      FilteringTextInputFormatter.digitsOnly,
+                      if (widget.fieldKey == 'weight')
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+                      else
+                        FilteringTextInputFormatter.digitsOnly,
                       if (widget.fieldKey == 'phone' || widget.fieldKey == 'altPhone')
                         LengthLimitingTextInputFormatter(10),
                       if (widget.fieldKey == 'pincode')
                         LengthLimitingTextInputFormatter(6),
                       if (widget.fieldKey == 'age')
                         LengthLimitingTextInputFormatter(3),
+                      if (widget.fieldKey == 'children')
+                        LengthLimitingTextInputFormatter(2),
                     ]
                   : null,
               decoration: InputDecoration(
                 labelText: widget.title,
-                hintText: 'Enter ${widget.title}',
+                hintText: widget.fieldKey == 'weight'
+                    ? 'Enter weight in kg (e.g. 65)'
+                    : (widget.fieldKey == 'children'
+                        ? 'Enter number of children (e.g. 0, 1)'
+                        : 'Enter ${widget.title}'),
                 errorText: _errorMessage,
               ),
             ),
@@ -235,7 +248,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             ElevatedButton(
               onPressed: () => _submit(_textController.text.trim()),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC9003F)),
-              child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(context.l10n.saveChanges, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ] else if (widget.fieldType == FieldType.singleSelect) ...[
             Wrap(
@@ -244,7 +257,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
               children: (widget.options ?? []).map((opt) {
                 final isSelected = _selectedSingle == opt;
                 return ChoiceChip(
-                  label: Text(opt),
+                  label: Text(DropdownLocalizer.getLabel(context, opt)),
                   selected: isSelected,
                   selectedColor: const Color(0xFFC9003F),
                   disabledColor: Colors.grey.shade100,
@@ -268,7 +281,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             TextField(
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                hintText: 'Search ${widget.title}...',
+                hintText: '${context.l10n.search} ${widget.title}...',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               onChanged: (val) {
@@ -283,12 +296,12 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
               child: ListView(
                 shrinkWrap: true,
                 children: (widget.options ?? [])
-                    .where((opt) => opt.toLowerCase().contains(_searchQuery))
+                    .where((opt) => opt.toLowerCase().contains(_searchQuery) || DropdownLocalizer.getLabel(context, opt).toLowerCase().contains(_searchQuery))
                     .map((opt) {
                   final isSel = _selectedSingle == opt;
                   return ListTile(
                     title: Text(
-                      opt,
+                      DropdownLocalizer.getLabel(context, opt),
                       style: TextStyle(
                         fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                         color: isSel ? const Color(0xFFC9003F) : Colors.black87,
@@ -309,7 +322,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
               children: (widget.options ?? []).map((opt) {
                 final isSelected = _selectedMulti.contains(opt);
                 return FilterChip(
-                  label: Text(opt),
+                  label: Text(DropdownLocalizer.getLabel(context, opt)),
                   selected: isSelected,
                   selectedColor: const Color(0xFFC9003F),
                   backgroundColor: Colors.grey.shade100,
@@ -333,7 +346,7 @@ class _EditFieldDialogState extends State<EditFieldDialog> {
             ElevatedButton(
               onPressed: () => _submit(_selectedMulti),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC9003F)),
-              child: const Text('Save Selection', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(context.l10n.save, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ] else if (widget.fieldType == FieldType.heightPicker) ...[
             Container(

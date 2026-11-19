@@ -1,3 +1,4 @@
+import '../../../../core/utils/date_formatter.dart';
 import 'document_model.dart';
 
 String _asStr(dynamic val, [String fallback = '']) {
@@ -15,17 +16,139 @@ int _asInt(dynamic val, [int fallback = 0]) {
 }
 
 String _parseDob(dynamic dobVal, dynamic birthDateVal) {
-  if (dobVal != null) {
-    final str = dobVal.toString();
-    if (str.contains('T')) {
-      final dt = DateTime.tryParse(str);
-      if (dt != null) {
-        return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-      }
-    }
-    if (str.isNotEmpty) return str;
-  }
+  final candidate = (birthDateVal != null && birthDateVal.toString().trim().isNotEmpty)
+      ? birthDateVal
+      : dobVal;
+  final formatted = formatDobString(candidate);
+  if (formatted.isNotEmpty) return formatted;
   return _asStr(birthDateVal);
+}
+
+class BrotherDetail {
+  final String name;
+  final String occupation;
+
+  const BrotherDetail({
+    this.name = '',
+    this.occupation = '',
+  });
+
+  BrotherDetail copyWith({String? name, String? occupation}) {
+    return BrotherDetail(
+      name: name ?? this.name,
+      occupation: occupation ?? this.occupation,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'occupation': occupation,
+  };
+
+  factory BrotherDetail.fromJson(Map<String, dynamic> json) => BrotherDetail(
+    name: _asStr(json['name']),
+    occupation: _asStr(json['occupation']),
+  );
+}
+
+class SisterDetail {
+  final String name;
+  final String occupation;
+  final bool isMarried;
+  final String husbandName;
+  final String husbandProfession;
+
+  const SisterDetail({
+    this.name = '',
+    this.occupation = '',
+    this.isMarried = false,
+    this.husbandName = '',
+    this.husbandProfession = '',
+  });
+
+  SisterDetail copyWith({
+    String? name,
+    String? occupation,
+    bool? isMarried,
+    String? husbandName,
+    String? husbandProfession,
+  }) {
+    return SisterDetail(
+      name: name ?? this.name,
+      occupation: occupation ?? this.occupation,
+      isMarried: isMarried ?? this.isMarried,
+      husbandName: husbandName ?? this.husbandName,
+      husbandProfession: husbandProfession ?? this.husbandProfession,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'occupation': occupation,
+    'isMarried': isMarried,
+    'husbandName': husbandName,
+    'husbandProfession': husbandProfession,
+  };
+
+  factory SisterDetail.fromJson(Map<String, dynamic> json) => SisterDetail(
+    name: _asStr(json['name']),
+    occupation: _asStr(json['occupation']),
+    isMarried: json['isMarried'] == true ||
+        json['married'] == true ||
+        json['isMarried']?.toString().toLowerCase() == 'yes',
+    husbandName: _asStr(json['husbandName']),
+    husbandProfession: _asStr(json['husbandProfession']),
+  );
+}
+
+class UncleDetail {
+  final String name;
+  final String occupation;
+  final String mobile;
+
+  String get profession => occupation;
+
+  const UncleDetail({
+    this.name = '',
+    this.occupation = '',
+    this.mobile = '',
+  });
+
+  UncleDetail copyWith({String? name, String? occupation, String? mobile}) {
+    return UncleDetail(
+      name: name ?? this.name,
+      occupation: occupation ?? this.occupation,
+      mobile: mobile ?? this.mobile,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'occupation': occupation,
+    'profession': occupation,
+    'mobile': mobile,
+  };
+
+  factory UncleDetail.fromJson(Map<String, dynamic> json) => UncleDetail(
+    name: _asStr(json['name']),
+    occupation: _asStr(json['occupation'] ?? json['profession']),
+    mobile: _asStr(json['mobile'] ?? json['phone']),
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UncleDetail &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          occupation == other.occupation &&
+          mobile == other.mobile;
+
+  @override
+  int get hashCode => name.hashCode ^ occupation.hashCode ^ mobile.hashCode;
+
+  @override
+  String toString() => 'UncleDetail(name: $name, occupation: $occupation, mobile: $mobile)';
 }
 
 class ProfileModel {
@@ -97,6 +220,10 @@ class ProfileModel {
   final String familyValues;
   final String marriedSister;
   final String uncleName;
+  final List<BrotherDetail> brothersDetails;
+  final List<SisterDetail> sistersDetails;
+  final List<UncleDetail> maternalUnclesDetails;
+  final List<UncleDetail> unclesDetails;
 
   // Documents
   final List<DocumentModel> documents;
@@ -161,11 +288,81 @@ class ProfileModel {
     required this.familyValues,
     required this.marriedSister,
     required this.uncleName,
+    this.brothersDetails = const [],
+    this.sistersDetails = const [],
+    this.maternalUnclesDetails = const [],
+    this.unclesDetails = const [],
     required this.documents,
   });
 
   factory ProfileModel.referenceInitial() {
     return ProfileModel.empty();
+  }
+
+  String get brothersSummary {
+    if (brothersDetails.isNotEmpty) {
+      final names = brothersDetails
+          .map((b) => b.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) {
+        return '${brothersDetails.length} (${names.join(', ')})';
+      }
+      return '${brothersDetails.length} ${brothersDetails.length == 1 ? 'Brother' : 'Brothers'}';
+    }
+    if (brothers.isNotEmpty && brothers != '0' && brothers.toLowerCase() != 'no') {
+      return '$brothers ${brothers == '1' ? 'Brother' : 'Brothers'}';
+    }
+    return '0';
+  }
+
+  String get sistersSummary {
+    if (sistersDetails.isNotEmpty) {
+      final marriedCount = sistersDetails.where((s) => s.isMarried).length;
+      final names = sistersDetails
+          .map((s) => s.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      final suffix = marriedCount > 0 ? ' ($marriedCount Married)' : '';
+      if (names.isNotEmpty) {
+        return '${sistersDetails.length} (${names.join(', ')})$suffix';
+      }
+      return '${sistersDetails.length} ${sistersDetails.length == 1 ? 'Sister' : 'Sisters'}$suffix';
+    }
+    if (sisters.isNotEmpty && sisters != '0' && sisters.toLowerCase() != 'no') {
+      return '$sisters ${sisters == '1' ? 'Sister' : 'Sisters'}';
+    }
+    return '0';
+  }
+
+  String get maternalUnclesSummary {
+    if (maternalUnclesDetails.isNotEmpty) {
+      final names = maternalUnclesDetails
+          .map((u) => u.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) {
+        return '${maternalUnclesDetails.length} (${names.join(', ')})';
+      }
+      return '${maternalUnclesDetails.length}';
+    }
+    if (maternalUncle.isNotEmpty && maternalUncle != '0') return maternalUncle;
+    return '0';
+  }
+
+  String get unclesSummary {
+    if (unclesDetails.isNotEmpty) {
+      final names = unclesDetails
+          .map((u) => u.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) {
+        return '${unclesDetails.length} (${names.join(', ')})';
+      }
+      return '${unclesDetails.length}';
+    }
+    if (uncleName.isNotEmpty && uncleName != '0') return uncleName;
+    return '0';
   }
 
   ProfileModel copyWith({
@@ -228,6 +425,10 @@ class ProfileModel {
     String? familyValues,
     String? marriedSister,
     String? uncleName,
+    List<BrotherDetail>? brothersDetails,
+    List<SisterDetail>? sistersDetails,
+    List<UncleDetail>? maternalUnclesDetails,
+    List<UncleDetail>? unclesDetails,
     List<DocumentModel>? documents,
   }) {
     return ProfileModel(
@@ -290,26 +491,172 @@ class ProfileModel {
       familyValues: familyValues ?? this.familyValues,
       marriedSister: marriedSister ?? this.marriedSister,
       uncleName: uncleName ?? this.uncleName,
+      brothersDetails: brothersDetails ?? this.brothersDetails,
+      sistersDetails: sistersDetails ?? this.sistersDetails,
+      maternalUnclesDetails: maternalUnclesDetails ?? this.maternalUnclesDetails,
+      unclesDetails: unclesDetails ?? this.unclesDetails,
       documents: documents ?? this.documents,
     );
   }
 
-  double calculateCompletionPercentage() {
-    int total = 10;
-    int filled = 0;
-    if (fullName.trim().isNotEmpty) filled++;
-    if (age > 0) filled++;
-    if (photos.isNotEmpty) filled++;
-    if (maritalStatus.trim().isNotEmpty) filled++;
-    if (occupation.trim().isNotEmpty || profession.trim().isNotEmpty) filled++;
-    if (religion.trim().isNotEmpty) filled++;
-    if (caste.trim().isNotEmpty) filled++;
-    if (workPlace.trim().isNotEmpty || homePlace.trim().isNotEmpty || state.trim().isNotEmpty) filled++;
-    if (highestEdu.trim().isNotEmpty) filled++;
-    if (aboutMe.trim().isNotEmpty) filled++;
+  static bool isValidFieldString(String? val, {List<String>? excludedDefaults}) {
+    if (val == null) return false;
+    final trimmed = val.trim();
+    if (trimmed.isEmpty) return false;
+    final lower = trimmed.toLowerCase();
 
-    final pct = (filled / total) * 100;
-    return pct < 10.0 && fullName.isNotEmpty ? 40.0 : (pct == 0 ? 0.0 : pct);
+    // Incomplete indicators: Not Specified, N/A, None, etc.
+    if (lower == 'not specified' ||
+        lower == 'not-specified' ||
+        lower == 'not_specified' ||
+        lower == 'n/a' ||
+        lower == 'na' ||
+        lower == 'none' ||
+        lower == 'null' ||
+        lower == 'undefined') {
+      return false;
+    }
+
+    if (excludedDefaults != null) {
+      for (final def in excludedDefaults) {
+        final defLower = def.toLowerCase().trim();
+        if (lower == defLower || lower.startsWith(defLower)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  double calculateCompletionPercentage() {
+    int totalApplicable = 0;
+    int completedFields = 0;
+
+    void evaluateField(bool isCompleted, {bool isApplicable = true}) {
+      if (!isApplicable) return;
+      totalApplicable++;
+      if (isCompleted) {
+        completedFields++;
+      }
+    }
+
+    // Profile Summary Section
+    final hasValidPhoto = photos.isNotEmpty &&
+        photos.any((p) =>
+            isValidFieldString(p) && !p.toLowerCase().contains('unsplash.com'));
+    evaluateField(hasValidPhoto);
+
+    evaluateField(
+      isValidFieldString(
+        aboutMe,
+        excludedDefaults: const [
+          'tap to add about me description',
+          'family-oriented person with modern values',
+        ],
+      ),
+    );
+
+    // 1. Personal Details Section
+    evaluateField(isValidFieldString(fullName));
+    evaluateField(age > 0);
+    evaluateField(isValidFieldString(birthDate));
+    evaluateField(isValidFieldString(workPlace));
+    evaluateField(isValidFieldString(homePlace));
+    evaluateField(isValidFieldString(maritalStatus));
+    evaluateField(isValidFieldString(income));
+    evaluateField(isValidFieldString(village));
+    evaluateField(isValidFieldString(state));
+    evaluateField(isValidFieldString(pincode));
+    evaluateField(isValidFieldString(occupation));
+
+    final isNeverMarried = maritalStatus.trim().isEmpty ||
+        !isValidFieldString(maritalStatus) ||
+        maritalStatus.trim().toLowerCase().contains('never');
+    final isChildrenApplicable = !isNeverMarried;
+    evaluateField(children >= 0, isApplicable: isChildrenApplicable);
+
+    evaluateField(isValidFieldString(complexion));
+    evaluateField(isValidFieldString(bodyType));
+    evaluateField(isValidFieldString(diet));
+    evaluateField(isValidFieldString(specialCase));
+    evaluateField(isValidFieldString(drinkingSmoking));
+    evaluateField(isValidFieldString(motherTongue));
+    evaluateField(isValidFieldString(phone));
+
+    // altPhone: optional field, contributes to score if validly entered
+    if (isValidFieldString(altPhone)) {
+      evaluateField(true, isApplicable: true);
+    }
+
+    evaluateField(isValidFieldString(email));
+    evaluateField(
+      hobbies.isNotEmpty && hobbies.any((h) => isValidFieldString(h)),
+    );
+    evaluateField(isValidFieldString(religion));
+    evaluateField(isValidFieldString(agriLand));
+
+    final weightNumStr = weight.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+    final weightNum = double.tryParse(weightNumStr) ?? 0;
+    evaluateField(isValidFieldString(weight) && weightNum > 0);
+
+    evaluateField(isValidFieldString(height));
+    evaluateField(isValidFieldString(caste));
+
+    // 2. Educational Details Section
+    evaluateField(isValidFieldString(highestEdu));
+    evaluateField(isValidFieldString(profession));
+    evaluateField(isValidFieldString(university));
+    evaluateField(isValidFieldString(organization));
+    evaluateField(isValidFieldString(companyAddress));
+    evaluateField(isValidFieldString(eduField));
+    evaluateField(isValidFieldString(designation));
+
+    // 3. Horoscope Section
+    evaluateField(isValidFieldString(birthTime));
+    evaluateField(isValidFieldString(rashi));
+    evaluateField(isValidFieldString(charan));
+    evaluateField(isValidFieldString(nakshatra));
+    evaluateField(isValidFieldString(placeOfBirth));
+    evaluateField(isValidFieldString(gotra));
+    evaluateField(isValidFieldString(manglik));
+    evaluateField(isValidFieldString(gan));
+    evaluateField(isValidFieldString(partnerPriority));
+
+    // 4. Family Details Section
+    evaluateField(isValidFieldString(fatherName));
+    evaluateField(isValidFieldString(motherName));
+    evaluateField(isValidFieldString(fatherEdu));
+    evaluateField(isValidFieldString(motherOcc));
+    evaluateField(isValidFieldString(familyType));
+    evaluateField(isValidFieldString(familyValues));
+    evaluateField(isValidFieldString(unclePhone));
+
+    final hasBrothers = brothersDetails.any((b) => isValidFieldString(b.name)) ||
+        (isValidFieldString(brothers) && brothers.trim() != '0');
+    evaluateField(hasBrothers);
+
+    final hasSisters = sistersDetails.any((s) => isValidFieldString(s.name)) ||
+        (isValidFieldString(sisters) && sisters.trim() != '0');
+    evaluateField(hasSisters);
+
+    // marriedSister is conditionally applicable only if user has sisters
+    final isMarriedSisterApplicable = hasSisters;
+    final hasMarriedSisterInfo = sistersDetails.isNotEmpty ||
+        (isValidFieldString(marriedSister) && marriedSister.trim() != '0');
+    evaluateField(hasMarriedSisterInfo, isApplicable: isMarriedSisterApplicable);
+
+    final hasMaternalUncle =
+        maternalUnclesDetails.any((u) => isValidFieldString(u.name)) ||
+            (isValidFieldString(maternalUncle) && maternalUncle.trim() != '0');
+    evaluateField(hasMaternalUncle);
+
+    final hasUncle = unclesDetails.any((u) => isValidFieldString(u.name)) ||
+        (isValidFieldString(uncleName) && uncleName.trim() != '0');
+    evaluateField(hasUncle);
+
+    if (totalApplicable == 0) return 0.0;
+    final pct = ((completedFields / totalApplicable) * 100).round().toDouble();
+    return pct.clamp(0.0, 100.0);
   }
 
   factory ProfileModel.empty() {
@@ -373,6 +720,10 @@ class ProfileModel {
       familyValues: '',
       marriedSister: '',
       uncleName: '',
+      brothersDetails: [],
+      sistersDetails: [],
+      maternalUnclesDetails: [],
+      unclesDetails: [],
       documents: [],
     );
   }
@@ -434,29 +785,111 @@ class ProfileModel {
       'gan': gan,
       'partnerPriority': partnerPriority,
       'fatherName': fatherName,
-      'motherName': motherName,
-      'brothers': brothers,
-      'maternalUncle': maternalUncle,
-      'unclePhone': unclePhone,
       'fatherEdu': fatherEdu,
+      'fatherOccupation': fatherEdu,
+      'motherName': motherName,
       'motherOcc': motherOcc,
-      'sisters': sisters,
+      'motherOccupation': motherOcc,
+      'brothers': brothersDetails.isNotEmpty ? brothersDetails.length.toString() : brothers,
+      'brothersDetails': brothersDetails.map((d) => d.toJson()).toList(),
+      'maternalUncle': maternalUnclesDetails.isNotEmpty ? maternalUnclesDetails.first.name : maternalUncle,
+      'maternalUncleName': maternalUnclesDetails.isNotEmpty ? maternalUnclesDetails.first.name : maternalUncle,
+      'maternalUnclesDetails': maternalUnclesDetails.map((d) => d.toJson()).toList(),
+      'unclePhone': unclePhone,
+      'sisters': sistersDetails.isNotEmpty ? sistersDetails.length.toString() : sisters,
+      'sistersDetails': sistersDetails.map((d) => d.toJson()).toList(),
       'familyType': familyType,
       'familyValues': familyValues,
-      'marriedSister': marriedSister,
-      'uncleName': uncleName,
+      'marriedSister': sistersDetails.isNotEmpty
+          ? sistersDetails.where((s) => s.isMarried).length.toString()
+          : marriedSister,
+      'marriedSisters': sistersDetails.isNotEmpty
+          ? sistersDetails.where((s) => s.isMarried).length.toString()
+          : marriedSister,
+      'uncleName': unclesDetails.isNotEmpty ? unclesDetails.first.name : uncleName,
+      'unclesDetails': unclesDetails.map((d) => d.toJson()).toList(),
       'documents': documents.map((d) => d.toJson()).toList(),
     };
   }
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    final familyMap = json['familyDetails'] is Map ? json['familyDetails'] as Map<String, dynamic> : null;
+
+    // Parse brothersDetails
+    List<BrotherDetail> bDetails = [];
+    final rawBDetails = json['brothersDetails'] ?? familyMap?['brothersDetails'];
+    if (rawBDetails is List) {
+      bDetails = rawBDetails
+          .whereType<Map>()
+          .map((b) => BrotherDetail.fromJson(Map<String, dynamic>.from(b)))
+          .toList();
+    }
+    final rawBrothersStr = _asStr(json['brothers'] ?? familyMap?['brothers']);
+    if (bDetails.isEmpty && rawBrothersStr.isNotEmpty && rawBrothersStr != '0' && rawBrothersStr.toLowerCase() != 'no') {
+      final count = int.tryParse(rawBrothersStr) ?? 0;
+      if (count > 0) {
+        bDetails = List.generate(count, (_) => const BrotherDetail());
+      }
+    }
+
+    // Parse sistersDetails
+    List<SisterDetail> sDetails = [];
+    final rawSDetails = json['sistersDetails'] ?? familyMap?['sistersDetails'];
+    if (rawSDetails is List) {
+      sDetails = rawSDetails
+          .whereType<Map>()
+          .map((s) => SisterDetail.fromJson(Map<String, dynamic>.from(s)))
+          .toList();
+    }
+    final rawSistersStr = _asStr(json['sisters'] ?? familyMap?['sisters']);
+    if (sDetails.isEmpty && rawSistersStr.isNotEmpty && rawSistersStr != '0' && rawSistersStr.toLowerCase() != 'no') {
+      final count = int.tryParse(rawSistersStr) ?? 0;
+      final rawMarried = _asStr(json['marriedSister'] ?? json['marriedSisters'] ?? familyMap?['marriedSisters']);
+      final marriedCount = int.tryParse(rawMarried) ?? 0;
+      if (count > 0) {
+        sDetails = List.generate(count, (idx) => SisterDetail(isMarried: idx < marriedCount));
+      }
+    }
+
+    // Parse maternalUnclesDetails
+    List<UncleDetail> muDetails = [];
+    final rawMuDetails = json['maternalUnclesDetails'] ?? familyMap?['maternalUnclesDetails'];
+    if (rawMuDetails is List) {
+      muDetails = rawMuDetails
+          .whereType<Map>()
+          .map((u) => UncleDetail.fromJson(Map<String, dynamic>.from(u)))
+          .toList();
+    }
+    final rawMuName = _asStr(json['maternalUncle'] ?? json['maternalUncleName'] ?? familyMap?['maternalUncleName']);
+    if (muDetails.isEmpty && rawMuName.isNotEmpty && rawMuName != '0' && rawMuName.toLowerCase() != 'no') {
+      muDetails = [UncleDetail(name: rawMuName)];
+    }
+
+    // Parse unclesDetails
+    List<UncleDetail> uDetails = [];
+    final rawUDetails = json['unclesDetails'] ?? familyMap?['unclesDetails'];
+    if (rawUDetails is List) {
+      uDetails = rawUDetails
+          .whereType<Map>()
+          .map((u) => UncleDetail.fromJson(Map<String, dynamic>.from(u)))
+          .toList();
+    }
+    final rawUName = _asStr(json['uncleName'] ?? familyMap?['uncleName']);
+    if (uDetails.isEmpty && rawUName.isNotEmpty && rawUName != '0' && rawUName.toLowerCase() != 'no') {
+      uDetails = [UncleDetail(name: rawUName)];
+    }
+
     return ProfileModel(
       profileId: _asStr(json['profileId'] ?? json['id'] ?? json['_id']),
       fullName: _asStr(json['fullName'] ?? json['name']),
       age: _asInt(json['age']),
       aboutMe: _asStr(json['aboutMe'] ?? json['about']),
-      tag: _asStr(json['tag'], 'MODIFYING'),
-      photos: (json['photos'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      tag: _asStr(json['tag']),
+      photos: (json['photos'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty && !e.toLowerCase().contains('unsplash.com'))
+              .toList() ??
+          [],
       birthDate: _parseDob(json['dob'], json['birthDate']),
       workPlace: _asStr(json['workPlace'] ?? json['workLocation'] ?? json['city']),
       homePlace: _asStr(json['homePlace'] ?? json['nativePlace'] ?? json['address']),
@@ -497,19 +930,23 @@ class ProfileModel {
       gotra: _asStr(json['gotra']),
       manglik: _asStr(json['manglik']),
       gan: _asStr(json['gan']),
-      partnerPriority: _asStr(json['partnerPriority'], 'High'),
-      fatherName: _asStr(json['fatherName']),
-      motherName: _asStr(json['motherName']),
-      brothers: _asStr(json['brothers']),
-      maternalUncle: _asStr(json['maternalUncle']),
-      unclePhone: _asStr(json['unclePhone']),
-      fatherEdu: _asStr(json['fatherEdu']),
-      motherOcc: _asStr(json['motherOcc']),
-      sisters: _asStr(json['sisters']),
-      familyType: _asStr(json['familyType']),
-      familyValues: _asStr(json['familyValues']),
-      marriedSister: _asStr(json['marriedSister']),
-      uncleName: _asStr(json['uncleName']),
+      partnerPriority: _asStr(json['partnerPriority']),
+      fatherName: _asStr(json['fatherName'] ?? familyMap?['fatherName']),
+      motherName: _asStr(json['motherName'] ?? familyMap?['motherName']),
+      brothers: _asStr(json['brothers'] ?? familyMap?['brothers']),
+      maternalUncle: _asStr(json['maternalUncle'] ?? json['maternalUncleName'] ?? familyMap?['maternalUncleName']),
+      unclePhone: _asStr(json['unclePhone'] ?? familyMap?['unclePhone']),
+      fatherEdu: _asStr(json['fatherEdu'] ?? json['fatherOccupation'] ?? familyMap?['fatherOccupation'] ?? familyMap?['fatherEdu']),
+      motherOcc: _asStr(json['motherOcc'] ?? json['motherOccupation'] ?? familyMap?['motherOccupation'] ?? familyMap?['motherOcc']),
+      sisters: _asStr(json['sisters'] ?? familyMap?['sisters']),
+      familyType: _asStr(json['familyType'] ?? familyMap?['familyType']),
+      familyValues: _asStr(json['familyValues'] ?? familyMap?['familyValues']),
+      marriedSister: _asStr(json['marriedSister'] ?? json['marriedSisters'] ?? familyMap?['marriedSisters']),
+      uncleName: _asStr(json['uncleName'] ?? familyMap?['uncleName']),
+      brothersDetails: bDetails,
+      sistersDetails: sDetails,
+      maternalUnclesDetails: muDetails,
+      unclesDetails: uDetails,
       documents: (json['documents'] as List<dynamic>?)
               ?.map((d) => DocumentModel.fromJson(d as Map<String, dynamic>))
               .toList() ??

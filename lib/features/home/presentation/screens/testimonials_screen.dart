@@ -24,7 +24,9 @@ class TestimonialItem {
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       coupleNames: (json['coupleNames'] ?? '').toString(),
       weddingDate: (json['weddingDate'] ?? '').toString(),
-      image: (json['image'] ?? 'https://images.unsplash.com/photo-1607190074257-dd4b7af0309f?w=300').toString(),
+      image: (json['image'] != null && !json['image'].toString().contains('unsplash.com'))
+          ? json['image'].toString()
+          : '',
       story: (json['story'] ?? '').toString(),
       rating: (json['rating'] is num) ? (json['rating'] as num).toDouble() : 5.0,
     );
@@ -77,30 +79,47 @@ class TestimonialsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: testimonials.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.favorite_border, size: 64, color: Colors.grey.shade300),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No Testimonials Yet',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+            child: RefreshIndicator(
+              color: const Color(0xFFC9003F),
+              onRefresh: () async {
+                try {
+                  ref.invalidate(testimonialsProvider);
+                  await ref.read(testimonialsProvider.future);
+                } catch (_) {}
+              },
+              child: testimonials.isEmpty
+                  ? LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.favorite_border, size: 64, color: Colors.grey.shade300),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'No Testimonials Yet',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Success stories will appear here when added.',
+                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Success stories will appear here when added.',
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: testimonials.length,
-                    itemBuilder: (context, index) {
-                      final item = testimonials[index];
+                      ),
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
+                      itemCount: testimonials.length,
+                      itemBuilder: (context, index) {
+                        final item = testimonials[index];
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 20),
@@ -124,7 +143,11 @@ class TestimonialsScreen extends ConsumerWidget {
                               children: [
                                 CircleAvatar(
                                   radius: 28,
-                                  backgroundImage: NetworkImage(item.image),
+                                  backgroundColor: const Color(0xFFFDECEF),
+                                  backgroundImage: item.image.isNotEmpty ? NetworkImage(item.image) : null,
+                                  child: item.image.isEmpty
+                                      ? const Icon(Icons.favorite, color: Color(0xFFC9003F), size: 24)
+                                      : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -177,6 +200,7 @@ class TestimonialsScreen extends ConsumerWidget {
                       );
                     },
                   ),
+            ),
           ),
         ],
       ),

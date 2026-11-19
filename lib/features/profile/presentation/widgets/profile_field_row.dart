@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/dropdown_localizer.dart';
 
 class ProfileFieldRow extends StatelessWidget {
   final String label;
@@ -15,6 +16,73 @@ class ProfileFieldRow extends StatelessWidget {
     this.isLast = false,
     this.isSpecialFormat = false,
   });
+
+  String _localizeLabel(BuildContext context, String rawLabel) {
+    if (Localizations.localeOf(context).languageCode != 'mr') {
+      return rawLabel.toUpperCase();
+    }
+    final key = rawLabel.trim().toUpperCase();
+    final map = {
+      'NAME': 'नाव',
+      'FULL NAME': 'पूर्ण नाव',
+      'AGE': 'वय',
+      'BIRTH DATE': 'जन्मतारीख',
+      'DATE OF BIRTH': 'जन्मतारीख',
+      'WORK PLACE': 'कामाचे ठिकाण',
+      'HOME PLACE': 'घरचे ठिकाण',
+      'MARITAL STATUS': 'वैवाहिक स्थिती',
+      'INCOME': 'उत्पन्न',
+      'ANNUAL INCOME': 'वार्षिक उत्पन्न',
+      'VILLAGE': 'गाव',
+      'STATE': 'राज्य',
+      'PINCODE': 'पिनकोड',
+      'OCCUPATION': 'व्यवसाय',
+      'PROFESSION': 'व्यवसाय',
+      'SUB CASTE': 'पोटजात',
+      'SUB-CASTE': 'पोटजात',
+      'CASTE': 'जात',
+      'RELIGION': 'धर्म',
+      'MOTHER TONGUE': 'मातृभाषा',
+      'HEIGHT': 'उंची',
+      'WEIGHT': 'वजन',
+      'GENDER': 'लिंग',
+      'BLOOD GROUP': 'रक्तगट',
+      'DIET': 'आहार',
+      'FAMILY TYPE': 'कुटुंब प्रकार',
+      'FAMILY VALUES': 'कौटुंबिक मूल्ये',
+      'HIGHEST EDUCATION': 'उच्च शिक्षण',
+      'EMPLOYED IN': 'नोकरीचे क्षेत्र',
+      'COMPANY NAME': 'कंपनीचे नाव',
+      'JOB LOCATION': 'नोकरीचे स्थान',
+      'COUNTRY': 'देश',
+      'CITY': 'शहर',
+      'DISTRICT': 'जिल्हा',
+      'TALUKA': 'तालुका',
+      'GOTRA': 'गोत्र',
+      'RASHI': 'राशी',
+      'NAKSHATRA': 'नक्षत्र',
+      'CHARAN': 'चरण',
+      'GAN': 'गण',
+      'NADI': 'नाडी',
+      'MANGLIK': 'मांगलिक',
+      'PLACE OF BIRTH': 'जन्मस्थान',
+      'BIRTH TIME': 'जन्म वेळ',
+      'SPECIAL CASE': 'विशेष बाब',
+      'PHYSICAL STATUS': 'शारीरिक स्थिती',
+      'COMPLEXION': 'वर्ण (रंग)',
+      'BODY TYPE': 'शरीरयष्टी',
+      'AGRI. LAND': 'शेती जमीन',
+      'PHONE': 'फोन',
+      'EMAIL': 'ईमेल',
+      "FATHER'S NAME": 'वडिलांचे नाव',
+      "FATHER'S OCC.": 'वडिलांचा व्यवसाय',
+      "MOTHER'S NAME": 'आईचे नाव',
+      "MOTHER'S OCC.": 'आईचा व्यवसाय',
+      'BROTHERS': 'भाऊ',
+      'SISTERS': 'बहिणी',
+    };
+    return (map[key] ?? rawLabel).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +108,7 @@ class ProfileFieldRow extends StatelessWidget {
             SizedBox(
               width: 130,
               child: Text(
-                label.toUpperCase(),
+                _localizeLabel(context, label),
                 style: const TextStyle(
                   color: Color(0xFF9E9E9E),
                   fontSize: 11,
@@ -54,7 +122,9 @@ class ProfileFieldRow extends StatelessWidget {
             // Field Value (RIGHT)
             Expanded(
               child: Text(
-                value.isNotEmpty ? value : 'Not Specified',
+                value.isNotEmpty
+                    ? DropdownLocalizer.getLabel(context, value)
+                    : (Localizations.localeOf(context).languageCode == 'mr' ? 'उल्लेख नाही' : 'Not Specified'),
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   color: value.isNotEmpty

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PasswordSegmentSwitch extends StatelessWidget {
   final int selectedIndex; // 0: Phone, 1: Email
@@ -12,6 +13,7 @@ class PasswordSegmentSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       height: 48,
       decoration: BoxDecoration(
@@ -63,7 +65,7 @@ class PasswordSegmentSwitch extends StatelessWidget {
                             ? Colors.white
                             : const Color(0xFF374151),
                       ),
-                      child: const Text('By phone number'),
+                      child: Text(l10n?.byPhoneNumber ?? 'By phone number'),
                     ),
                   ),
                 ),
@@ -86,7 +88,7 @@ class PasswordSegmentSwitch extends StatelessWidget {
                             ? Colors.white
                             : const Color(0xFF374151),
                       ),
-                      child: const Text('By email'),
+                      child: Text(l10n?.byEmail ?? 'By email'),
                     ),
                   ),
                 ),

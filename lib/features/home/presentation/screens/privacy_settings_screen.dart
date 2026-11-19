@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/locale_provider.dart';
 import '../controllers/app_providers.dart';
 
 class PrivacySettingsScreen extends ConsumerStatefulWidget {
@@ -43,28 +44,48 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Privacy Settings',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          context.l10n.privacySettings,
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: false,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
-              'Control who can view your personal information',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              context.l10n.privacySettingsDesc,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
           const SizedBox(height: 24),
 
           // Settings List Card
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                try {
+                  await ref.read(privacySettingsProvider.notifier).refresh();
+                  final updated = ref.read(privacySettingsProvider);
+                  if (mounted) {
+                    setState(() {
+                      _hidePhone = updated.hidePhone;
+                      _hideEmail = updated.hideEmail;
+                      _hidePhotos = updated.hidePhotos;
+                      _hideIncome = updated.hideIncome;
+                      _hideLastSeen = updated.hideLastSeen;
+                      _hideOnlineStatus = updated.hideOnlineStatus;
+                      _hideProfile = updated.hideProfile;
+                    });
+                  }
+                } catch (_) {}
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 Container(
                   decoration: BoxDecoration(
@@ -82,50 +103,50 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
                   child: Column(
                     children: [
                       _buildPrivacyToggleTile(
-                        title: 'Hide Phone Number',
-                        subtitle: 'Only accepted matches can see your phone number',
+                        title: context.l10n.hidePhoneNumber,
+                        subtitle: context.l10n.hidePhoneNumberDesc,
                         value: _hidePhone,
                         onChanged: (val) => setState(() => _hidePhone = val),
                       ),
                       Divider(color: Colors.grey.shade100, height: 1),
                       _buildPrivacyToggleTile(
-                        title: 'Hide Email Address',
-                        subtitle: 'Keep your email address private on your profile',
+                        title: context.l10n.hideEmailAddress,
+                        subtitle: context.l10n.hideEmailAddressDesc,
                         value: _hideEmail,
                         onChanged: (val) => setState(() => _hideEmail = val),
                       ),
                       Divider(color: Colors.grey.shade100, height: 1),
                       _buildPrivacyToggleTile(
-                        title: 'Hide Photos',
-                        subtitle: 'Only premium or accepted matches can see your photos',
+                        title: context.l10n.hidePhotos,
+                        subtitle: context.l10n.hidePhotosDesc,
                         value: _hidePhotos,
                         onChanged: (val) => setState(() => _hidePhotos = val),
                       ),
                       Divider(color: Colors.grey.shade100, height: 1),
                       _buildPrivacyToggleTile(
-                        title: 'Hide Annual Income',
-                        subtitle: 'Keep your annual income hidden from other users',
+                        title: context.l10n.hideAnnualIncome,
+                        subtitle: context.l10n.hideAnnualIncomeDesc,
                         value: _hideIncome,
                         onChanged: (val) => setState(() => _hideIncome = val),
                       ),
                       Divider(color: Colors.grey.shade100, height: 1),
                       _buildPrivacyToggleTile(
-                        title: 'Hide Last Seen',
-                        subtitle: 'Do not show your last active timestamp',
+                        title: context.l10n.hideLastSeen,
+                        subtitle: context.l10n.hideLastSeenDesc,
                         value: _hideLastSeen,
                         onChanged: (val) => setState(() => _hideLastSeen = val),
                       ),
                       Divider(color: Colors.grey.shade100, height: 1),
                       _buildPrivacyToggleTile(
-                        title: 'Hide Online Status',
-                        subtitle: 'Do not show when you are currently online',
+                        title: context.l10n.hideOnlineStatus,
+                        subtitle: context.l10n.hideOnlineStatusDesc,
                         value: _hideOnlineStatus,
                         onChanged: (val) => setState(() => _hideOnlineStatus = val),
                       ),
                       Divider(color: Colors.grey.shade100, height: 1),
                       _buildPrivacyToggleTile(
-                        title: 'Hide Profile completely',
-                        subtitle: 'Temporarily hide your profile from search results',
+                        title: context.l10n.hideProfileCompletely,
+                        subtitle: context.l10n.hideProfileCompletelyDesc,
                         value: _hideProfile,
                         onChanged: (val) => setState(() => _hideProfile = val),
                       ),
@@ -136,6 +157,7 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
               ],
             ),
           ),
+        ),
 
           // Save Button
           Padding(
@@ -155,8 +177,8 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Privacy settings saved locally.'),
+                    SnackBar(
+                      content: Text(context.l10n.privacySaved),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -169,7 +191,7 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               ),
-              child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(context.l10n.saveChanges, style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],

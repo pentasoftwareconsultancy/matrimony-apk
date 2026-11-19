@@ -21,6 +21,16 @@ class PaymentController {
       next(err);
     }
   }
+
+  async webhook(req, res, next) {
+    try {
+      const signature = req.headers['x-razorpay-signature'];
+      const result = await PaymentService.handleWebhook(req.rawBody, signature);
+      return ApiResponse.success(res, 'Webhook handled', result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export default new PaymentController();

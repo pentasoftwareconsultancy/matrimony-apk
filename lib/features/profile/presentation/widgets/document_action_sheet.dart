@@ -1,21 +1,26 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../domain/models/document_model.dart';
 
 class DocumentActionSheet extends StatelessWidget {
   final DocumentModel document;
-  final Function(String docId, String newStatus, {String? fileUrl}) onUpdateStatus;
+  final Future<bool> Function(String docId, List<int> bytes, String fileName) onUploadDocument;
+  final Future<bool> Function(String docId) onRemoveDocument;
 
   const DocumentActionSheet({
     super.key,
     required this.document,
-    required this.onUpdateStatus,
+    required this.onUploadDocument,
+    required this.onRemoveDocument,
   });
 
   static void show({
     required BuildContext context,
     required DocumentModel document,
-    required Function(String docId, String newStatus, {String? fileUrl}) onUpdateStatus,
+    required Future<bool> Function(String docId, List<int> bytes, String fileName) onUploadDocument,
+    required Future<bool> Function(String docId) onRemoveDocument,
   }) {
     showModalBottomSheet(
       context: context,
@@ -25,7 +30,8 @@ class DocumentActionSheet extends StatelessWidget {
       ),
       builder: (context) => DocumentActionSheet(
         document: document,
-        onUpdateStatus: onUpdateStatus,
+        onUploadDocument: onUploadDocument,
+        onRemoveDocument: onRemoveDocument,
       ),
     );
   }
@@ -34,24 +40,57 @@ class DocumentActionSheet extends StatelessWidget {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp'],
+        withData: true,
       );
 
-      if (result != null && result.files.isNotEmpty) {
+      if (result == null || result.files.isEmpty) return;
+
+      final picked = result.files.first;
+      List<int>? bytes = picked.bytes;
+      if ((bytes == null || bytes.isEmpty) && !kIsWeb && picked.path != null) {
+        bytes = await File(picked.path!).readAsBytes();
+      }
+
+      if (bytes == null || bytes.isEmpty) {
         if (context.mounted) {
-          Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${document.title} uploaded successfully! Verification pending.'),
-              backgroundColor: const Color(0xFF2E7D32),
+            const SnackBar(
+              content: Text('Unable to read selected document file.'),
+              backgroundColor: Colors.red,
             ),
           );
         }
-        onUpdateStatus(document.id, 'pending', fileUrl: result.files.first.name);
+        return;
       }
+
+      if (bytes.length > 5 * 1024 * 1024) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Document exceeds the 5MB size limit.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+
+      await onUploadDocument(document.id, bytes, picked.name);
     } catch (e) {
-      if (context.mounted) Navigator.pop(context);
-      onUpdateStatus(document.id, 'verified');
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload ${document.title}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -108,6 +147,8 @@ class DocumentActionSheet extends StatelessWidget {
             leading: const Icon(Icons.visibility_outlined, color: Colors.blue),
             title: const Text('View Document Preview', style: TextStyle(fontWeight: FontWeight.bold)),
             onTap: () {
+              final hasUploadedFile = document.fileUrl != null && document.fileUrl!.trim().isNotEmpty;
+              final isVerified = document.status == 'verified';
               Navigator.pop(context);
               showDialog(
                 context: context,
@@ -116,11 +157,21 @@ class DocumentActionSheet extends StatelessWidget {
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.verified_user, color: Colors.green, size: 64),
+                      Icon(
+                        isVerified ? Icons.verified_user : Icons.hourglass_top,
+                        color: isVerified ? Colors.green : Colors.orange,
+                        size: 64,
+                      ),
                       const SizedBox(height: 12),
                       Text('Verification Status: ${document.status.toUpperCase()}'),
                       const SizedBox(height: 8),
-                      const Text('Document encryption & privacy active.'),
+                      Text(
+                        hasUploadedFile
+                            ? 'Uploaded file: ${document.fileUrl}'
+                            : 'No document uploaded yet.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
                     ],
                   ),
                   actions: [
@@ -131,19 +182,11 @@ class DocumentActionSheet extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.check_circle_outline, color: Colors.green),
-            title: const Text('Mark as Verified', style: TextStyle(fontWeight: FontWeight.bold)),
-            onTap: () {
-              Navigator.pop(context);
-              onUpdateStatus(document.id, 'verified');
-            },
-          ),
-          ListTile(
             leading: const Icon(Icons.delete_outline, color: Colors.red),
             title: const Text('Remove Document', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              onUpdateStatus(document.id, 'pending');
+              await onRemoveDocument(document.id);
             },
           ),
         ],

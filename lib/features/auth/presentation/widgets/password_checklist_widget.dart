@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PasswordChecklistWidget extends StatelessWidget {
   final bool hasUppercase;
@@ -54,16 +55,17 @@ class PasswordChecklistWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCheckRow('At least one uppercase', hasUppercase),
-        _buildCheckRow('At least one lowercase', hasLowercase),
-        _buildCheckRow('At least 8 characters', hasMinLength),
+        _buildCheckRow(l10n?.atLeastOneUppercase ?? 'At least one uppercase', hasUppercase),
+        _buildCheckRow(l10n?.atLeastOneLowercase ?? 'At least one lowercase', hasLowercase),
+        _buildCheckRow(l10n?.atLeast8Characters ?? 'At least 8 characters', hasMinLength),
         if (hasDigit != null)
-          _buildCheckRow('At least one number', hasDigit!),
+          _buildCheckRow(l10n?.atLeastOneNumber ?? 'At least one number', hasDigit!),
         if (hasSpecialChar != null)
-          _buildCheckRow('At least one special character', hasSpecialChar!),
+          _buildCheckRow(l10n?.atLeastOneSpecialChar ?? 'At least one special character', hasSpecialChar!),
       ],
     );
   }

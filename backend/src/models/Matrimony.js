@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { getJwtSecret } from "../config/jwt.js";
 
 const registrationSchema = new mongoose.Schema({
   fullName: { type: String, required: true, trim: true },
@@ -19,13 +20,21 @@ const registrationSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  confirmPassword: {
-    type: String,
-    required: false,
-  },
   profileCreatedFor: {
     type: String,
-    enum: ["Son", "Daughter", "Yourself", "Bride", "Groom", "Self", "Relative", "Friend"],
+    enum: [
+      "Son",
+      "Daughter",
+      "Yourself",
+      "Bride",
+      "Groom",
+      "Self",
+      "Relative",
+      "Friend",
+      "Parent",
+      "Guardian",
+      "Sibling",
+    ],
     default: "Yourself",
   },
   alternativePhoneNumber: { type: String, required: false },
@@ -68,6 +77,24 @@ const educationSchema = new mongoose.Schema({
   annualIncome: { type: mongoose.Schema.Types.Mixed, required: false },
 });
 
+const brotherDetailSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  occupation: { type: String, default: '' },
+}, { _id: false });
+
+const sisterDetailSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  occupation: { type: String, default: '' },
+  isMarried: { type: Boolean, default: false },
+  husbandName: { type: String, default: '' },
+  husbandProfession: { type: String, default: '' },
+}, { _id: false });
+
+const uncleDetailSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  occupation: { type: String, default: '' },
+}, { _id: false });
+
 const familydetailsSchema = new mongoose.Schema({
   fatherName: { type: String, required: false },
   fatherOccupation: { type: String, required: false },
@@ -86,6 +113,10 @@ const familydetailsSchema = new mongoose.Schema({
   uncleName: { type: String, required: false },
   unclePhone: { type: String, required: false },
   aboutFamily: { type: String, required: false },
+  brothersDetails: { type: [brotherDetailSchema], default: [] },
+  sistersDetails: { type: [sisterDetailSchema], default: [] },
+  maternalUnclesDetails: { type: [uncleDetailSchema], default: [] },
+  unclesDetails: { type: [uncleDetailSchema], default: [] },
 });
 
 const astrologySchema = new mongoose.Schema({
@@ -182,24 +213,25 @@ matrimonySchema.methods.jwtToken = function () {
       email: this.userRegistration?.email,
       role: "user",
     },
-    process.env.JWT_SECRET || "supersecretjwtkey123!@#",
+    getJwtSecret(),
     { expiresIn: "30d" }
   );
   return token;
 };
 
-// Method to compare password
+// Method to compare password (strictly bcrypt hashed passwords)
 matrimonySchema.methods.comparePassword = async function (plainTextPassword) {
   const storedPassword = this.userRegistration?.password;
-  if (!storedPassword) return false;
-  if (storedPassword.startsWith("$2")) {
-    return await bcrypt.compare(plainTextPassword, storedPassword);
-  }
-  return plainTextPassword === storedPassword;
+  if (!storedPassword || typeof storedPassword !== "string") return false;
+  if (!storedPassword.startsWith("$2")) return false;
+  return await bcrypt.compare(plainTextPassword, storedPassword);
 };
 
-// Pre-save hook to hash password if modified
+// Pre-save hook to hash password if modified and ensure confirmPassword is never persisted
 matrimonySchema.pre("save", async function (next) {
+  if (this.userRegistration && "confirmPassword" in this.userRegistration) {
+    this.userRegistration.confirmPassword = undefined;
+  }
   if (this.isModified("userRegistration.password") && this.userRegistration?.password) {
     if (!this.userRegistration.password.startsWith("$2")) {
       this.userRegistration.password = await bcrypt.hash(this.userRegistration.password, 10);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PasswordSuccessDialog extends StatelessWidget {
   final VoidCallback onLoginPressed;
@@ -20,6 +21,7 @@ class PasswordSuccessDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 28),
@@ -61,10 +63,10 @@ class PasswordSuccessDialog extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Title (2 Lines)
-              const Text(
-                'Password Updated\nSuccessfully',
+              Text(
+                l10n?.passwordUpdatedSuccessfully ?? 'Password Updated\nSuccessfully',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -87,9 +89,9 @@ class PasswordSuccessDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  child: const Text(
-                    'Log in',
-                    style: TextStyle(
+                  child: Text(
+                    l10n?.logIn ?? 'Log in',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),

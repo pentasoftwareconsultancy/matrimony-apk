@@ -112,8 +112,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/logo.png',
-                  width: 240,
+                  'assets/images/splash_screen.png',
+                  width: 260,
                   fit: BoxFit.contain,
                 ),
               ],

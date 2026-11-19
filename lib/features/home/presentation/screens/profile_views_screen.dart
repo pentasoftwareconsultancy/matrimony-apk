@@ -87,59 +87,72 @@ class ProfileViewsScreen extends ConsumerWidget {
             ),
             const Divider(height: 1),
             Expanded(
-              child: viewState.isLoading && profiles.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : profiles.isEmpty
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.visibility_off_outlined,
-                      size: 64,
-                      color: Colors.grey.shade300,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No profile views yet',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'People who visit your profile will appear here.',
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-                  : RefreshIndicator(
-                onRefresh: () => ref
-                    .read(profileViewProvider.notifier)
-                    .loadViews(),
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  itemCount: profiles.length,
-                  itemBuilder: (context, index) {
-                    final profile = profiles[index];
-                    return _buildViewCard(
-                      context,
-                      ref,
-                      profile,
-                      homeState,
-                    );
-                  },
-                ),
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async {
+                  try {
+                    await ref.read(profileViewProvider.notifier).loadViews();
+                  } catch (_) {}
+                },
+                child: viewState.isLoading && profiles.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : profiles.isEmpty
+                        ? LayoutBuilder(
+                            builder: (context, constraints) =>
+                                SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                    minHeight: constraints.maxHeight),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.visibility_off_outlined,
+                                        size: 64,
+                                        color: Colors.grey.shade300,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'No profile views yet',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'People who visit your profile will appear here.',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            itemCount: profiles.length,
+                            itemBuilder: (context, index) {
+                              final profile = profiles[index];
+                              return _buildViewCard(
+                                context,
+                                ref,
+                                profile,
+                                homeState,
+                              );
+                            },
+                          ),
               ),
             ),
           ],

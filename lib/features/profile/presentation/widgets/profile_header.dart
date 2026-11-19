@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../../../home/presentation/screens/premium_plans_screen.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
   final VoidCallback? onBackTap;
@@ -18,26 +18,27 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(88);
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Log out',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          l10n?.logout ?? 'Log out',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        content: const Text(
-          'Are you sure you want to log out?',
-          style: TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
+        content: Text(
+          l10n?.logoutConfirm ?? 'Are you sure you want to log out?',
+          style: const TextStyle(color: Color(0xFF4A4A4A), fontSize: 14),
         ),
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            child: Text(
+              l10n?.cancel ?? 'Cancel',
+              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
             ),
           ),
           ElevatedButton(
@@ -53,9 +54,9 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
               minimumSize: const Size(90, 40),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
-            child: const Text(
-              'Log out',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            child: Text(
+              l10n?.logout ?? 'Log out',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -65,6 +66,7 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Container(
@@ -83,18 +85,18 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
                   }
                 },
             behavior: HitTestBehavior.opaque,
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.arrow_back,
                   color: Colors.black87,
                   size: 22,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
-                  'Profile',
-                  style: TextStyle(
+                  l10n?.profile ?? 'Profile',
+                  style: const TextStyle(
                     color: Colors.black,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -105,54 +107,6 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
           ),
           const Spacer(),
 
-          // Document Edit Icon
-          GestureDetector(
-            onTap: onEditIconTap,
-            child: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  )
-                ],
-              ),
-              child: const Icon(
-                Icons.edit_note,
-                color: Color(0xFFC9003F),
-                size: 20,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // Crown / Premium Action Icon
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const PremiumPlansScreen()),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: const BoxDecoration(
-                color: Color(0xFFC9003F),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.workspace_premium,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-
           // Log out pill button
           GestureDetector(
             onTap: () => _showLogoutDialog(context, ref),
@@ -162,9 +116,9 @@ class ProfileHeader extends ConsumerWidget implements PreferredSizeWidget {
                 color: const Color(0xFFC9003F),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Text(
-                'Log out',
-                style: TextStyle(
+              child: Text(
+                l10n?.logout ?? 'Log out',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,

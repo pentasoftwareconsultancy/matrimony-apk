@@ -6,10 +6,12 @@ class NotificationService {
   // GET NOTIFICATIONS
   // ============================================================
 
-  async getNotifications(userId) {
+  async getNotifications(userId, language = 'en') {
     if (!userId) {
       return [];
     }
+
+    const isMr = language === 'mr';
 
     const notifications = await Notification.find({
       user: userId,
@@ -17,36 +19,53 @@ class NotificationService {
       .sort({ createdAt: -1 })
       .lean();
 
-    return notifications.map((notification) => ({
-      id: notification._id.toString(),
+    return notifications.map((notification) => {
+      let title = notification.title || (isMr ? 'सूचना' : 'Notification');
+      let subtitle = notification.message || '';
 
-      profileId: notification.profileId
-        ? notification.profileId.toString()
-        : '',
+      if (isMr) {
+        if (title.toLowerCase() === 'profile viewed') {
+          title = 'प्रोफाइल पाहिली';
+        } else if (title.toLowerCase() === 'new match') {
+          title = 'नवीन अनुरूप स्थळ';
+        } else if (title.toLowerCase() === 'interest received') {
+          title = 'पसंतीची विनंती प्राप्त झाली';
+        }
 
-      profileImage:
-        notification.senderImage ||
-        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+        if (subtitle.includes('viewed your profile')) {
+          const viewerName = subtitle.replace('viewed your profile', '').trim();
+          subtitle = `${viewerName} यांनी आपली प्रोफाइल पाहिली`;
+        }
+      }
 
-      title:
-        notification.title || 'Notification',
+      return {
+        id: notification._id.toString(),
 
-      subtitle:
-        notification.message || '',
+        profileId: notification.profileId
+          ? notification.profileId.toString()
+          : '',
 
-      time: notification.createdAt
-        ? new Date(notification.createdAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : 'Just now',
+        profileImage:
+          notification.senderImage || '',
 
-      type:
-        notification.type || 'profileActivity',
+        title,
 
-      isRead:
-        notification.isRead === true,
-    }));
+        subtitle,
+
+        time: notification.createdAt
+          ? new Date(notification.createdAt).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : (isMr ? 'आत्ताच' : 'Just now'),
+
+        type:
+          notification.type || 'profileActivity',
+
+        isRead:
+          notification.isRead === true,
+      };
+    });
   }
 
   // ============================================================

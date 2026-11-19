@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/locale_provider.dart';
 import '../controllers/app_providers.dart';
 import '../controllers/presence_provider.dart';
 
@@ -121,10 +122,11 @@ class _ChatDetailScreenState
   // ============================================================
 
   String _formatLastSeen(
+      BuildContext context,
       DateTime? lastSeenAt,
       ) {
     if (lastSeenAt == null) {
-      return 'Offline';
+      return context.l10n.offline;
     }
 
     final localTime =
@@ -145,7 +147,7 @@ class _ChatDetailScreenState
         ? 'PM'
         : 'AM';
 
-    return 'Last seen $hour:$minute $period';
+    return '${context.l10n.lastSeen} $hour:$minute $period';
   }
 
 
@@ -318,8 +320,9 @@ class _ChatDetailScreenState
 
                       Text(
                         isOnline
-                            ? 'Online'
+                            ? context.l10n.online
                             : _formatLastSeen(
+                          context,
                           lastSeenAt,
                         ),
                         style:
@@ -348,12 +351,26 @@ class _ChatDetailScreenState
           // ====================================================
 
           Expanded(
-            child: ListView.builder(
-              controller:
-              _scrollController,
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                try {
+                  await Future.wait([
+                    ref.read(messageProvider.notifier).refresh(),
+                    ref
+                        .read(presenceProvider.notifier)
+                        .loadPresence(widget.partnerId),
+                  ]);
+                } catch (_) {}
+              },
+              child: ListView.builder(
+                controller:
+                _scrollController,
 
-              padding:
-              const EdgeInsets.all(16),
+                physics: const AlwaysScrollableScrollPhysics(),
+
+                padding:
+                const EdgeInsets.all(16),
 
               itemCount:
               messages.length,
@@ -506,6 +523,7 @@ class _ChatDetailScreenState
               },
             ),
           ),
+          ),
 
           // ====================================================
           // TYPING INDICATOR
@@ -557,9 +575,9 @@ class _ChatDetailScreenState
                       _messageController,
 
                       decoration:
-                      const InputDecoration(
+                      InputDecoration(
                         hintText:
-                        'Type a message...',
+                        context.l10n.typeAMessage,
 
                         hintStyle:
                         TextStyle(

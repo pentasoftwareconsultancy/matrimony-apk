@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../domain/models/event_model.dart';
 import '../../data/repositories/event_repository.dart';
+import '../../../../core/localization/locale_provider.dart';
 
 class EventDetailsScreen extends ConsumerWidget {
   final String eventId;
@@ -46,7 +47,7 @@ class EventDetailsScreen extends ConsumerWidget {
 
   void _shareEvent(EventModel item) {
     Share.share(
-      'Join us at ${item.title}!\nDate: ${item.date} at ${item.time}\nLocation: ${item.location}\nOrganizer: ${item.organizer}\n\n${item.description}',
+      'Join us at ${item.title}!\nDate: ${item.formattedDate} at ${item.time}\nLocation: ${item.location}\nOrganizer: ${item.organizer}\n\n${item.description}',
       subject: item.title,
     );
   }
@@ -63,13 +64,15 @@ class EventDetailsScreen extends ConsumerWidget {
         child: eventAsync.when(
           data: (item) {
             if (item == null) {
-              return const Center(child: Text('Event details not found'));
+              return Center(child: Text(context.l10n.eventDetailsNotFound));
             }
 
-            final img1 = item.images.isNotEmpty
-                ? item.images[0]
-                : 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
-            final img2 = item.images.length > 1 ? item.images[1] : img1;
+            final validImages = item.images
+                .where((img) => img.trim().isNotEmpty && !img.contains('unsplash.com'))
+                .toList();
+            final hasImages = validImages.isNotEmpty;
+            final img1 = hasImages ? validImages[0] : '';
+            final img2 = validImages.length > 1 ? validImages[1] : img1;
 
             return Column(
               children: [
@@ -117,41 +120,77 @@ class EventDetailsScreen extends ConsumerWidget {
 
                 // Scrollable Content
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
+                  child: RefreshIndicator(
+                    color: const Color(0xFFC9003F),
+                    onRefresh: () async {
+                      try {
+                        ref.invalidate(eventByIdProvider(eventId));
+                        await ref.read(eventByIdProvider(eventId).future);
+                      } catch (_) {}
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // 2 Top Images
                         SizedBox(
                           height: 160,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: CachedNetworkImage(
-                                    imageUrl: img1,
-                                    fit: BoxFit.cover,
-                                    height: double.infinity,
+                          child: hasImages
+                              ? Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: CachedNetworkImage(
+                                          imageUrl: img1,
+                                          fit: BoxFit.cover,
+                                          height: double.infinity,
+                                          errorWidget: (context, url, error) => Container(
+                                            color: const Color(0xFFFDECEF),
+                                            child: const Center(
+                                              child: Icon(Icons.event, color: Color(0xFFC9003F), size: 40),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 2,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: CachedNetworkImage(
+                                          imageUrl: img2,
+                                          fit: BoxFit.cover,
+                                          height: double.infinity,
+                                          errorWidget: (context, url, error) => Container(
+                                            color: const Color(0xFFFDECEF),
+                                            child: const Center(
+                                              child: Icon(Icons.event, color: Color(0xFFC9003F), size: 40),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFDECEF),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Center(
+                                    child: Image.asset(
+                                      'assets/images/heart.png',
+                                      height: 90,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 2,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: CachedNetworkImage(
-                                    imageUrl: img2,
-                                    fit: BoxFit.cover,
-                                    height: double.infinity,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         const SizedBox(height: 14),
 
@@ -177,14 +216,14 @@ class EventDetailsScreen extends ConsumerWidget {
                                   Expanded(
                                     child: _buildInfoItem(
                                       icon: Icons.calendar_today_outlined,
-                                      label: 'DATE',
-                                      value: item.date,
+                                      label: context.l10n.date.toUpperCase(),
+                                      value: item.formattedDate,
                                     ),
                                   ),
                                   Expanded(
                                     child: _buildInfoItem(
                                       icon: Icons.location_on_outlined,
-                                      label: 'LOCATION',
+                                      label: context.l10n.location.toUpperCase(),
                                       value: item.location,
                                     ),
                                   ),
@@ -196,14 +235,14 @@ class EventDetailsScreen extends ConsumerWidget {
                                   Expanded(
                                     child: _buildInfoItem(
                                       icon: Icons.access_time_outlined,
-                                      label: 'TIME',
+                                      label: context.l10n.time.toUpperCase(),
                                       value: item.time,
                                     ),
                                   ),
                                   Expanded(
                                     child: _buildInfoItem(
                                       icon: Icons.person_outline,
-                                      label: 'ORGANIZER',
+                                      label: context.l10n.organizer.toUpperCase(),
                                       value: item.organizer,
                                     ),
                                   ),
@@ -260,7 +299,9 @@ class EventDetailsScreen extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () => _launchWhatsApp(context, item.whatsappNumber),
+                                onPressed: item.whatsappNumber.isNotEmpty
+                                    ? () => _launchWhatsApp(context, item.whatsappNumber)
+                                    : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFC9003F),
                                   foregroundColor: Colors.white,
@@ -270,9 +311,9 @@ class EventDetailsScreen extends ConsumerWidget {
                                   ),
                                   elevation: 0,
                                 ),
-                                child: const Text(
-                                  'Register Interest via WhatsApp',
-                                  style: TextStyle(
+                                child: Text(
+                                  context.l10n.registerViaWhatsApp,
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13.5,
                                   ),
@@ -309,6 +350,7 @@ class EventDetailsScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                ),
                 ),
               ],
             );

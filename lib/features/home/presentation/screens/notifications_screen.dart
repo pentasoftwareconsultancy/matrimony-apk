@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/data/dummy_profiles.dart';
+import '../../../../core/localization/locale_provider.dart';
 import '../controllers/app_providers.dart';
 import 'profile_details_screen.dart';
 
@@ -63,9 +64,9 @@ class _NotificationsScreenState
           onPressed: () => Navigator.pop(context),
         ),
 
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
+        title: Text(
+          context.l10n.notifications,
+          style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 16,
@@ -86,7 +87,7 @@ class _NotificationsScreenState
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '$unreadCount new',
+                  context.l10n.newNotificationsCount(unreadCount),
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -98,30 +99,40 @@ class _NotificationsScreenState
         ],
       ),
 
-      body: notifications.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
+      body: RefreshIndicator(
+        color: AppColors.primary,
         onRefresh: () async {
-          await ref
-              .read(notificationProvider.notifier)
-              .refresh();
+          try {
+            await ref.read(notificationProvider.notifier).refresh();
+          } catch (_) {}
         },
-
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            32,
-          ),
-          children: [
-            _buildNotificationList(
-              context,
-              ref,
-              notifications,
-            ),
-          ],
-        ),
+        child: notifications.isEmpty
+            ? LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
+                    child: _buildEmptyState(),
+                  ),
+                ),
+              )
+            : ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  32,
+                ),
+                children: [
+                  _buildNotificationList(
+                    context,
+                    ref,
+                    notifications,
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -171,7 +182,7 @@ class _NotificationsScreenState
       children: [
         if (profileActivity.isNotEmpty) ...[
           _buildSectionHeader(
-            'Profile Activity',
+            context.l10n.profileActivity,
             Icons.person_outline,
           ),
 
@@ -188,7 +199,7 @@ class _NotificationsScreenState
 
         if (matchAlerts.isNotEmpty) ...[
           _buildSectionHeader(
-            'Match Alerts',
+            context.l10n.matchAlerts,
             Icons.favorite_outline,
           ),
 
@@ -205,7 +216,7 @@ class _NotificationsScreenState
 
         if (interestAlerts.isNotEmpty) ...[
           _buildSectionHeader(
-            'Interest Alerts',
+            context.l10n.interestAlerts,
             Icons.favorite_border,
           ),
 
@@ -222,7 +233,7 @@ class _NotificationsScreenState
 
         if (otherNotifications.isNotEmpty) ...[
           _buildSectionHeader(
-            'Other',
+            context.l10n.otherNotifications,
             Icons.notifications_none,
           ),
 
@@ -332,9 +343,9 @@ class _NotificationsScreenState
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
-                  'Unable to delete notification',
+                  context.l10n.unableToDeleteNotification,
                 ),
               ),
             );
@@ -881,9 +892,9 @@ class _NotificationsScreenState
 
             const SizedBox(height: 18),
 
-            const Text(
-              'No notifications yet',
-              style: TextStyle(
+            Text(
+              context.l10n.noNotifications,
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
                 color: Colors.black87,
@@ -893,8 +904,7 @@ class _NotificationsScreenState
             const SizedBox(height: 6),
 
             Text(
-              'When you receive notifications, '
-                  'they will appear here.',
+              context.l10n.noNotificationsDesc,
               textAlign: TextAlign.center,
 
               style: TextStyle(

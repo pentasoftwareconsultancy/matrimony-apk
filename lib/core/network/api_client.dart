@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_storage_service.dart';
+import '../localization/locale_provider.dart';
 import 'jwt_interceptor.dart';
 import 'network_exceptions.dart';
 
@@ -86,5 +86,7 @@ final dioInstanceProvider = Provider<Dio>((ref) => Dio());
 final apiClientProvider = Provider<ApiClient>((ref) {
   final dio = ref.watch(dioInstanceProvider);
   final secureStorage = ref.watch(secureStorageProvider);
+  final locale = ref.watch(localeProvider);
+  dio.options.headers['Accept-Language'] = locale.languageCode;
   return ApiClient(dio, secureStorage);
 });

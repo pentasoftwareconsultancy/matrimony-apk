@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/localization/locale_provider.dart';
 import '../../../auth/presentation/controllers/password_controller.dart';
 import '../../../auth/presentation/widgets/password_checklist_widget.dart';
 import '../../../auth/presentation/widgets/password_strength_meter.dart';
@@ -83,9 +84,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               const SizedBox(height: 16),
 
               // Title
-              const Text(
-                'Change password',
-                style: TextStyle(
+              Text(
+                context.l10n.changePassword,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -95,7 +96,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
               // Subtitle
               Text(
-                'Change the password',
+                context.l10n.changePasswordSubtitle,
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade400,
@@ -106,8 +107,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
               // Current Password Field
               PasswordTextField(
-                label: 'Current password',
-                hintText: 'Enter current password',
+                label: context.l10n.currentPassword,
+                hintText: context.l10n.enterCurrentPassword,
                 controller: _currentPasswordController,
                 isPassword: true,
                 errorText: state.currentPasswordError,
@@ -119,8 +120,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
               // Create New Password Field
               PasswordTextField(
-                label: 'Create new password',
-                hintText: 'Enter password',
+                label: context.l10n.createNewPassword,
+                hintText: context.l10n.enterPassword,
                 controller: _newPasswordController,
                 isPassword: true,
                 onChanged: (val) {
@@ -131,8 +132,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
               // Confirm New Password Field
               PasswordTextField(
-                label: 'Confirm new password',
-                hintText: 'Enter password',
+                label: context.l10n.confirmNewPassword,
+                hintText: context.l10n.enterPassword,
                 controller: _confirmPasswordController,
                 isPassword: true,
                 onChanged: (val) {
@@ -182,9 +183,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Apply Changes',
-                          style: TextStyle(
+                      : Text(
+                          context.l10n.applyChanges,
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -203,17 +204,17 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                     child: RichText(
-                      text: const TextSpan(
-                        text: 'Forgot password? ',
-                        style: TextStyle(
+                      text: TextSpan(
+                        text: '${context.l10n.forgotPasswordQuestion} ',
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF1E1E1E),
                           fontWeight: FontWeight.w400,
                         ),
                         children: [
                           TextSpan(
-                            text: 'Click here',
-                            style: TextStyle(
+                            text: context.l10n.clickHere,
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF1E1E1E),

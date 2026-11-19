@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../domain/models/profile_model.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../auth/domain/models/user.dart';
 
 class ProfileState {
   final ProfileModel profile;
@@ -53,8 +55,9 @@ class ProfileState {
 
 class ProfileController extends StateNotifier<ProfileState> {
   final ProfileRepository _repository;
+  final Ref _ref;
 
-  ProfileController(this._repository)
+  ProfileController(this._repository, this._ref)
       : super(ProfileState(
     profile: ProfileModel.empty(),
     completionPercentage: 0.0,
@@ -62,10 +65,54 @@ class ProfileController extends StateNotifier<ProfileState> {
     loadProfile();
   }
 
+  void _syncUserWithProfile(Map<String, dynamic> profileMap, ProfileModel profileModel) {
+    try {
+      final cleanMap = Map<String, dynamic>.from(profileMap);
+      if (cleanMap['_id'] == null && cleanMap['id'] != null) {
+        cleanMap['_id'] = cleanMap['id'];
+      }
+      cleanMap['profileCompleted'] ??= true;
+      cleanMap['isVerified'] ??= false;
+      cleanMap['isPremium'] ??= false;
+      cleanMap['role'] ??= 'user';
+      if (cleanMap['dob'] != null && cleanMap['dob'] is! String) {
+        cleanMap['dob'] = cleanMap['dob'].toString();
+      }
+      final updatedUser = User.fromJson(cleanMap);
+      _ref.read(authControllerProvider.notifier).updateUser(updatedUser);
+    } catch (_) {
+      final currentUser = _ref.read(authControllerProvider).user;
+      if (currentUser != null) {
+        final updatedUser = currentUser.copyWith(
+          fullName: profileModel.fullName.isNotEmpty ? profileModel.fullName : currentUser.fullName,
+          age: profileModel.age > 0 ? profileModel.age : currentUser.age,
+          maritalStatus: profileModel.maritalStatus.isNotEmpty ? profileModel.maritalStatus : currentUser.maritalStatus,
+          occupation: profileModel.occupation.isNotEmpty ? profileModel.occupation : currentUser.occupation,
+          annualIncome: profileModel.income.isNotEmpty ? profileModel.income : currentUser.annualIncome,
+          state: profileModel.state.isNotEmpty ? profileModel.state : currentUser.state,
+          city: profileModel.workPlace.isNotEmpty ? profileModel.workPlace : currentUser.city,
+          religion: profileModel.religion.isNotEmpty ? profileModel.religion : currentUser.religion,
+          caste: profileModel.caste.isNotEmpty ? profileModel.caste : currentUser.caste,
+          photos: profileModel.photos.isNotEmpty ? profileModel.photos : currentUser.photos,
+          phone: profileModel.phone.isNotEmpty ? profileModel.phone : currentUser.phone,
+          email: profileModel.email.isNotEmpty ? profileModel.email : currentUser.email,
+          hobbies: profileModel.hobbies.isNotEmpty ? profileModel.hobbies : currentUser.hobbies,
+          address: profileModel.homePlace.isNotEmpty ? profileModel.homePlace : currentUser.address,
+          fatherName: profileModel.fatherName.isNotEmpty ? profileModel.fatherName : currentUser.fatherName,
+          motherName: profileModel.motherName.isNotEmpty ? profileModel.motherName : currentUser.motherName,
+          familyType: profileModel.familyType.isNotEmpty ? profileModel.familyType : currentUser.familyType,
+        );
+        _ref.read(authControllerProvider.notifier).updateUser(updatedUser);
+      }
+    }
+  }
+
   Future<void> loadProfile() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final loaded = await _repository.getProfile();
+      final profileMap = await _repository.getProfileData();
+      final loaded = ProfileModel.fromJson(profileMap);
+      _syncUserWithProfile(profileMap, loaded);
       state = ProfileState(
         profile: loaded,
         isDirty: false,
@@ -267,9 +314,11 @@ class ProfileController extends StateNotifier<ProfileState> {
         current = current.copyWith(unclePhone: value.toString());
         break;
       case 'fatherEdu':
+      case 'fatherOccupation':
         current = current.copyWith(fatherEdu: value.toString());
         break;
       case 'motherOcc':
+      case 'motherOccupation':
         current = current.copyWith(motherOcc: value.toString());
         break;
       case 'sisters':
@@ -287,12 +336,96 @@ class ProfileController extends StateNotifier<ProfileState> {
       case 'uncleName':
         current = current.copyWith(uncleName: value.toString());
         break;
+      case 'brothersDetails':
+        if (value is List<BrotherDetail>) {
+          current = current.copyWith(
+            brothersDetails: value,
+            brothers: value.length.toString(),
+          );
+        }
+        break;
+      case 'sistersDetails':
+        if (value is List<SisterDetail>) {
+          final mCount = value.where((s) => s.isMarried).length;
+          current = current.copyWith(
+            sistersDetails: value,
+            sisters: value.length.toString(),
+            marriedSister: mCount.toString(),
+          );
+        }
+        break;
+      case 'maternalUnclesDetails':
+        if (value is List<UncleDetail>) {
+          current = current.copyWith(
+            maternalUnclesDetails: value,
+            maternalUncle: value.isNotEmpty ? value.first.name : '',
+          );
+        }
+        break;
+      case 'unclesDetails':
+        if (value is List<UncleDetail>) {
+          current = current.copyWith(
+            unclesDetails: value,
+            uncleName: value.isNotEmpty ? value.first.name : '',
+          );
+        }
+        break;
     }
 
     state = state.copyWith(
       profile: current,
       isDirty: true,
       validationErrors: errors,
+      completionPercentage: current.calculateCompletionPercentage(),
+    );
+  }
+
+  void updateBrothers(List<BrotherDetail> brothers) {
+    final current = state.profile.copyWith(
+      brothersDetails: brothers,
+      brothers: brothers.length.toString(),
+    );
+    state = state.copyWith(
+      profile: current,
+      isDirty: true,
+      completionPercentage: current.calculateCompletionPercentage(),
+    );
+  }
+
+  void updateSisters(List<SisterDetail> sisters) {
+    final marriedCount = sisters.where((s) => s.isMarried).length;
+    final current = state.profile.copyWith(
+      sistersDetails: sisters,
+      sisters: sisters.length.toString(),
+      marriedSister: marriedCount.toString(),
+    );
+    state = state.copyWith(
+      profile: current,
+      isDirty: true,
+      completionPercentage: current.calculateCompletionPercentage(),
+    );
+  }
+
+  void updateMaternalUncles(List<UncleDetail> uncles) {
+    final current = state.profile.copyWith(
+      maternalUnclesDetails: uncles,
+      maternalUncle: uncles.isNotEmpty ? uncles.first.name : '',
+    );
+    state = state.copyWith(
+      profile: current,
+      isDirty: true,
+      completionPercentage: current.calculateCompletionPercentage(),
+    );
+  }
+
+  void updateUncles(List<UncleDetail> uncles) {
+    final current = state.profile.copyWith(
+      unclesDetails: uncles,
+      uncleName: uncles.isNotEmpty ? uncles.first.name : '',
+    );
+    state = state.copyWith(
+      profile: current,
+      isDirty: true,
       completionPercentage: current.calculateCompletionPercentage(),
     );
   }
@@ -307,10 +440,15 @@ class ProfileController extends StateNotifier<ProfileState> {
 
     state = state.copyWith(isSaving: true, errorMessage: null, successMessage: null);
     try {
-      await _repository.saveProfile(state.profile);
+      final profileMap = await _repository.saveProfile(state.profile);
+      final updatedProfile = ProfileModel.fromJson(profileMap);
+      _syncUserWithProfile(profileMap, updatedProfile);
+
       state = state.copyWith(
+        profile: updatedProfile,
         isSaving: false,
         isDirty: false,
+        completionPercentage: updatedProfile.calculateCompletionPercentage(),
         successMessage: 'Profile updated successfully',
       );
       return true;
@@ -347,6 +485,15 @@ class ProfileController extends StateNotifier<ProfileState> {
 
       final updatedProfile = state.profile.copyWith(photos: currentPhotos);
 
+      try {
+        final currentUser = _ref.read(authControllerProvider).user;
+        if (currentUser != null) {
+          _ref.read(authControllerProvider.notifier).updateUser(
+            currentUser.copyWith(photos: currentPhotos),
+          );
+        }
+      } catch (_) {}
+
       state = state.copyWith(
         profile: updatedProfile,
         isPhotoUploading: false,
@@ -377,6 +524,15 @@ class ProfileController extends StateNotifier<ProfileState> {
     // Update the UI immediately.
     final updatedProfile = state.profile.copyWith(photos: currentPhotos);
 
+    try {
+      final currentUser = _ref.read(authControllerProvider).user;
+      if (currentUser != null) {
+        _ref.read(authControllerProvider.notifier).updateUser(
+          currentUser.copyWith(photos: currentPhotos),
+        );
+      }
+    } catch (_) {}
+
     state = state.copyWith(
       profile: updatedProfile,
       errorMessage: null,
@@ -401,6 +557,15 @@ class ProfileController extends StateNotifier<ProfileState> {
       }
 
       final restoredProfile = state.profile.copyWith(photos: latestPhotos);
+
+      try {
+        final currentUser = _ref.read(authControllerProvider).user;
+        if (currentUser != null) {
+          _ref.read(authControllerProvider.notifier).updateUser(
+            currentUser.copyWith(photos: latestPhotos),
+          );
+        }
+      } catch (_) {}
 
       state = state.copyWith(
         profile: restoredProfile,
@@ -429,23 +594,61 @@ class ProfileController extends StateNotifier<ProfileState> {
     currentPhotos.insert(newIndex, item);
 
     final updatedProfile = state.profile.copyWith(photos: currentPhotos);
+
+    try {
+      final currentUser = _ref.read(authControllerProvider).user;
+      if (currentUser != null) {
+        _ref.read(authControllerProvider.notifier).updateUser(
+          currentUser.copyWith(photos: currentPhotos),
+        );
+      }
+    } catch (_) {}
+
     state = state.copyWith(profile: updatedProfile, isDirty: true);
   }
 
-  void updateDocumentStatus(String docId, String newStatus, {String? fileUrl}) {
-    final docs = state.profile.documents.map((d) {
-      if (d.id == docId) {
-        return d.copyWith(status: newStatus, fileUrl: fileUrl ?? d.fileUrl, updatedAt: DateTime.now());
-      }
-      return d;
-    }).toList();
+  Future<bool> uploadDocumentFile(String docId, List<int> bytes, String fileName) async {
+    state = state.copyWith(isSaving: true, errorMessage: null, successMessage: null);
+    try {
+      final savedProfileMap = await _repository.uploadDocumentFile(docId, bytes, fileName);
+      final updatedProfile = ProfileModel.fromJson(savedProfileMap);
+      _syncUserWithProfile(savedProfileMap, updatedProfile);
+      state = state.copyWith(
+        profile: updatedProfile,
+        isSaving: false,
+        completionPercentage: updatedProfile.calculateCompletionPercentage(),
+        successMessage: 'Document uploaded. Verification pending.',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to upload document: ${e.toString().replaceAll('Exception: ', '')}',
+      );
+      return false;
+    }
+  }
 
-    final updatedProfile = state.profile.copyWith(documents: docs);
-    state = state.copyWith(
-      profile: updatedProfile,
-      isDirty: true,
-      completionPercentage: updatedProfile.calculateCompletionPercentage(),
-    );
+  Future<bool> removeDocument(String docId) async {
+    state = state.copyWith(isSaving: true, errorMessage: null, successMessage: null);
+    try {
+      final savedProfileMap = await _repository.deleteDocument(docId);
+      final updatedProfile = ProfileModel.fromJson(savedProfileMap);
+      _syncUserWithProfile(savedProfileMap, updatedProfile);
+      state = state.copyWith(
+        profile: updatedProfile,
+        isSaving: false,
+        completionPercentage: updatedProfile.calculateCompletionPercentage(),
+        successMessage: 'Document removed successfully.',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to remove document: ${e.toString().replaceAll('Exception: ', '')}',
+      );
+      return false;
+    }
   }
 
   void clearFeedback() {
@@ -456,5 +659,5 @@ class ProfileController extends StateNotifier<ProfileState> {
 final profileControllerProvider =
 StateNotifierProvider<ProfileController, ProfileState>((ref) {
   final repo = ref.watch(profileRepositoryProvider);
-  return ProfileController(repo);
+  return ProfileController(repo, ref);
 });

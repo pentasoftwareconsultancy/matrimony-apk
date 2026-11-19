@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import UserRepository from "../repositories/UserRepository.js";
+import { getJwtSecret } from "../config/jwt.js";
 
 export const socketAuth = async (socket, next) => {
   try {
@@ -16,11 +17,7 @@ export const socketAuth = async (socket, next) => {
       );
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET ||
-        "supersecretjwtkey123!@#"
-    );
+    const decoded = jwt.verify(token, getJwtSecret());
 
     const user = await UserRepository.findById(decoded.id);
 

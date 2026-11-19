@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../controllers/password_controller.dart';
 import '../widgets/password_segment_switch.dart';
 import '../widgets/password_text_field.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -43,6 +44,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(passwordControllerProvider);
     final isPhoneTab = state.selectedTabIndex == 0;
 
@@ -72,9 +74,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               const SizedBox(height: 16),
 
               // Title
-              const Text(
-                'Forgot your password',
-                style: TextStyle(
+              Text(
+                l10n?.forgotYourPassword ?? 'Forgot your password',
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1E1E),
@@ -84,7 +86,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
               // Subtitle
               Text(
-                'Please enter email or phone number',
+                l10n?.pleaseEnterEmailOrPhone ?? 'Please enter email or phone number',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade400,
@@ -108,8 +110,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 child: isPhoneTab
                     ? PasswordTextField(
                         key: const ValueKey('phone_input'),
-                        label: 'Phone number',
-                        hintText: 'Enter phone number',
+                        label: l10n?.phoneNumber ?? 'Phone number',
+                        hintText: l10n?.enterPhoneNumber ?? 'Enter phone number',
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         errorText: state.phoneError,
@@ -119,8 +121,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       )
                     : PasswordTextField(
                         key: const ValueKey('email_input'),
-                        label: 'Email',
-                        hintText: 'Enter email',
+                        label: l10n?.email ?? 'Email',
+                        hintText: l10n?.enterEmail ?? 'Enter email',
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         errorText: state.emailError,
@@ -158,9 +160,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Send code',
-                          style: TextStyle(
+                      : Text(
+                          l10n?.sendCode ?? 'Send code',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),

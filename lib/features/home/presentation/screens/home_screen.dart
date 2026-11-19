@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -12,7 +12,10 @@ import 'chat_screen.dart';
 import 'notifications_screen.dart';
 import '../controllers/app_providers.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../../../events/presentation/screens/events_screen.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -56,20 +59,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 
   Future<void> _showExitDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final exitApp = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Exit Application?'),
-        content: const Text('Do you want to exit the app?'),
+        title: Text(l10n?.exitAppTitle ?? 'Exit Application?'),
+        content: Text(l10n?.exitAppConfirm ?? 'Do you want to exit the app?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Exit'),
+            child: Text(l10n?.exit ?? 'Exit'),
           ),
         ],
       ),
@@ -120,51 +124,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Header / Top Section welcome
   Widget _buildTopSection(dynamic user) {
     final unreadCount = ref.watch(notificationProvider).where((n) => !n.isRead).length;
+    final profileState = ref.watch(profileControllerProvider);
+    final profile = profileState.profile;
 
-    final userPhoto = (user?.photos != null && (user.photos as List).isNotEmpty)
-        ? user.photos.first.toString()
-        : null;
+    final profilePhotos = profile.photos
+        .where((p) => p.trim().isNotEmpty && !p.toLowerCase().contains('unsplash.com'))
+        .toList();
+    final userPhotos = ((user?.photos != null && user.photos is List)
+            ? (user.photos as List).map((e) => e.toString()).toList()
+            : <String>[])
+        .where((p) => p.trim().isNotEmpty && !p.toLowerCase().contains('unsplash.com'))
+        .toList();
 
-    final userName = (user?.fullName != null && user.fullName.toString().isNotEmpty)
-        ? user.fullName.toString()
-        : (user?.name != null && user.name.toString().isNotEmpty ? user.name.toString() : 'User');
+    final userPhoto = profilePhotos.isNotEmpty
+        ? profilePhotos.first
+        : (userPhotos.isNotEmpty ? userPhotos.first : null);
+
+    final userName = (profile.fullName.trim().isNotEmpty)
+        ? profile.fullName.trim()
+        : ((user?.fullName != null && user.fullName.toString().trim().isNotEmpty)
+            ? user.fullName.toString().trim()
+            : (user?.name != null && user.name.toString().trim().isNotEmpty ? user.name.toString().trim() : ''));
+
+    final hasUserPhoto = userPhoto != null && userPhoto.isNotEmpty && !userPhoto.contains('unsplash.com');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                backgroundImage: userPhoto != null
-                    ? NetworkImage(userPhoto)
-                    : const NetworkImage('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                ref.read(homeControllerProvider.notifier).setBottomTab(3);
+              },
+              child: Row(
                 children: [
-                  Text(
-                    'Welcome to Soyrik',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: const Color(0xFFFDECEF),
+                    backgroundImage: hasUserPhoto ? NetworkImage(userPhoto) : null,
+                    child: !hasUserPhoto ? const Icon(Icons.person, color: Color(0xFFC9003F)) : null,
                   ),
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome to Soyrik',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        userName.isNotEmpty ? userName : 'Member',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
           Row(
             children: [
@@ -247,66 +274,95 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     }
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, innerBoxIsScrolled) {
-        return [
-          SliverToBoxAdapter(
-            child: _buildTopSection(user),
-          ),
-          if (homeState.categoryTab == 'Near me') ...[
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        try {
+          ref.invalidate(backendMatchesProvider);
+          await Future.wait([
+            ref.read(backendMatchesProvider.future),
+            ref.read(profileControllerProvider.notifier).loadProfile(),
+            ref.read(authControllerProvider.notifier).refreshCurrentUser(),
+            ref.read(profileViewProvider.notifier).loadViews(),
+            ref.read(notificationProvider.notifier).refresh(),
+            ref.read(favouriteProvider.notifier).refresh(),
+          ]);
+        } catch (_) {}
+      },
+      child: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
             SliverToBoxAdapter(
-              child: _buildMatchmakingEventsBanner(),
+              child: _buildTopSection(user),
             ),
-            SliverToBoxAdapter(
-              child: _buildProfileViewsSection(context),
-            ),
-          ] else if (homeState.categoryTab == 'Recommendation') ...[
-            SliverToBoxAdapter(
-              child: _buildCuratedPicksBanner(),
-            ),
-          ] else if (homeState.categoryTab == 'Premium') ...[
-            SliverToBoxAdapter(
-              child: _buildPremiumBanner(),
+            if (homeState.categoryTab == 'Near me') ...[
+              SliverToBoxAdapter(
+                child: _buildMatchmakingEventsBanner(),
+              ),
+              SliverToBoxAdapter(
+                child: _buildProfileViewsSection(context),
+              ),
+            ] else if (homeState.categoryTab == 'Recommendation') ...[
+              SliverToBoxAdapter(
+                child: _buildCuratedPicksBanner(),
+              ),
+            ] else if (homeState.categoryTab == 'Premium') ...[
+              SliverToBoxAdapter(
+                child: _buildPremiumBanner(),
+              ),
+            ],
+          ];
+        },
+        body: Column(
+          children: [
+            // Sticky Search bar & filters
+            _buildSearchBarAndFilter(context, homeState),
+
+            // Sticky Category Tabs
+            _buildCategoryTabs(homeState),
+
+            // Grid of profiles
+            Expanded(
+              child: displayedProfiles.isEmpty
+                  ? LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints:
+                              BoxConstraints(minHeight: constraints.maxHeight),
+                          child: _buildEmptyState(),
+                        ),
+                      ),
+                    )
+                  : GridView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.62,
+                      ),
+                      itemCount: displayedProfiles.length,
+                      itemBuilder: (context, index) {
+                        final profile = displayedProfiles[index];
+                        final compatibility = ownProfile == null
+                            ? null
+                            : calculateProfileCompatibility(
+                                ownProfile, profile);
+                        return _buildProfileCard(
+                          context,
+                          profile,
+                          homeState,
+                          compatibility: compatibility,
+                        );
+                      },
+                    ),
             ),
           ],
-        ];
-      },
-      body: Column(
-        children: [
-          // Sticky Search bar & filters
-          _buildSearchBarAndFilter(context, homeState),
-
-          // Sticky Category Tabs
-          _buildCategoryTabs(homeState),
-
-          // Grid of profiles
-          Expanded(
-            child: displayedProfiles.isEmpty
-                ? _buildEmptyState()
-                : GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.62,
-              ),
-              itemCount: displayedProfiles.length,
-              itemBuilder: (context, index) {
-                final profile = displayedProfiles[index];
-                final compatibility = ownProfile == null
-                    ? null
-                    : calculateProfileCompatibility(ownProfile, profile);
-                return _buildProfileCard(
-                  context,
-                  profile,
-                  homeState,
-                  compatibility: compatibility,
-                );
-              },
-            ),
-          )
-        ],
+        ),
       ),
     );
   }
@@ -397,15 +453,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (count == 0 || viewerProfiles.isEmpty) {
       subtitle = 'No one has viewed your profile yet';
     } else if (viewerProfiles.length == 1) {
-      final firstName = viewerProfiles.first.fullName.trim().split(' ').first;
+      final name = viewerProfiles.first.fullName.trim();
+      final firstName = name.isNotEmpty ? name.split(' ').first : 'Someone';
       subtitle = '$firstName checked your profile';
     } else if (viewerProfiles.length == 2) {
-      final firstName = viewerProfiles[0].fullName.trim().split(' ').first;
-      final secondName = viewerProfiles[1].fullName.trim().split(' ').first;
+      final name1 = viewerProfiles[0].fullName.trim();
+      final firstName = name1.isNotEmpty ? name1.split(' ').first : 'Someone';
+      final name2 = viewerProfiles[1].fullName.trim();
+      final secondName = name2.isNotEmpty ? name2.split(' ').first : 'Someone';
       subtitle = '$firstName & $secondName checked your profile';
     } else {
-      final firstName = viewerProfiles[0].fullName.trim().split(' ').first;
-      final secondName = viewerProfiles[1].fullName.trim().split(' ').first;
+      final name1 = viewerProfiles[0].fullName.trim();
+      final firstName = name1.isNotEmpty ? name1.split(' ').first : 'Someone';
+      final name2 = viewerProfiles[1].fullName.trim();
+      final secondName = name2.isNotEmpty ? name2.split(' ').first : 'Someone';
       final remaining = count > 2 ? count - 2 : viewerProfiles.length - 2;
       subtitle = '$firstName, $secondName & $remaining others checked your profile';
     }
@@ -469,16 +530,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             height: 32,
                             child: Stack(
                               children: [
-                                for (int i = 0; i < viewerProfiles.take(3).length; i++)
+                                for (int i = 0; i < viewerProfiles.take(3).length; i++) ...[
                                   Positioned(
                                     left: i * 18.0,
                                     child: CircleAvatar(
                                       radius: 16,
-                                      backgroundImage: NetworkImage(
-                                        viewerProfiles[i].photos.first,
-                                      ),
+                                      backgroundColor: const Color(0xFFFDECEF),
+                                      backgroundImage: (viewerProfiles[i].photos.isNotEmpty &&
+                                              viewerProfiles[i].photos.first.trim().isNotEmpty &&
+                                              !viewerProfiles[i].photos.first.contains('unsplash.com'))
+                                          ? NetworkImage(viewerProfiles[i].photos.first)
+                                          : null,
+                                      child: (viewerProfiles[i].photos.isEmpty ||
+                                              viewerProfiles[i].photos.first.trim().isEmpty ||
+                                              viewerProfiles[i].photos.first.contains('unsplash.com'))
+                                          ? const Icon(Icons.person, size: 16, color: Color(0xFFC9003F))
+                                          : null,
                                     ),
                                   ),
+                                ],
                                 if (count > 3)
                                   Positioned(
                                     left: 54,
@@ -695,9 +765,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: TextField(
                     controller: _favSearchController,
-                    decoration: const InputDecoration(
-                      hintText: 'Search favorites...',
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)?.searchFavorites ?? 'Search favorites...',
+                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
                       border: InputBorder.none,
                     ),
                   ),
@@ -708,41 +778,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
 
         Expanded(
-          child: favProfiles.isEmpty
-              ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.favorite_border, size: 64, color: Colors.grey.shade400),
-                const SizedBox(height: 16),
-                Text(
-                  'No favorites selected yet',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-                ),
-              ],
-            ),
-          )
-              : GridView.builder(
-            padding: const EdgeInsets.all(20),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.62,
-            ),
-            itemCount: favProfiles.length,
-            itemBuilder: (context, index) {
-              final profile = favProfiles[index];
-              final compatibility = ownProfile == null
-                  ? null
-                  : calculateProfileCompatibility(ownProfile, profile);
-              return _buildProfileCard(
-                context,
-                profile,
-                homeState,
-                compatibility: compatibility,
-              );
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              try {
+                ref.invalidate(favoriteProfilesProvider);
+                await Future.wait([
+                  ref.read(favoriteProfilesProvider.future),
+                  ref.read(favouriteProvider.notifier).refresh(),
+                ]);
+              } catch (_) {}
             },
+            child: favProfiles.isEmpty
+                ? LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.favorite_border,
+                                  size: 64, color: Colors.grey.shade400),
+                              const SizedBox(height: 16),
+                              Text(
+                                AppLocalizations.of(context)?.noFavoritesYet ?? 'No favorites selected yet',
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.62,
+                    ),
+                    itemCount: favProfiles.length,
+                    itemBuilder: (context, index) {
+                      final profile = favProfiles[index];
+                      final compatibility = ownProfile == null
+                          ? null
+                          : calculateProfileCompatibility(ownProfile, profile);
+                      return _buildProfileCard(
+                        context,
+                        profile,
+                        homeState,
+                        compatibility: compatibility,
+                      );
+                    },
+                  ),
           ),
         ),
       ],
@@ -787,9 +882,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ref.read(homeControllerProvider.notifier).setBottomTab(0);
                 },
               ),
-              const Text(
-                'Messages',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)?.messages ?? 'Messages',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   color: Colors.black,
@@ -830,9 +925,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: TextField(
                     controller: _chatSearchController,
-                    decoration: const InputDecoration(
-                      hintText: 'Search messages...',
-                      hintStyle: TextStyle(
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)?.searchChats ?? 'Search messages...',
+                      hintStyle: const TextStyle(
                         color: Colors.grey,
                         fontSize: 13,
                       ),
@@ -850,30 +945,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // --------------------------------------------------
 
         Expanded(
-          child: activeConversations.isEmpty
-              ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: 64,
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No messages found',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          )
-              : ListView.builder(
-            itemCount: activeConversations.length,
-            itemBuilder: (context, idx) {
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              try {
+                await ref.read(messageProvider.notifier).refresh();
+              } catch (_) {}
+            },
+            child: activeConversations.isEmpty
+                ? LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 64,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                AppLocalizations.of(context)?.noMessagesYet ?? 'No messages found',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: activeConversations.length,
+                    itemBuilder: (context, idx) {
               final conversation = activeConversations[idx];
 
               // ------------------------------------------------
@@ -1021,8 +1133,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
           ),
         ),
-      ],
-    );
+      ),
+    ],
+  );
   }
 
   Widget _buildProfileTab(BuildContext context, dynamic user) {
@@ -1073,11 +1186,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
                       ),
-                      image: DecorationImage(
-                        image: NetworkImage(profile.photos.first),
-                        fit: BoxFit.cover,
-                      ),
+                      color: const Color(0xFFFDECEF),
+                      image: (profile.photos.isNotEmpty &&
+                              profile.photos.first.trim().isNotEmpty &&
+                              !profile.photos.first.contains('unsplash.com'))
+                          ? DecorationImage(
+                              image: NetworkImage(profile.photos.first),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
+                    child: (profile.photos.isEmpty ||
+                            profile.photos.first.trim().isEmpty ||
+                            profile.photos.first.contains('unsplash.com'))
+                        ? const Center(
+                            child: Icon(Icons.person, size: 48, color: Color(0xFFC9003F)),
+                          )
+                        : null,
                   ),
                   // Compatibility Tag or Premium Tier top left overlay
                   if (homeState.categoryTab == 'Recommendation' && compatibility != null && compatibility.hasComparableData) ...[
@@ -1274,12 +1399,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: TextField(
                 controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: 'Search for your perfect match...',
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context)?.searchPlaceholder ?? 'Search by name, profession, city...',
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 15),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 15),
                 ),
               ),
             ),
@@ -1403,67 +1528,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // Custom premium looking navigation bar
   Widget _buildCustomBottomNavBar(HomeState homeState) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 3),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Home', homeState),
-          _buildNavItem(1, Icons.favorite_rounded, 'Likes', homeState),
-          _buildNavItem(2, Icons.chat_bubble_rounded, 'Messages', homeState),
-          _buildNavItem(3, Icons.person_rounded, 'Profile', homeState),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, HomeState homeState) {
-    final isSelected = homeState.bottomTabIndex == index;
-
-    if (isSelected) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: const BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.all(Radius.circular(30)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return IconButton(
-        icon: Icon(icon, color: Colors.grey.shade400, size: 22),
-        onPressed: () {
-          ref.read(homeControllerProvider.notifier).setBottomTab(index);
-        },
-      );
-    }
+    return const CustomBottomNavBar();
   }
 }
 
@@ -1517,6 +1582,7 @@ class _FilterBottomSheetWidgetState extends ConsumerState<FilterBottomSheetWidge
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1531,13 +1597,13 @@ class _FilterBottomSheetWidgetState extends ConsumerState<FilterBottomSheetWidge
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.tune, color: Colors.black, size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.tune, color: Colors.black, size: 20),
+                    const SizedBox(width: 8),
                     Text(
-                      'Filters',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
+                      l10n?.filters ?? 'Filters',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
                     ),
                   ],
                 ),
@@ -1561,7 +1627,7 @@ class _FilterBottomSheetWidgetState extends ConsumerState<FilterBottomSheetWidge
                       _diet = null;
                     });
                   },
-                  child: const Text('Reset All', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                  child: Text(l10n?.clearAll ?? 'Reset All', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -1903,7 +1969,7 @@ class _FilterBottomSheetWidgetState extends ConsumerState<FilterBottomSheetWidge
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
-              child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(l10n?.applyFilters ?? 'Apply Filters', style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
