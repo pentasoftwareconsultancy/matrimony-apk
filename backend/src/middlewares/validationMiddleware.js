@@ -39,10 +39,22 @@ const localizeValidationMessage = (msg, isMr) => {
 export const validate = (schema) => {
   return (req, res, next) => {
     const isMr = req.language === 'mr';
-    const { error } = schema.validate(req.body, {
-      abortEarly: false,
-      allowUnknown: false,
-    });
+const normalizedBody = { ...req.body };
+
+for (const [key, value] of Object.entries(normalizedBody)) {
+  if (value === '') {
+    normalizedBody[key] = undefined;
+  }
+}
+
+const { error, value } = schema.validate(normalizedBody, {
+  abortEarly: false,
+  allowUnknown: false,
+});
+
+if (!error) {
+  req.body = value;
+}
 
     if (error) {
       const errorDetails = error.details.reduce((acc, current) => {

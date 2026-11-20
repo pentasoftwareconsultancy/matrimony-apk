@@ -696,7 +696,11 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
       }
 
       final int? parsedIncome = _parseAnnualIncome(state.annualIncome);
-      final data = {
+
+      final int? heightCm = int.tryParse(
+        state.height.split(' ').first,
+      );
+          final data = {
         'accountType': state.accountType,
         'profileCreatedFor': state.accountType,
         'fullName': state.fullName,
@@ -711,7 +715,7 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
         'religion': state.religion,
         'caste': state.caste,
         'maritalStatus': state.maritalStatus,
-        'height': state.height,
+            'height': heightCm,
         'diet': state.diet,
         'specialCase': state.physicalStatus,
         'physicalStatus': state.physicalStatus,

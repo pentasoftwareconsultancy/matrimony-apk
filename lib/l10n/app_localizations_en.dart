@@ -105,19 +105,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingTitle1 => 'Crafting Beautiful\nBeginnings';
 
   @override
-  String get onboardingDesc1 => 'A thoughtful space designed for intentional connections and shared futures. We move beyond filters to help you find a partner who truly aligns with your life goals.';
+  String get onboardingDesc1 =>
+      'A thoughtful space designed for intentional connections and shared futures. We move beyond filters to help you find a partner who truly aligns with your life goals.';
 
   @override
   String get onboardingTitle2 => 'Two Lives, One Perfect\nAlignment';
 
   @override
-  String get onboardingDesc2 => 'Where family, compatibility, and shared dreams gracefully bring two families together, let us help you discover the connection you\'ve been waiting for.';
+  String get onboardingDesc2 =>
+      'Where family, compatibility, and shared dreams gracefully bring two families together, let us help you discover the connection you\'ve been waiting for.';
 
   @override
   String get onboardingTitle3 => 'The Trusted & Secure\nApproach';
 
   @override
-  String get onboardingDesc3 => 'Simplifying the search for a life partner with absolute clarity and elegance. Welcome to a sophisticated way of finding your forever.';
+  String get onboardingDesc3 =>
+      'Simplifying the search for a life partner with absolute clarity and elegance. Welcome to a sophisticated way of finding your forever.';
 
   @override
   String get login => 'Login';
@@ -135,7 +138,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emailMustContainAt => 'Email must contain @';
 
   @override
-  String get validEmailEndingCom => 'Please enter a valid email address ending in .com';
+  String get validEmailEndingCom =>
+      'Please enter a valid email address ending in .com';
 
   @override
   String get password => 'Password';
@@ -150,10 +154,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordMin8 => 'Password must be at least 8 characters long';
 
   @override
-  String get passwordUppercase => 'Password must contain at least one uppercase letter';
+  String get passwordUppercase =>
+      'Password must contain at least one uppercase letter';
 
   @override
-  String get passwordLowercase => 'Password must contain at least one lowercase letter';
+  String get passwordLowercase =>
+      'Password must contain at least one lowercase letter';
 
   @override
   String get forgotPasswordQuestion => 'Forgot password?';
@@ -531,7 +537,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uploadPhotos => 'Upload Photos';
 
   @override
-  String get uploadPhotosDesc => 'Add at least 1 clear photo. Maximum 5 photos.';
+  String get uploadPhotosDesc =>
+      'Add at least 1 clear photo. Maximum 5 photos.';
 
   @override
   String get addPhoto => 'Add Photo';
@@ -543,10 +550,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutMe => 'About Me / Bio';
 
   @override
-  String get enterAboutMe => 'Write a few words about yourself, interests and partner expectations...';
+  String get enterAboutMe =>
+      'Write a few words about yourself, interests and partner expectations...';
 
   @override
-  String get pleaseAgreeTerms => 'Please accept terms and conditions to proceed';
+  String get pleaseAgreeTerms =>
+      'Please accept terms and conditions to proceed';
 
   @override
   String get finalSubmit => 'Submit Registration';
@@ -555,7 +564,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get registrationSuccess => 'Registration Completed Successfully!';
 
   @override
-  String get pleaseFillRequiredFields => 'Please fill all required fields correctly';
+  String get pleaseFillRequiredFields =>
+      'Please fill all required fields correctly';
 
   @override
   String get welcomeBack => 'Find Your Perfect Soulmate';
@@ -618,13 +628,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFavoritesYet => 'No favorite profiles yet';
 
   @override
-  String get noFavoritesDesc => 'Tap the heart icon on any profile to save it here for quick access.';
+  String get noFavoritesDesc =>
+      'Tap the heart icon on any profile to save it here for quick access.';
 
   @override
   String get removeFavorite => 'Remove from Favorites';
 
   @override
-  String get removeFavoriteConfirm => 'Are you sure you want to remove this profile from favorites?';
+  String get removeFavoriteConfirm =>
+      'Are you sure you want to remove this profile from favorites?';
 
   @override
   String get remove => 'Remove';
@@ -639,7 +651,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noMessagesYet => 'No messages yet';
 
   @override
-  String get noMessagesDesc => 'Connect with matches and start chatting right here.';
+  String get noMessagesDesc =>
+      'Connect with matches and start chatting right here.';
 
   @override
   String get typeAMessage => 'Type a message...';
@@ -756,7 +769,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileCompletion => 'Profile Completion';
 
   @override
-  String get completeYourProfile => 'Complete your profile to get 3x more responses';
+  String get completeYourProfile =>
+      'Complete your profile to get 3x more responses';
 
   @override
   String get editProfile => 'Edit Profile';
@@ -798,7 +812,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get marathi => 'Marathi (मराठी)';
 
   @override
-  String get languageScreenSubtitle => 'Choose your preferred language for the app';
+  String get languageScreenSubtitle =>
+      'Choose your preferred language for the app';
 
   @override
   String get notifications => 'Notifications';
@@ -1109,7 +1124,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get otherNotifications => 'Other';
 
   @override
-  String get noNotificationsDesc => 'When you receive notifications, they will appear here.';
+  String get noNotificationsDesc =>
+      'When you receive notifications, they will appear here.';
 
   @override
   String get unableToDeleteNotification => 'Unable to delete notification';
@@ -1142,7 +1158,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noUpcomingEvents => 'No upcoming events right now';
 
   @override
-  String get noUpcomingEventsDesc => 'Please check back soon for upcoming matchmaking events.';
+  String get noUpcomingEventsDesc =>
+      'Please check back soon for upcoming matchmaking events.';
 
   @override
   String get registerForNextEvent => 'Register for next event';
@@ -1166,19 +1183,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photography => 'Photography';
 
   @override
-  String get photographyDesc => 'Photographers, Cinematographers & Pre-wedding studios';
+  String get photographyDesc =>
+      'Photographers, Cinematographers & Pre-wedding studios';
 
   @override
   String get mehendi => 'Mehendi';
 
   @override
-  String get mehendiDesc => 'Bridal Henna, Arabic & Traditional Mehendi Artists';
+  String get mehendiDesc =>
+      'Bridal Henna, Arabic & Traditional Mehendi Artists';
 
   @override
   String get decoration => 'Decoration';
 
   @override
-  String get decorationDesc => 'Stage Setup, Mandap Decor, Floral & Theme Lighting';
+  String get decorationDesc =>
+      'Stage Setup, Mandap Decor, Floral & Theme Lighting';
 
   @override
   String get vendors => 'vendors';
@@ -1243,7 +1263,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get continueButton => 'Continue';
 
   @override
-  String get blockedProfilesDesc => 'Manage profiles you have blocked from contacting you';
+  String get blockedProfilesDesc =>
+      'Manage profiles you have blocked from contacting you';
 
   @override
   String get noBlockedProfiles => 'No Blocked Profiles';
@@ -1262,31 +1283,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get privacySettingsDesc => 'Control who can view your personal information';
+  String get privacySettingsDesc =>
+      'Control who can view your personal information';
 
   @override
   String get hidePhoneNumber => 'Hide Phone Number';
 
   @override
-  String get hidePhoneNumberDesc => 'Only accepted matches can see your phone number';
+  String get hidePhoneNumberDesc =>
+      'Only accepted matches can see your phone number';
 
   @override
   String get hideEmailAddress => 'Hide Email Address';
 
   @override
-  String get hideEmailAddressDesc => 'Keep your email address private on your profile';
+  String get hideEmailAddressDesc =>
+      'Keep your email address private on your profile';
 
   @override
   String get hidePhotos => 'Hide Photos';
 
   @override
-  String get hidePhotosDesc => 'Only premium or accepted matches can see your photos';
+  String get hidePhotosDesc =>
+      'Only premium or accepted matches can see your photos';
 
   @override
   String get hideAnnualIncome => 'Hide Annual Income';
 
   @override
-  String get hideAnnualIncomeDesc => 'Keep your annual income hidden from other users';
+  String get hideAnnualIncomeDesc =>
+      'Keep your annual income hidden from other users';
 
   @override
   String get hideLastSeen => 'Hide Last Seen';
@@ -1298,13 +1324,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hideOnlineStatus => 'Hide Online Status';
 
   @override
-  String get hideOnlineStatusDesc => 'Do not show when you are currently online';
+  String get hideOnlineStatusDesc =>
+      'Do not show when you are currently online';
 
   @override
   String get hideProfileCompletely => 'Hide Profile completely';
 
   @override
-  String get hideProfileCompletelyDesc => 'Temporarily hide your profile from search results';
+  String get hideProfileCompletelyDesc =>
+      'Temporarily hide your profile from search results';
 
   @override
   String get privacySaved => 'Privacy settings saved successfully';

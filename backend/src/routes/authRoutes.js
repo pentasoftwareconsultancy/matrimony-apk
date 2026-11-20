@@ -23,10 +23,17 @@ const uploadRateLimiter = createUploadRateLimiter({ maxRequests: 20 });
 const upload = createUploadFields(
   [
     { name: 'aadharCard', maxCount: 1 },
+    { name: 'aadharCardBack', maxCount: 1 },
     { name: 'casteCertificate', maxCount: 1 },
     { name: 'photos', maxCount: 6 },
   ],
-  { pdfFields: ['aadharCard', 'casteCertificate'] }
+  {
+    pdfFields: [
+      'aadharCard',
+      'aadharCardBack',
+      'casteCertificate',
+    ],
+  }
 );
 
 router.post('/login', validate(loginSchema), AuthController.login);

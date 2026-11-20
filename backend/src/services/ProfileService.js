@@ -305,37 +305,120 @@ class ProfileService {
     return await AuthService.getMergedUser(matrimony);
   }
 
+
   async addPhoto(userId, photoUrl) {
     const matrimony = await Matrimony.findById(userId);
-    if (!matrimony) throw new Error('Profile not found');
-    const docs = matrimony.documentDetails || {};
-    const photos = Array.isArray(docs.photos) ? docs.photos : [];
-    if (!photos.includes(photoUrl)) {
-      photos.push(photoUrl);
+
+    if (!matrimony) {
+      const error = new Error('Profile not found');
+      error.statusCode = 404;
+      throw error;
     }
-    docs.photos = photos;
-    if (!docs.photoFulls) docs.photoFulls = photoUrl;
+
+    if (!photoUrl || typeof photoUrl !== 'string') {
+      const error = new Error('Invalid photo URL');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const docs = matrimony.documentDetails || {};
+
+    const legacyPhotos = [
+      docs.photoFulls,
+      docs.photoCloseup,
+      docs.photoFull,
+      docs.familyPhoto,
+    ].filter(Boolean);
+
+    const storedPhotos = Array.isArray(docs.photos)
+      ? docs.photos.filter(Boolean)
+      : [];
+
+    const allPhotos = [...new Set([
+      ...legacyPhotos,
+      ...storedPhotos,
+    ])];
+
+    // Prevent duplicate photos.
+    if (allPhotos.includes(photoUrl)) {
+      return await AuthService.getMergedUser(matrimony);
+    }
+
+    // Enforce the maximum of six photos on the backend too.
+    if (allPhotos.length >= 6) {
+      const error = new Error(
+        'Maximum 6 profile photos are allowed'
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    docs.photos = [...new Set([...storedPhotos, photoUrl])];
+
+    // Keep the primary photo field populated.
+    if (!docs.photoFulls) {
+      docs.photoFulls = photoUrl;
+    }
+
     matrimony.documentDetails = docs;
     matrimony.markModified('documentDetails');
+
     await matrimony.save();
+
     return await AuthService.getMergedUser(matrimony);
   }
 
   async removePhoto(userId, photoUrl) {
     const matrimony = await Matrimony.findById(userId);
-    if (!matrimony) throw new Error('Profile not found');
-    const docs = matrimony.documentDetails || {};
-    let photos = Array.isArray(docs.photos) ? docs.photos : [];
-    photos = photos.filter((p) => p !== photoUrl);
-    docs.photos = photos;
-    if (docs.photoFulls === photoUrl) {
-      docs.photoFulls = photos[0] || '';
+
+    if (!matrimony) {
+      const error = new Error('Profile not found');
+      error.statusCode = 404;
+      throw error;
     }
+
+    if (!photoUrl || typeof photoUrl !== 'string') {
+      const error = new Error('Invalid photo URL');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const docs = matrimony.documentDetails || {};
+
+    // Remove from the main photo array.
+    const storedPhotos = Array.isArray(docs.photos)
+      ? docs.photos
+      : [];
+
+    docs.photos = storedPhotos.filter(
+      (photo) => photo !== photoUrl
+    );
+
+    // Also remove matching legacy photo references.
+    if (docs.photoFulls === photoUrl) {
+      docs.photoFulls = docs.photos[0] || '';
+    }
+
+    if (docs.photoCloseup === photoUrl) {
+      docs.photoCloseup = '';
+    }
+
+    if (docs.photoFull === photoUrl) {
+      docs.photoFull = '';
+    }
+
+    if (docs.familyPhoto === photoUrl) {
+      docs.familyPhoto = '';
+    }
+
     matrimony.documentDetails = docs;
     matrimony.markModified('documentDetails');
+
     await matrimony.save();
+
     return await AuthService.getMergedUser(matrimony);
   }
+
 
   _resolveDocumentFields(docId) {
     const docMap = {

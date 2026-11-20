@@ -105,19 +105,22 @@ class AppLocalizationsMr extends AppLocalizations {
   String get onboardingTitle1 => 'सुंदर सुरुवातीची\nनिर्मिती';
 
   @override
-  String get onboardingDesc1 => 'अर्थपूर्ण नातेसंबंध आणि उज्ज्वल भविष्यासाठी विचारपूर्वक बनवलेले व्यासपीठ. आपल्या जीवन उद्दिष्टांशी जुळणारा जोडीदार शोधण्यात आम्ही मदत करतो.';
+  String get onboardingDesc1 =>
+      'अर्थपूर्ण नातेसंबंध आणि उज्ज्वल भविष्यासाठी विचारपूर्वक बनवलेले व्यासपीठ. आपल्या जीवन उद्दिष्टांशी जुळणारा जोडीदार शोधण्यात आम्ही मदत करतो.';
 
   @override
   String get onboardingTitle2 => 'दोन मने, एक सुरेख\nबंध';
 
   @override
-  String get onboardingDesc2 => 'कुटुंब, सुसंगतता आणि सामायिक स्वप्ने जिथे दोन कुटुंबांना एकत्र आणतात, त्या सुवर्णबंधाचा शोध घेण्यास आम्ही मदत करतो.';
+  String get onboardingDesc2 =>
+      'कुटुंब, सुसंगतता आणि सामायिक स्वप्ने जिथे दोन कुटुंबांना एकत्र आणतात, त्या सुवर्णबंधाचा शोध घेण्यास आम्ही मदत करतो.';
 
   @override
   String get onboardingTitle3 => 'विश्वासार्ह आणि सुरक्षित\nव्यासपीठ';
 
   @override
-  String get onboardingDesc3 => 'जीवनसाथीचा शोध अधिक सोपा, स्पष्ट आणि विश्वासार्ह बनवणे. आपल्या आयुष्याचा जोडीदार शोधण्याच्या आधुनिक पद्धतीमध्ये आपले स्वागत आहे.';
+  String get onboardingDesc3 =>
+      'जीवनसाथीचा शोध अधिक सोपा, स्पष्ट आणि विश्वासार्ह बनवणे. आपल्या आयुष्याचा जोडीदार शोधण्याच्या आधुनिक पद्धतीमध्ये आपले स्वागत आहे.';
 
   @override
   String get login => 'लॉगिन';
@@ -135,7 +138,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get emailMustContainAt => 'ईमेलमध्ये @ असणे आवश्यक आहे';
 
   @override
-  String get validEmailEndingCom => 'कृपया .com ने समाप्त होणारा वैध ईमेल पत्ता प्रविष्ट करा';
+  String get validEmailEndingCom =>
+      'कृपया .com ने समाप्त होणारा वैध ईमेल पत्ता प्रविष्ट करा';
 
   @override
   String get password => 'पासवर्ड';
@@ -150,10 +154,12 @@ class AppLocalizationsMr extends AppLocalizations {
   String get passwordMin8 => 'पासवर्ड किमान ८ अक्षरांचा असावा';
 
   @override
-  String get passwordUppercase => 'पासवर्डमध्ये किमान एक मोठे अक्षर (A-Z) असावे';
+  String get passwordUppercase =>
+      'पासवर्डमध्ये किमान एक मोठे अक्षर (A-Z) असावे';
 
   @override
-  String get passwordLowercase => 'पासवर्डमध्ये किमान एक लहान अक्षर (a-z) असावे';
+  String get passwordLowercase =>
+      'पासवर्डमध्ये किमान एक लहान अक्षर (a-z) असावे';
 
   @override
   String get forgotPasswordQuestion => 'पासवर्ड विसरलात?';
@@ -183,7 +189,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get forgotYourPassword => 'पासवर्ड विसरलात';
 
   @override
-  String get pleaseEnterEmailOrPhone => 'कृपया ईमेल किंवा फोन नंबर प्रविष्ट करा';
+  String get pleaseEnterEmailOrPhone =>
+      'कृपया ईमेल किंवा फोन नंबर प्रविष्ट करा';
 
   @override
   String get byPhoneNumber => 'फोन नंबरद्वारे';
@@ -249,7 +256,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get createNewPassword => 'नवीन पासवर्ड तयार करा';
 
   @override
-  String get updatePasswordSubtitle => 'सुरक्षितता वाढवण्यासाठी पासवर्ड अपडेट करा';
+  String get updatePasswordSubtitle =>
+      'सुरक्षितता वाढवण्यासाठी पासवर्ड अपडेट करा';
 
   @override
   String get confirmNewPassword => 'नवीन पासवर्डची पुष्टी करा';
@@ -543,7 +551,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get aboutMe => 'माझ्याबद्दल माहिती';
 
   @override
-  String get enterAboutMe => 'आपल्याबद्दल, आवडीनिवडी आणि जोडीदाराच्या अपेक्षांबद्दल थोडक्यात लिहा...';
+  String get enterAboutMe =>
+      'आपल्याबद्दल, आवडीनिवडी आणि जोडीदाराच्या अपेक्षांबद्दल थोडक्यात लिहा...';
 
   @override
   String get pleaseAgreeTerms => 'कृपया पुढे जाण्यासाठी नियम आणि अटी स्वीकारा';
@@ -618,13 +627,15 @@ class AppLocalizationsMr extends AppLocalizations {
   String get noFavoritesYet => 'अद्याप कोणतीही आवडती प्रोफाइल नाही';
 
   @override
-  String get noFavoritesDesc => 'कोणतीही प्रोफाइल जतन करण्यासाठी हृदयाच्या चिन्हावर टॅप करा.';
+  String get noFavoritesDesc =>
+      'कोणतीही प्रोफाइल जतन करण्यासाठी हृदयाच्या चिन्हावर टॅप करा.';
 
   @override
   String get removeFavorite => 'आवडत्यामधून काढून टाका';
 
   @override
-  String get removeFavoriteConfirm => 'तुम्हाला ही प्रोफाइल आवडत्या यादीतून काढून टाकायची आहे का?';
+  String get removeFavoriteConfirm =>
+      'तुम्हाला ही प्रोफाइल आवडत्या यादीतून काढून टाकायची आहे का?';
 
   @override
   String get remove => 'काढून टाका';
@@ -756,7 +767,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get profileCompletion => 'प्रोफाइल पूर्णता';
 
   @override
-  String get completeYourProfile => 'जास्त प्रतिसाद मिळवण्यासाठी आपली प्रोफाइल पूर्ण करा';
+  String get completeYourProfile =>
+      'जास्त प्रतिसाद मिळवण्यासाठी आपली प्रोफाइल पूर्ण करा';
 
   @override
   String get editProfile => 'प्रोफाइल संपादित करा';
@@ -828,7 +840,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get logout => 'लॉग आऊट';
 
   @override
-  String get logoutConfirm => 'तुम्हाला खात्री आहे की तुम्ही लॉग आऊट करू इच्छिता?';
+  String get logoutConfirm =>
+      'तुम्हाला खात्री आहे की तुम्ही लॉग आऊट करू इच्छिता?';
 
   @override
   String get deleteAccount => 'खाते हटवा';
@@ -1109,7 +1122,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get otherNotifications => 'इतर';
 
   @override
-  String get noNotificationsDesc => 'जेव्हा आपल्याला सूचना मिळतील, त्या येथे दिसतील.';
+  String get noNotificationsDesc =>
+      'जेव्हा आपल्याला सूचना मिळतील, त्या येथे दिसतील.';
 
   @override
   String get unableToDeleteNotification => 'सूचना हटवता आली नाही';
@@ -1142,7 +1156,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get noUpcomingEvents => 'सध्या कोणतेही आगामी मेळावे नाहीत';
 
   @override
-  String get noUpcomingEventsDesc => 'कृपया आगामी वधू-वर मेळाव्यांसाठी लवकरच पुन्हा तपासा.';
+  String get noUpcomingEventsDesc =>
+      'कृपया आगामी वधू-वर मेळाव्यांसाठी लवकरच पुन्हा तपासा.';
 
   @override
   String get registerForNextEvent => 'पुढील मेळाव्यासाठी नोंदणी करा';
@@ -1166,7 +1181,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get photography => 'छायाचित्रण (फोटोग्राफी)';
 
   @override
-  String get photographyDesc => 'फोटोग्राफर्स, सिनेमॅटोग्राफर्स आणि प्री-वेडिंग स्टुडिओ';
+  String get photographyDesc =>
+      'फोटोग्राफर्स, सिनेमॅटोग्राफर्स आणि प्री-वेडिंग स्टुडिओ';
 
   @override
   String get mehendi => 'मेहंदी';
@@ -1178,7 +1194,8 @@ class AppLocalizationsMr extends AppLocalizations {
   String get decoration => 'डेकोरेशन (सजावट)';
 
   @override
-  String get decorationDesc => 'स्टेज सजावट, मंडप डेकोर, फुलांची सजावट आणि लाइटिंग';
+  String get decorationDesc =>
+      'स्टेज सजावट, मंडप डेकोर, फुलांची सजावट आणि लाइटिंग';
 
   @override
   String get vendors => 'विक्रेते';
@@ -1243,13 +1260,15 @@ class AppLocalizationsMr extends AppLocalizations {
   String get continueButton => 'पुढे जा';
 
   @override
-  String get blockedProfilesDesc => 'आपण ब्लॉक केलेल्या प्रोफाइल व्यवस्थापित करा';
+  String get blockedProfilesDesc =>
+      'आपण ब्लॉक केलेल्या प्रोफाइल व्यवस्थापित करा';
 
   @override
   String get noBlockedProfiles => 'कोणतीही ब्लॉक केलेली प्रोफाइल नाही';
 
   @override
-  String get noBlockedProfilesDesc => 'आपण ब्लॉक केलेल्या प्रोफाइल येथे दिसतील.';
+  String get noBlockedProfilesDesc =>
+      'आपण ब्लॉक केलेल्या प्रोफाइल येथे दिसतील.';
 
   @override
   String unblockedSuccess(String name) {
@@ -1262,13 +1281,15 @@ class AppLocalizationsMr extends AppLocalizations {
   }
 
   @override
-  String get privacySettingsDesc => 'आपली वैयक्तिक माहिती कोण पाहू शकते ते नियंत्रित करा';
+  String get privacySettingsDesc =>
+      'आपली वैयक्तिक माहिती कोण पाहू शकते ते नियंत्रित करा';
 
   @override
   String get hidePhoneNumber => 'फोन नंबर लपवा';
 
   @override
-  String get hidePhoneNumberDesc => 'केवळ स्वीकारलेली स्थळे आपला फोन नंबर पाहू शकतात';
+  String get hidePhoneNumberDesc =>
+      'केवळ स्वीकारलेली स्थळे आपला फोन नंबर पाहू शकतात';
 
   @override
   String get hideEmailAddress => 'ईमेल पत्ता लपवा';
@@ -1280,13 +1301,15 @@ class AppLocalizationsMr extends AppLocalizations {
   String get hidePhotos => 'फोटो लपवा';
 
   @override
-  String get hidePhotosDesc => 'केवळ प्रीमियम किंवा स्वीकारलेली स्थळे आपले फोटो पाहू शकतात';
+  String get hidePhotosDesc =>
+      'केवळ प्रीमियम किंवा स्वीकारलेली स्थळे आपले फोटो पाहू शकतात';
 
   @override
   String get hideAnnualIncome => 'वार्षिक उत्पन्न लपवा';
 
   @override
-  String get hideAnnualIncomeDesc => 'इतर वापरकर्त्यांपासून आपले वार्षिक उत्पन्न लपवून ठेवा';
+  String get hideAnnualIncomeDesc =>
+      'इतर वापरकर्त्यांपासून आपले वार्षिक उत्पन्न लपवून ठेवा';
 
   @override
   String get hideLastSeen => 'शेवटचे पाहिलेली वेळ लपवा';
@@ -1298,13 +1321,15 @@ class AppLocalizationsMr extends AppLocalizations {
   String get hideOnlineStatus => 'ऑनलाइन स्थिती लपवा';
 
   @override
-  String get hideOnlineStatusDesc => 'आपण सध्या ऑनलाइन आहात की नाही ते दर्शवू नका';
+  String get hideOnlineStatusDesc =>
+      'आपण सध्या ऑनलाइन आहात की नाही ते दर्शवू नका';
 
   @override
   String get hideProfileCompletely => 'प्रोफाइल पूर्णपणे लपवा';
 
   @override
-  String get hideProfileCompletelyDesc => 'शोध निकालांमधून आपली प्रोफाइल तात्पुरती लपवा';
+  String get hideProfileCompletelyDesc =>
+      'शोध निकालांमधून आपली प्रोफाइल तात्पुरती लपवा';
 
   @override
   String get privacySaved => 'गोपनीयता सेटिंग्ज यशस्वीरित्या जतन केल्या';
