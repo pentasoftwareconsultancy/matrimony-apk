@@ -348,23 +348,13 @@ export const registerSchema = Joi.object({
 
   fatherName: Joi.string()
     .trim()
-    .required()
-    .messages({
-      'any.required':
-        'Father name is required',
-      'string.empty':
-        'Father name is required',
-    }),
+    .allow('', null)
+    .optional(),
 
   motherName: Joi.string()
     .trim()
-    .required()
-    .messages({
-      'any.required':
-        'Mother name is required',
-      'string.empty':
-        'Mother name is required',
-    }),
+    .allow('', null)
+    .optional(),
 
   familyType: Joi.string()
     .trim()
